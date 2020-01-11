@@ -3,9 +3,9 @@ from pluribus.game.cards import Deck
 
 
 class Dealer:
-    """The dealer is in charge of handling the cards on
-    a poker table.
+    """The dealer is in charge of handling the cards on a poker table.
     """
+
     def __init__(self):
         self.deck = Deck()
         self.deck.shuffle()
@@ -29,8 +29,11 @@ class Dealer:
             card = self.deal_card()
             table.add_community_card(card)
 
-    def deal_flop(self, table: PokerTable): return self.deal_community_cards(table, 3)
+    def deal_flop(self, table: PokerTable):
+        return self.deal_community_cards(table, 3)
 
-    def deal_turn(self, table: PokerTable): return self.deal_community_cards(table, 1)
+    def deal_turn(self, table: PokerTable):
+        return self.deal_community_cards(table, 1)
 
-    def deal_river(self, table: PokerTable): return self.deal_community_cards(table, 1)
+    def deal_river(self, table: PokerTable):
+        return self.deal_community_cards(table, 1)

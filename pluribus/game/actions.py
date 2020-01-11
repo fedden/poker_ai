@@ -1,13 +1,8 @@
 from collections import namedtuple
 
-__all__ = [
-    'Call',
-    'Fold',
-    'Raise',
-    'AbstractedRaise'
-]
+__all__ = ["Call", "Fold", "Raise", "AbstractedRaise"]
 
-DUMMY_AMOUNTS  = [10, 100, 500, 1000, 5000, 10000]
+DUMMY_AMOUNTS = [10, 100, 500, 1000, 5000, 10000]
 
 
 class Action:
@@ -17,38 +12,39 @@ class Action:
 
 class Call(Action):
     def __repr__(self):
-        return 'c'
+        return "c"
 
 
 class Fold(Action):
     def __repr__(self):
-        return 'f'
+        return "f"
 
 
 class Raise(Action):
     def __call__(self, amount):
         self.amount = amount
-    
+
     def __repr__(self):
-        return 'r{}'.format(self.amount)
+        return "r{}".format(self.amount)
 
 
 class AbstractedRaise(Action):
-
     def __init__(self, allowed_amounts):
         self.amounts = allowed_amounts
 
     def __call__(self, amount):
 
         if amount not in self.amounts:
-            raise Exception("Specified amount '{}' is not valid for ".format(amount)
-                            + "this action abstraction, check 'allowed_amounts()'"
-                            + "for more information" )
-        
+            raise Exception(
+                "Specified amount '{}' is not valid for ".format(amount)
+                + "this action abstraction, check 'allowed_amounts()'"
+                + "for more information"
+            )
+
         self.amount = amount
 
     def __repr__(self):
-        return 'r{}'.format(self.amount)
+        return "r{}".format(self.amount)
 
     @property
     def allowed_amounts(self):

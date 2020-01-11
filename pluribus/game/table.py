@@ -2,6 +2,7 @@ from .player import Player
 from .dealer import Dealer
 from .cards import Card
 
+
 class PokerTable:
     """On a poker table at least two players
     and precisely one dealer are seated. You
@@ -10,6 +11,7 @@ class PokerTable:
     is responisble for handling his own cards
     privately.
     """
+
     def __init__(self, players: list[Player]):
         self.players = players
         self.dealer = Dealer()

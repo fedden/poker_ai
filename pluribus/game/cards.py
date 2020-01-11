@@ -2,39 +2,35 @@ import collections
 import random
 
 __all__ = [
-    'Card',
-    'Deck',
+    "Card",
+    "Deck",
 ]
 
 
-Card = collections.namedtuple('Card', ['rank', 'suit'])
+Card = collections.namedtuple("Card", ["rank", "suit"])
 
 
 def card_to_string(card):
     return card.rank + card.suit
 
+
 # Monkey patch the string representation of a card
 Card.__repr__ = card_to_string
 
 
-Ranks = [str(n) for n in range(2, 11)] + list('JQKA')
+Ranks = [str(n) for n in range(2, 11)] + list("JQKA")
 
 
-Suits = {
-    's': 'spades',
-    'd': 'diamonds',
-    'c': 'clubs',
-    'h': 'hearts'
-}  
+Suits = {"s": "spades", "d": "diamonds", "c": "clubs", "h": "hearts"}
 
 
-class Deck: 
+class Deck:
     def __init__(self):
         self._cards = [Card(rank, suit) for suit in Suits.keys() for rank in Ranks]
-    
+
     def __len__(self):
         return len(self._cards)
-    
+
     def __getitem__(self, position):
         return self._cards[position]
 

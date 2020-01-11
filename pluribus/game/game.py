@@ -7,8 +7,8 @@ import copy
 
 
 __all__ = [
-    'PokerGameState',
-    'PokerHand',
+    "PokerGameState",
+    "PokerHand",
 ]
 
 
@@ -19,6 +19,7 @@ class PokerGameState:
     table and the player whose turn it is taking an action, plus all previous
     states.
     """
+
     def __init__(self, previous_state, table, player, action):
         self.previous_state = previous_state
         self.table = table
@@ -40,6 +41,7 @@ class PokerHand:
     pre-flop, flop, turn and river. Small blind and big blind can be set per
     hand, but should generally not change during a session on the table.
     """
+
     def __init__(self, table: PokerTable, small_blind: int, big_blind: int):
         self.table = table
         self.small_blind = small_blind
@@ -120,4 +122,4 @@ class PokerHand:
         if not self.is_betting_round_complete():
             for player in self.table.players:
                 if player.is_active:
-                    self.state  = player.take_action(self.state)
+                    self.state = player.take_action(self.state)
