@@ -1,6 +1,6 @@
-from .actions import *
-from .cards import Card
-from .game import PokerGameState
+from pluribus.game.actions import *
+from pluribus.game.cards import Card
+from pluribus.game.game import PokerGameState
 
 
 class Player:
@@ -25,7 +25,6 @@ class Player:
         """
         self.chips += chips
         self._total_in_pot = 0
-
 
     def fold(self):
         """Deactivate player for this hand by folding cards."""
@@ -55,10 +54,10 @@ class Player:
 
     def bet_so_far(self):
         return self._total_in_pot
-    
+
     def add_private_card(self, card: Card):
         self.cards.append(card)
-    
+
     def take_action(self, game_state: PokerGameState) -> PokerGameState:
         """All poker strategy is implemented here. Smart agents have
         to implement this method to compete. To take an action, agents
@@ -70,4 +69,3 @@ class Player:
         # action = Fold()
 
         # return PokerGameState(game_state, table, self, action)
-

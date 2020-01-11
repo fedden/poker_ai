@@ -1,5 +1,5 @@
-from .poker_game import PokerTable
-from .cards import Deck
+from pluribus.game.poker_game import PokerTable
+from pluribus.game.cards import Deck
 
 
 class Dealer:
@@ -28,7 +28,7 @@ class Dealer:
         for _ in range(num_cards):
             card = self.deal_card()
             table.add_community_card(card)
-    
+
     def deal_flop(self, table: PokerTable): return self.deal_community_cards(table, 3)
 
     def deal_turn(self, table: PokerTable): return self.deal_community_cards(table, 1)

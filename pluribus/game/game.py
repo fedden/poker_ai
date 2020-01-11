@@ -1,7 +1,7 @@
-from .cards import Deck, Card
-from .actions import *
-from .player import Player
-from.table import PokerTable
+from pluribus.game.actions import *
+from pluribus.game.cards import Deck, Card
+from pluribus.game.player import Player
+from pluribus.game.table import PokerTable
 
 import copy
 
@@ -14,9 +14,10 @@ __all__ = [
 
 class PokerGameState:
     """Poker game state is encoded as immutable data structure.
-    At each point in time a poker game is described by the
-    information on the table and the player whose turn it is
-    taking an action, plus all previous states.
+
+    At each point in time a poker game is described by the information on the
+    table and the player whose turn it is taking an action, plus all previous
+    states.
     """
     def __init__(self, previous_state, table, player, action):
         self.previous_state = previous_state
@@ -33,18 +34,17 @@ class PokerGameState:
 
 
 class PokerHand:
-    """A hand of poker is played at a table
-    by playing for betting rounds: pre-flop,
-    flop, turn and river. Small blind and big
-    blind can be set per hand, but should
-    generally not change during a session on
-    the table.
+    """Instance to represent the lifetime of a full poker hand.
+
+    A hand of poker is played at a table by playing for betting rounds:
+    pre-flop, flop, turn and river. Small blind and big blind can be set per
+    hand, but should generally not change during a session on the table.
     """
     def __init__(self, table: PokerTable, small_blind: int, big_blind: int):
         self.table = table
         self.small_blind = small_blind
         self.big_blind = big_blind
-        
+
         self.state = PokerGameState.new_hand(self.table)
         self.wins_and_losses = []
 
@@ -79,7 +79,6 @@ class PokerHand:
             player.payout(payout)
         self.wins_and_losses = payouts
 
-
     def evaluate_hand(self) -> list[Player]:
         # TODO determine and return winners
         # TODO needs optional information abstraction for speed
@@ -112,9 +111,8 @@ class PokerHand:
         players.append(players.pop(0))
         self.table.set_players(players)
 
-
     def betting_round(self):
-        """Until the current betting round is complete, all active 
+        """Until the current betting round is complete, all active
         players take actions in the order they were placed at the table.
         A betting round lasts until all players either call the
         highest placed bet or fold.
@@ -123,10 +121,3 @@ class PokerHand:
             for player in self.table.players:
                 if player.is_active:
                     self.state  = player.take_action(self.state)
-
-
-
-
-
-
-    
