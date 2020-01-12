@@ -34,7 +34,6 @@ class AbstractedRaise(Action):
         self.amounts = allowed_amounts
 
     def __call__(self, amount):
-
         if amount not in self.amounts:
             raise Exception(
                 f"Specified amount '{amount}' is not valid for this action "
