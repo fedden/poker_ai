@@ -1,4 +1,4 @@
-from pluribus.game.actions import *
+from pluribus.game.actions import Call, Fold, Raise
 from pluribus.game.cards import Card
 from pluribus.game.game import PokerGameState
 
@@ -12,7 +12,7 @@ class Player:
     given hand of poker are stored cumulative, as the total
     pot to cash out is just the sum of all players' contributions.
     """
-    def __init__(self, name:str, initial_chips: int):
+    def __init__(self, name: str, initial_chips: int):
         self.name: str = name
         self.chips: int = initial_chips
         self.cards: list[Card] = []
@@ -33,14 +33,13 @@ class Player:
 
     def call(self, players):
         """Call the highest bet among all active players."""
-        #TODO how to handle all-ins? for later
+        # TODO how to handle all-ins? for later
         amount_to_call = max(p.bet_so_far() for p in players)
         self.bet(amount_to_call)
         return Call()
 
     def raise_to(self, amount: int):
-        """Raise your bet to a certain amount.
-        """
+        """Raise your bet to a certain amount."""
         self.bet(amount)
         raize = Raise()
         raize(amount)
