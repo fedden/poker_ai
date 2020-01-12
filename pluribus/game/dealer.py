@@ -1,5 +1,12 @@
-from pluribus.game.poker_game import PokerTable
-from pluribus.game.cards import Deck
+from __future__ import annotations
+
+from typing import List, TYPE_CHECKING
+
+from pluribus.game.deck import Deck
+
+if TYPE_CHECKING:
+    from pluribus.game.table import PokerTable
+    from pluribus.game.player import Player
 
 
 class Dealer:
@@ -16,7 +23,7 @@ class Dealer:
         self.deck = Deck()
         self.deck.shuffle()
 
-    def deal_private_cards(self, players):
+    def deal_private_cards(self, players: List[Player]):
         for _ in range(2):
             for player in players:
                 card = self.deal_card()

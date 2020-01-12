@@ -1,4 +1,5 @@
-from collections import namedtuple
+from __future__ import annotations
+
 
 __all__ = ["Call", "Fold", "Raise", "AbstractedRaise"]
 
@@ -25,7 +26,7 @@ class Raise(Action):
         self.amount = amount
 
     def __repr__(self):
-        return "r{}".format(self.amount)
+        return f"r{self.amount}"
 
 
 class AbstractedRaise(Action):
@@ -33,7 +34,6 @@ class AbstractedRaise(Action):
         self.amounts = allowed_amounts
 
     def __call__(self, amount):
-
         if amount not in self.amounts:
             raise Exception(
                 f"Specified amount '{amount}' is not valid for this action "
