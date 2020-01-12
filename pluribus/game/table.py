@@ -1,6 +1,10 @@
-from pluribus.game.player import Player
-from pluribus.game.dealer import Dealer
-from pluribus.game.cards import Card
+from __future__ import annotations
+import typing
+
+if typing.TYPE_CHECKING:
+    from pluribus.game.player import Player
+    from pluribus.game.dealer import Dealer
+    from pluribus.game.cards import Card
 
 
 class PokerTable:

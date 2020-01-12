@@ -1,4 +1,5 @@
-from collections import namedtuple
+from __future__ import annotations
+
 
 __all__ = ["Call", "Fold", "Raise", "AbstractedRaise"]
 
@@ -25,7 +26,7 @@ class Raise(Action):
         self.amount = amount
 
     def __repr__(self):
-        return "r{}".format(self.amount)
+        return f"r{self.amount}"
 
 
 class AbstractedRaise(Action):

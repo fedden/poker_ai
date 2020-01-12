@@ -1,16 +1,20 @@
-from pluribus.game.actions import Call, Fold, Raise
-from pluribus.game.cards import Card
-from pluribus.game.game import PokerGameState
+from __future__ import annotations
+
+import typing
+
+if typing.TYPE_CHECKING:
+    from pluribus.game.actions import Call, Fold, Raise
+    from pluribus.game.cards import Card
+    from pluribus.game.state import PokerGameState
 
 
 class Player:
-    """Base class for all poker-playing agents. A poker
-    player has a name, holds chips to bet with, and has
-    private cards to play with.
+    """Base class for all poker-playing agents.
 
-    The amount of contributions to the pot for a
-    given hand of poker are stored cumulative, as the total
-    pot to cash out is just the sum of all players' contributions.
+    A poker player has a name, holds chips to bet with, and has private cards
+    to play with. The amount of contributions to the pot for a given hand of
+    poker are stored cumulative, as the total pot to cash out is just the sum
+    of all players' contributions.
     """
     def __init__(self, name: str, initial_chips: int):
         self.name: str = name
@@ -20,8 +24,7 @@ class Player:
         self._total_in_pot = 0
 
     def payout(self, chips: int):
-        """Pay-out chips earned (or lost) in the last
-        hand and reset the pot.
+        """Pay-out chips earned (or lost) in the last hand and reset the pot.
         """
         self.chips += chips
         self._total_in_pot = 0
@@ -41,26 +44,22 @@ class Player:
     def raise_to(self, amount: int):
         """Raise your bet to a certain amount."""
         self.bet(amount)
-        raize = Raise()
-        raize(amount)
-        return raize
-
-    def is_active(self) -> bool:
-        return self._is_active
+        _raise = Raise()
+        _raise(amount)
+        return _raise
 
     def bet(self, amount: int):
         self._total_in_pot += amount
-
-    def bet_so_far(self):
-        return self._total_in_pot
 
     def add_private_card(self, card: Card):
         self.cards.append(card)
 
     def take_action(self, game_state: PokerGameState) -> PokerGameState:
-        """All poker strategy is implemented here. Smart agents have
-        to implement this method to compete. To take an action, agents
-        receive the current game state and have to emit the next state.
+        """All poker strategy is implemented here.
+
+        Smart agents have to implement this method to compete. To take an
+        action, agents receive the current game state and have to emit the next
+        state.
         """
         raise NotImplementedError
         # previous = game_state.previous_state
@@ -68,3 +67,11 @@ class Player:
         # action = Fold()
 
         # return PokerGameState(game_state, table, self, action)
+
+    @property
+    def is_active(self) -> bool:
+        return self._is_active
+
+    @property
+    def bet_so_far(self):
+        return self._total_in_pot

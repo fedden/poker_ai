@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import collections
 import random
+
 
 __all__ = [
     "Card",
@@ -19,14 +22,14 @@ Card.__repr__ = card_to_string
 
 
 Ranks = [str(n) for n in range(2, 11)] + list("JQKA")
-
-
 Suits = {"s": "spades", "d": "diamonds", "c": "clubs", "h": "hearts"}
 
 
 class Deck:
     def __init__(self):
-        self._cards = [Card(rank, suit) for suit in Suits.keys() for rank in Ranks]
+        self._cards = [
+            Card(rank, suit) for suit in Suits.keys() for rank in Ranks
+        ]
 
     def __len__(self):
         return len(self._cards)

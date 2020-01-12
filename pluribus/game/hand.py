@@ -1,35 +1,12 @@
-from pluribus.game.player import Player
-from pluribus.game.table import PokerTable
+from __future__ import annotations
 
 import copy
+import typing
 
-
-__all__ = [
-    "PokerGameState",
-    "PokerHand",
-]
-
-
-class PokerGameState:
-    """Poker game state is encoded as immutable data structure.
-
-    At each point in time a poker game is described by the information on the
-    table and the player whose turn it is taking an action, plus all previous
-    states.
-    """
-
-    def __init__(self, previous_state, table, player, action):
-        self.previous_state = previous_state
-        self.table = table
-        self.player = player
-        self.action = action
-
-    def __str__(self):
-        return "foo"
-
-    @classmethod
-    def new_hand(cls, table):
-        return PokerGameState(None, table, None, None)
+if typing.TYPE_CHECKING:
+    from pluribus.game.player import Player
+    from pluribus.game.table import PokerTable
+    from pluribus.game.state import PokerGameState
 
 
 class PokerHand:
@@ -40,7 +17,11 @@ class PokerHand:
     hand, but should generally not change during a session on the table.
     """
 
-    def __init__(self, table: PokerTable, small_blind: int, big_blind: int):
+    def __init__(
+            self,
+            table: PokerTable,
+            small_blind: int,
+            big_blind: int):
         self.table = table
         self.small_blind = small_blind
         self.big_blind = big_blind
@@ -80,6 +61,7 @@ class PokerHand:
         self.wins_and_losses = payouts
 
     def evaluate_hand(self) -> list[Player]:
+        # https://projecteuler.net/problem=54
         # TODO determine and return winners
         # TODO needs optional information abstraction for speed
         return []
