@@ -27,8 +27,8 @@ This is an open effort and help, criticisms and ideas are all welcome. Feel free
 
 ## Useful links
 * [Paper](https://www.cs.cmu.edu/~noamb/papers/19-Science-Superhuman.pdf)
-* [Supplimentary Material](https://science.sciencemag.org/highwire/filestream/728919/field_highwire_adjunct_files/0/aay2400-Brown-SM.pdf)
+* [Supplimentary material](https://science.sciencemag.org/highwire/filestream/728919/field_highwire_adjunct_files/0/aay2400-Brown-SM.pdf)
 * [Facebook blog post](https://ai.facebook.com/blog/pluribus-first-ai-to-beat-pros-in-6-player-poker/)
-* [Hacker News Discussion](https://news.ycombinator.com/item?id=20415379)
+* [HackerNews discussion](https://news.ycombinator.com/item?id=20415379)
 * [Other github discussions](https://github.com/whatsdis/pluribus)
 * [Game code based on this (dead!?!) repo](https://pypi.org/project/pluribus-python/#data)
