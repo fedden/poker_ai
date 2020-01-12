@@ -3,10 +3,11 @@ from __future__ import annotations
 import copy
 import typing
 
+from pluribus.game.state import PokerGameState
+
 if typing.TYPE_CHECKING:
     from pluribus.game.player import Player
     from pluribus.game.table import PokerTable
-    from pluribus.game.state import PokerGameState
 
 
 class PokerHand:
@@ -66,40 +67,49 @@ class PokerHand:
         # TODO needs optional information abstraction for speed
         return []
 
-    def get_active_bets(self) -> list[int]:
-        return [p.bet_so_far() for p in self.table.players if p.is_active]
-
-    def get_all_bets(self) -> list[int]:
-        return [p.bet_so_far() for p in self.table.players]
-
-    def is_betting_round_complete(self):
-        """If all active players have settled, i.e everyone
-        has called the highest bet or folded, the current
-        betting round is complete.
-        """
-        active_bets = self.get_active_bets()
-        return all(x == active_bets[0] for x in active_bets)
-
     def assign_blinds(self):
+        """"""
         self.table.players[0].bet(self.small_blind)
         self.table.players[1].bet(self.big_blind)
 
     def move_blinds(self):
-        """Rotate the table's player list so that
-        the next player in line gets the small blind
-        and the right to act first in the next hand.
+        """Rotate the table's player list.
+
+        This is so that the next player in line gets the small blind and the
+        right to act first in the next hand.
         """
         players = copy.deepcopy(self.table.players)
         players.append(players.pop(0))
         self.table.set_players(players)
 
     def betting_round(self):
-        """Until the current betting round is complete, all active
-        players take actions in the order they were placed at the table.
-        A betting round lasts until all players either call the
-        highest placed bet or fold.
+        """Computes the round(s) of betting.
+
+        Until the current betting round is complete, all active players take
+        actions in the order they were placed at the table. A betting round
+        lasts until all players either call the highest placed bet or fold.
         """
-        if not self.is_betting_round_complete():
+        if not self.is_betting_round_complete:
             for player in self.table.players:
                 if player.is_active:
                     self.state = player.take_action(self.state)
+
+    @property
+    def active_bets(self) -> list[int]:
+        """Returns all active bets made so far."""
+        return [p.bet_so_far for p in self.table.players if p.is_active]
+
+    @property
+    def all_bets(self) -> list[int]:
+        """Returns all bets made by the players."""
+        return [p.bet_so_far for p in self.table.players]
+
+    @property
+    def is_betting_round_complete(self) -> bool:
+        """Returns if the round of betting is complete or not.
+
+        If all active players have settled, i.e everyone has called the highest
+        bet or folded, the current betting round is complete.
+        """
+        active_bets = self.active_bets
+        return all(x == active_bets[0] for x in active_bets)

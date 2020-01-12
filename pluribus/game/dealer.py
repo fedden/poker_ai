@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import List, TYPE_CHECKING
 
+from pluribus.game.cards import Deck
+
 if TYPE_CHECKING:
     from pluribus.game.table import PokerTable
     from pluribus.game.player import Player
-    from pluribus.game.cards import Deck
 
 
 class Dealer:

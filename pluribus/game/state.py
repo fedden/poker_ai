@@ -15,9 +15,6 @@ class PokerGameState:
         self.player = player
         self.action = action
 
-    def __str__(self):
-        return "foo"
-
     @classmethod
     def new_hand(cls, table):
         return PokerGameState(None, table, None, None)
