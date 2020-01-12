@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import copy
-import typing
+from operator import itemgetter
+from typing import List, TYPE_CHECKING
 
+from pluribus.game.evaluation.evaluator import Evaluator
 from pluribus.game.state import PokerGameState
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from pluribus.game.player import Player
     from pluribus.game.table import PokerTable
 
@@ -23,10 +25,11 @@ class PokerHand:
             table: PokerTable,
             small_blind: int,
             big_blind: int):
+        """"""
         self.table = table
         self.small_blind = small_blind
         self.big_blind = big_blind
-
+        self.evaluator = Evaluator()
         self.state = PokerGameState.new_hand(self.table)
         self.wins_and_losses = []
 
@@ -45,6 +48,7 @@ class PokerHand:
         self.compute_payouts(winners)
 
         self.move_blinds()
+        import ipdb; ipdb.set_trace()
 
     def compute_payouts(self, winners: list[Player]):
         if not winners:
@@ -52,23 +56,44 @@ class PokerHand:
         pot = sum(self.all_bets)
         n_winners = len(winners)
         pot_contribution = pot / n_winners
-
         payouts = []
         for player in self.table.players:
             win = 0 if player not in winners else pot_contribution
-            loss = player.bet_so_far()
+            loss = player.bet_so_far
             payout = win - loss
-
             payouts.append(payout)
             player.payout(payout)
         self.wins_and_losses = payouts
 
     def evaluate_hand(self) -> list[Player]:
-        # https://projecteuler.net/problem=54
-        # TODO determine and return winners
-        # TODO needs optional information abstraction for speed
-        import ipdb; ipdb.set_trace()
-        return []
+        """"""
+        # The cards that can be passed to the evaluator object from the table.
+        table_cards = [card.eval_card for card in self.table.community_cards]
+        # For every active player...
+        player_results = []
+        for player in self.table.players:
+            if player.is_active:
+                # Get evaluator friendly cards.
+                hand_cards = [card.eval_card for card in player.cards]
+                # Rank of the best hand - lower is better.
+                rank = self.evaluator.evaluate(table_cards, hand_cards)
+                hand_class = self.evaluator.get_rank_class(rank)
+                hand_desc = self.evaluator.class_to_string(hand_class).lower()
+                player_results.append(dict(
+                    player=player,
+                    rank=rank,
+                    hand_desc=hand_desc))
+        # Sort results by rank.
+        player_results = sorted(player_results, key=itemgetter('rank'))
+        # The first definitely won, but did anyone draw? Use the rank to find
+        # out.
+        winning_rank = player_results[0]['rank']
+        winners: List[Player] = [player_results[0]['player']]
+        for result in player_results[1:]:
+            if result['rank'] > winning_rank:
+                break
+            winners.append(result['player'])
+        return winners
 
     def assign_blinds(self):
         """"""

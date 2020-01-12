@@ -1,5 +1,5 @@
 import itertools
-from pluribus.game.evaluation.card import Card
+from pluribus.game.evaluation.eval_card import EvaluationCard
 from pluribus.game.evaluation.lookup import LookupTable
 
 
@@ -41,12 +41,12 @@ class Evaluator(object):
         # if flush
         if cards[0] & cards[1] & cards[2] & cards[3] & cards[4] & 0xF000:
             handOR = (cards[0] | cards[1] | cards[2] | cards[3] | cards[4]) >> 16
-            prime = Card.prime_product_from_rankbits(handOR)
+            prime = EvaluationCard.prime_product_from_rankbits(handOR)
             return self.table.flush_lookup[prime]
 
         # otherwise
         else:
-            prime = Card.prime_product_from_hand(cards)
+            prime = EvaluationCard.prime_product_from_hand(cards)
             return self.table.unsuited_lookup[prime]
 
     def _six(self, cards):

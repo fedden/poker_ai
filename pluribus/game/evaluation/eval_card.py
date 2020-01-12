@@ -1,10 +1,10 @@
-class Card:
+class EvaluationCard:
     """
     Static class that handles cards. We represent cards as 32-bit integers, so
     there is no object instantiation - they are just ints. Most of the bits are
     used, and have a specific meaning. See below:
 
-                                    Card:
+                                    EvaluationCard:
 
                           bitrank     suit rank   prime
                     +--------+--------+--------+--------+
@@ -54,16 +54,16 @@ class Card:
     @staticmethod
     def new(string):
         """
-        Converts Card string to binary integer representation of card, inspired by:
+        Converts EvaluationCard string to binary integer representation of card, inspired by:
 
         http://www.suffecool.net/poker/evaluator.html
         """
 
         rank_char = string[0]
         suit_char = string[1]
-        rank_int = Card.CHAR_RANK_TO_INT_RANK[rank_char]
-        suit_int = Card.CHAR_SUIT_TO_INT_SUIT[suit_char]
-        rank_prime = Card.PRIMES[rank_int]
+        rank_int = EvaluationCard.CHAR_RANK_TO_INT_RANK[rank_char]
+        suit_int = EvaluationCard.CHAR_SUIT_TO_INT_SUIT[suit_char]
+        rank_prime = EvaluationCard.PRIMES[rank_int]
 
         bitrank = 1 << rank_int << 16
         suit = suit_int << 12
@@ -73,9 +73,9 @@ class Card:
 
     @staticmethod
     def int_to_str(card_int):
-        rank_int = Card.get_rank_int(card_int)
-        suit_int = Card.get_suit_int(card_int)
-        return Card.STR_RANKS[rank_int] + Card.INT_SUIT_TO_CHAR_SUIT[suit_int]
+        rank_int = EvaluationCard.get_rank_int(card_int)
+        suit_int = EvaluationCard.get_suit_int(card_int)
+        return EvaluationCard.STR_RANKS[rank_int] + EvaluationCard.INT_SUIT_TO_CHAR_SUIT[suit_int]
 
     @staticmethod
     def get_rank_int(card_int):
@@ -101,7 +101,7 @@ class Card:
         """
         bhand = []
         for c in card_strs:
-            bhand.append(Card.new(c))
+            bhand.append(EvaluationCard.new(c))
         return bhand
 
     @staticmethod
@@ -138,10 +138,10 @@ class Card:
 
         """
         product = 1
-        for i in Card.INT_RANKS:
+        for i in EvaluationCard.INT_RANKS:
             # if the ith bit is set
             if rankbits & (1 << i):
-                product *= Card.PRIMES[i]
+                product *= EvaluationCard.PRIMES[i]
         return product
 
     @staticmethod
@@ -176,15 +176,15 @@ class Card:
             pass
 
         # suit and rank
-        suit_int = Card.get_suit_int(card_int)
-        rank_int = Card.get_rank_int(card_int)
+        suit_int = EvaluationCard.get_suit_int(card_int)
+        rank_int = EvaluationCard.get_rank_int(card_int)
 
         # if we need to color red
-        s = Card.PRETTY_SUITS[suit_int]
-        if color and suit_int in Card.PRETTY_REDS:
+        s = EvaluationCard.PRETTY_SUITS[suit_int]
+        if color and suit_int in EvaluationCard.PRETTY_REDS:
             s = colored(s, "red")
 
-        r = Card.STR_RANKS[rank_int]
+        r = EvaluationCard.STR_RANKS[rank_int]
 
         return f"[{r}{s}]"
 
@@ -193,7 +193,7 @@ class Card:
         """
         Expects a single integer as input
         """
-        print(Card.int_to_pretty_str(card_int))
+        print(EvaluationCard.int_to_pretty_str(card_int))
 
     @staticmethod
     def print_pretty_cards(card_ints):
@@ -204,8 +204,8 @@ class Card:
         for i in range(len(card_ints)):
             c = card_ints[i]
             if i != len(card_ints) - 1:
-                output += str(Card.int_to_pretty_str(c)) + ","
+                output += str(EvaluationCard.int_to_pretty_str(c)) + ","
             else:
-                output += str(Card.int_to_pretty_str(c)) + " "
+                output += str(EvaluationCard.int_to_pretty_str(c)) + " "
 
         print(output)

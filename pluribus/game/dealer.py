@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, TYPE_CHECKING
 
-from pluribus.game.cards import Deck
+from pluribus.game.deck import Deck
 
 if TYPE_CHECKING:
     from pluribus.game.table import PokerTable

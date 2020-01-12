@@ -28,6 +28,10 @@ class Player:
         self._is_active = True
         self._total_in_pot = 0
 
+    def __repr__(self):
+        """"""
+        return f'<Player name="{self.name}" chips={self.chips}>'
+
     def payout(self, chips: int):
         """Pay-out chips earned or lost in the last hand and reset the pot."""
         self.chips += chips
@@ -86,8 +90,13 @@ class Player:
 
     @property
     def is_active(self) -> bool:
-        """Returns if the player is playing or not."""
+        """Getter for if the player is playing or not."""
         return self._is_active
+
+    @is_active.setter
+    def is_active(self, x):
+        """Setter for if the player is playing or not."""
+        self._is_active = x
 
     @property
     def bet_so_far(self) -> int:

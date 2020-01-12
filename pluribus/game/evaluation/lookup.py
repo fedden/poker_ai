@@ -1,6 +1,6 @@
 import itertools
 
-from pluribus.game.evaluation.card import Card
+from pluribus.game.evaluation.eval_card import EvaluationCard
 
 
 class LookupTable(object):
@@ -130,7 +130,7 @@ class LookupTable(object):
         # rank 1 = Royal Flush!
         rank = 1
         for sf in straight_flushes:
-            prime_product = Card.prime_product_from_rankbits(sf)
+            prime_product = EvaluationCard.prime_product_from_rankbits(sf)
             self.flush_lookup[prime_product] = rank
             rank += 1
 
@@ -138,7 +138,7 @@ class LookupTable(object):
         # is the worst rank that a full house can have (2,2,2,3,3)
         rank = LookupTable.MAX_FULL_HOUSE + 1
         for f in flushes:
-            prime_product = Card.prime_product_from_rankbits(f)
+            prime_product = EvaluationCard.prime_product_from_rankbits(f)
             self.flush_lookup[prime_product] = rank
             rank += 1
 
@@ -156,13 +156,13 @@ class LookupTable(object):
         rank = LookupTable.MAX_FLUSH + 1
 
         for s in straights:
-            prime_product = Card.prime_product_from_rankbits(s)
+            prime_product = EvaluationCard.prime_product_from_rankbits(s)
             self.unsuited_lookup[prime_product] = rank
             rank += 1
 
         rank = LookupTable.MAX_PAIR + 1
         for h in highcards:
-            prime_product = Card.prime_product_from_rankbits(h)
+            prime_product = EvaluationCard.prime_product_from_rankbits(h)
             self.unsuited_lookup[prime_product] = rank
             rank += 1
 
@@ -170,7 +170,7 @@ class LookupTable(object):
         """
         Pair, Two Pair, Three of a Kind, Full House, and 4 of a Kind.
         """
-        backwards_ranks = list(range(len(Card.INT_RANKS) - 1, -1, -1))
+        backwards_ranks = list(range(len(EvaluationCard.INT_RANKS) - 1, -1, -1))
 
         # 1) Four of a Kind
         rank = LookupTable.MAX_STRAIGHT_FLUSH + 1
@@ -182,7 +182,7 @@ class LookupTable(object):
             kickers = backwards_ranks[:]
             kickers.remove(i)
             for k in kickers:
-                product = Card.PRIMES[i] ** 4 * Card.PRIMES[k]
+                product = EvaluationCard.PRIMES[i] ** 4 * EvaluationCard.PRIMES[k]
                 self.unsuited_lookup[product] = rank
                 rank += 1
 
@@ -196,7 +196,7 @@ class LookupTable(object):
             pairranks = backwards_ranks[:]
             pairranks.remove(i)
             for pr in pairranks:
-                product = Card.PRIMES[i] ** 3 * Card.PRIMES[pr] ** 2
+                product = EvaluationCard.PRIMES[i] ** 3 * EvaluationCard.PRIMES[pr] ** 2
                 self.unsuited_lookup[product] = rank
                 rank += 1
 
@@ -213,7 +213,7 @@ class LookupTable(object):
             for kickers in gen:
 
                 c1, c2 = kickers
-                product = Card.PRIMES[r] ** 3 * Card.PRIMES[c1] * Card.PRIMES[c2]
+                product = EvaluationCard.PRIMES[r] ** 3 * EvaluationCard.PRIMES[c1] * EvaluationCard.PRIMES[c2]
                 self.unsuited_lookup[product] = rank
                 rank += 1
 
@@ -230,9 +230,9 @@ class LookupTable(object):
             for kicker in kickers:
 
                 product = (
-                    Card.PRIMES[pair1] ** 2
-                    * Card.PRIMES[pair2] ** 2
-                    * Card.PRIMES[kicker]
+                    EvaluationCard.PRIMES[pair1] ** 2
+                    * EvaluationCard.PRIMES[pair2] ** 2
+                    * EvaluationCard.PRIMES[kicker]
                 )
                 self.unsuited_lookup[product] = rank
                 rank += 1
@@ -251,10 +251,10 @@ class LookupTable(object):
 
                 k1, k2, k3 = kickers
                 product = (
-                    Card.PRIMES[pairrank] ** 2
-                    * Card.PRIMES[k1]
-                    * Card.PRIMES[k2]
-                    * Card.PRIMES[k3]
+                    EvaluationCard.PRIMES[pairrank] ** 2
+                    * EvaluationCard.PRIMES[k1]
+                    * EvaluationCard.PRIMES[k2]
+                    * EvaluationCard.PRIMES[k3]
                 )
                 self.unsuited_lookup[product] = rank
                 rank += 1
