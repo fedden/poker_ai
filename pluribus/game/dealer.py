@@ -3,8 +3,7 @@ from pluribus.game.cards import Deck
 
 
 class Dealer:
-    """The dealer is in charge of handling the cards on a poker table.
-    """
+    """The dealer is in charge of handling the cards on a poker table."""
 
     def __init__(self):
         self.deck = Deck()

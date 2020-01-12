@@ -36,15 +36,14 @@ class AbstractedRaise(Action):
 
         if amount not in self.amounts:
             raise Exception(
-                "Specified amount '{}' is not valid for ".format(amount)
-                + "this action abstraction, check 'allowed_amounts()'"
-                + "for more information"
+                f"Specified amount '{amount}' is not valid for this action "
+                f"abstraction, check 'allowed_amounts()' for more information"
             )
 
         self.amount = amount
 
     def __repr__(self):
-        return "r{}".format(self.amount)
+        return f"r{self.amount}"
 
     @property
     def allowed_amounts(self):
