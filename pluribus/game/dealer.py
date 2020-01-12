@@ -1,4 +1,4 @@
-from pluribus.game.poker_game import PokerTable
+from pluribus.game.table import PokerTable
 from pluribus.game.cards import Deck
 
 

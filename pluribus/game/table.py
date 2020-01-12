@@ -1,6 +1,6 @@
-from .player import Player
-from .dealer import Dealer
-from .cards import Card
+from pluribus.game.player import Player
+from pluribus.game.dealer import Dealer
+from pluribus.game.cards import Card
 
 
 class PokerTable:
