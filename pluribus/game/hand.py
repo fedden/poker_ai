@@ -47,9 +47,11 @@ class PokerHand:
         self.move_blinds()
 
     def compute_payouts(self, winners: list[Player]):
-        pot = sum(self.get_all_bets())
-        num_winners = len(winners)
-        pot_contribution = pot / num_winners
+        if not winners:
+            raise ValueError('At least one player must be in winners.')
+        pot = sum(self.all_bets)
+        n_winners = len(winners)
+        pot_contribution = pot / n_winners
 
         payouts = []
         for player in self.table.players:
@@ -65,6 +67,7 @@ class PokerHand:
         # https://projecteuler.net/problem=54
         # TODO determine and return winners
         # TODO needs optional information abstraction for speed
+        import ipdb; ipdb.set_trace()
         return []
 
     def assign_blinds(self):

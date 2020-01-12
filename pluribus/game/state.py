@@ -15,6 +15,12 @@ class PokerGameState:
         self.player = player
         self.action = action
 
+    def __repr__(self):
+        """"""
+        name = "<PokerGameState prev_state={} table={} player={} action={}>"
+        return name.format(
+            self.previous_state, self.table, self.player, self.action)
+
     @classmethod
     def new_hand(cls, table):
         return PokerGameState(None, table, None, None)

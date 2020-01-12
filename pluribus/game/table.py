@@ -22,9 +22,13 @@ class PokerTable:
         self.dealer = Dealer()
         self.community_cards: List[Card] = []
 
-        self.num_games = 0
-        self.num_players = len(players)
-        assert self.num_players >= 2
+        self.n_games = 0
+        assert self.n_players >= 2
+
+    @property
+    def n_players(self):
+        """"""
+        return len(self.players)
 
     def set_players(self, players: List[Player]):
         """"""
@@ -33,3 +37,8 @@ class PokerTable:
     def add_community_card(self, card: Card):
         """"""
         self.community_cards.append(card)
+
+    def __repr__(self):
+        """"""
+        player_names = [player.name for player in self.players]
+        return f"<PokerTable players={player_names}>"

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import List, TYPE_CHECKING
 
+import numpy as np
+
+from pluribus.game.actions import Call, Fold, Raise
+from pluribus.game.state import PokerGameState
+
 if TYPE_CHECKING:
-    from pluribus.game.actions import Call, Fold, Raise
     from pluribus.game.cards import Card
-    from pluribus.game.state import PokerGameState
 
 
 class Player:
@@ -18,10 +21,10 @@ class Player:
     """
 
     def __init__(self, name: str, initial_chips: int):
-        """"""
+        """Instanciate a player."""
         self.name: str = name
         self.chips: int = initial_chips
-        self.cards: list[Card] = []
+        self.cards: List[Card] = []
         self._is_active = True
         self._total_in_pot = 0
 
@@ -37,8 +40,8 @@ class Player:
 
     def call(self, players: List[Player]):
         """Call the highest bet among all active players."""
-        # TODO how to handle all-ins? for later
-        amount_to_call = max(p.bet_so_far() for p in players)
+        # TODO(fedden) Need to handle all-ins.
+        amount_to_call = max(p.bet_so_far for p in players)
         self.bet(amount_to_call)
         return Call()
 
@@ -64,12 +67,22 @@ class Player:
         action, agents receive the current game state and have to emit the next
         state.
         """
-        raise NotImplementedError
-        # previous = game_state.previous_state
-        # table = previous.table
-        # action = Fold()
+        action = self._random_move(players=game_state.table.players)
+        return PokerGameState(game_state, game_state.table, self, action)
 
-        # return PokerGameState(game_state, table, self, action)
+    def _random_move(self, players: List[Player]):
+        """Random move to make FOR DEVELOPMENT PURPOSES"""
+        # TODO(fedden): Delete this method.
+        dice_roll = np.random.sample()
+        if 0.0 < dice_roll < 0.05:
+            # 5% chance to fold.
+            return self.fold()
+        elif 0.05 < dice_roll < 0.10:
+            # 10% chance to raise.
+            return self.raise_to(100)
+        else:
+            # 85% chance to call.
+            return self.call(players=players)
 
     @property
     def is_active(self) -> bool:
