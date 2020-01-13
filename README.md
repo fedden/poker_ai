@@ -1,3 +1,11 @@
+| type            | badge         |
+| --------------- | ------------- |
+| master          | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=master)](https://travis-ci.org/fedden/pluribus-poker-AI)  |
+| develop         | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=develop)](https://travis-ci.org/fedden/pluribus-poker-AI) |
+| maintainability | [![Maintainability](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/maintainability)](https://codeclimate.com/github/fedden/pluribus-poker-AI/maintainability) |
+| coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/pluribus-poker-AI/test_coverage) |
+| vulnerabilities | [![Known Vulnerabilities](https://snyk.io/test/github/fedden/pluribus-poker-AI/badge.svg)](https://snyk.io/test/github/fedden/pluribus-poker-AI) |
+
 [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=develop)](https://travis-ci.org/fedden/pluribus-poker-AI)
 
 # Open Source Pluribus Implementation
