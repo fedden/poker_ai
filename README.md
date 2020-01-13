@@ -1,5 +1,7 @@
 # Pluribus Poker AI
 
+This repository will contain a best effort, open source implementation of the key ideas from the Pluribus poker AI that plays Texas Holdem Poker. This includes the game engine needed to manage a hand of poker, and will implement the ideas from the paper with respect to the AI algorithms.
+
 | type            | badge         |
 | --------------- | ------------- |
 | master          | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=master)](https://travis-ci.org/fedden/pluribus-poker-AI)  |
@@ -7,7 +9,9 @@
 | maintainability | [![Maintainability](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/maintainability)](https://codeclimate.com/github/fedden/pluribus-poker-AI/maintainability) |
 | coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/pluribus-poker-AI/test_coverage) |
 
-This repository will contain a best effort, open source implementation of the key ideas from the Pluribus poker AI. 
+<p align="center">
+  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/poker.jpg">
+</p>
 
 ## Pre-requisites
 
@@ -41,6 +45,10 @@ At first, the goal is to prototype in Python as iteration will be much easier an
 - [ ] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
 - [ ] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
 - [ ] Add the real-time search for better strategies during the game.
+
+<p align="center">
+  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/regret.jpeg">
+</p>
 
 ## Structure
 
