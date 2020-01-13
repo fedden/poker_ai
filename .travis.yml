@@ -1,9 +1,30 @@
 language: python
+
+# Environment variables.
+env:
+  global:
+    - CC_TEST_REPORTER_ID=607f73633cb88df8c21568f855bd394dc47772d2228b2f0476ad8c87b625a334
+
+# Which version(s) of python we want to use for testing.
 python:
   - "3.7"
+
 # command to install dependencies
 install:
   - pip install -r requirements.txt
+  - pip install coverage
   - pip install .
-# command to run tests
+
+# Hook up code coverage in the before test script.
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
+
+# command to run test script.
 script: pytest
+
+# Code to run after the test script.
+after_script:
+  - coverage xml
+  - if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
