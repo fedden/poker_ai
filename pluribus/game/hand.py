@@ -43,10 +43,12 @@ class PokerHand:
         self.betting_round()
         self.table.dealer.deal_river(self.table)
         self.betting_round()
-
+        # From the active players on the table, compute the winners.
+        # TODO(fedden): Does this code support the outcome of where everyone
+        #               folds? If they did what should be done here?
         winners = self.evaluate_hand()
         self.compute_payouts(winners)
-
+        # TODO(fedden): What if someone runs out of chips here?
         self.move_blinds()
 
     def compute_payouts(self, winners: list[Player]):
@@ -117,10 +119,22 @@ class PokerHand:
         actions in the order they were placed at the table. A betting round
         lasts until all players either call the highest placed bet or fold.
         """
-        if not self.is_betting_round_complete:
-            for player in self.table.players:
-                if player.is_active:
-                    self.state = player.take_action(self.state)
+        max_betting_rounds = 4
+        for round_i in range(1, max_betting_rounds + 1):
+            if round_i > 1 and self.is_betting_round_complete:
+                # Players have all bet the same amount and we have had atleast
+                # one round of betting. Terminate the betting.
+                break
+            if round_i == max_betting_rounds:
+                # This is the final betting round.
+                # TODO(fedden): Ascertain exactly what should happen on the
+                #               final round of betting.
+                pass
+            else:
+                # For every active player compute the move.
+                for player in self.table.players:
+                    if player.is_active:
+                        self.state = player.take_action(self.state)
 
     @property
     def all_bets(self) -> list[int]:
