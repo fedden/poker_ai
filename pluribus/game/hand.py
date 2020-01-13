@@ -52,6 +52,7 @@ class PokerHand:
     def compute_payouts(self, winners: list[Player]):
         if not winners:
             raise ValueError('At least one player must be in winners.')
+        # TODO(fedden): This doesn't take care of all-ins.
         pot = sum(self.all_bets)
         n_winners = len(winners)
         pot_contribution = pot / n_winners
@@ -122,11 +123,6 @@ class PokerHand:
                     self.state = player.take_action(self.state)
 
     @property
-    def active_bets(self) -> list[int]:
-        """Returns all active bets made so far."""
-        return [p.bet_so_far for p in self.table.players if p.is_active]
-
-    @property
     def all_bets(self) -> list[int]:
         """Returns all bets made by the players."""
         return [p.bet_so_far for p in self.table.players]
@@ -138,5 +134,8 @@ class PokerHand:
         If all active players have settled, i.e everyone has called the highest
         bet or folded, the current betting round is complete.
         """
-        active_bets = self.active_bets
-        return all(x == active_bets[0] for x in active_bets)
+        active_complete_bets = []
+        for player in self.table.players:
+            if player.is_active and not player.is_all_in:
+                active_complete_bets.append(player.bet_so_far)
+        return all(x == active_complete_bets[0] for x in active_complete_bets)
