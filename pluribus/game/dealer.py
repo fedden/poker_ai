@@ -31,6 +31,8 @@ class Dealer:
 
     def deal_community_cards(self, table: PokerTable, num_cards: int):
         assert num_cards > 0
+        # TODO(fedden): Do we need to burn a card like in casinos? Check the
+        #               papers supplimentary materials.
         for _ in range(num_cards):
             card = self.deal_card()
             table.add_community_card(card)

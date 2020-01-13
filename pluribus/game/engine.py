@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from pluribus.game.table import PokerTable
 
 
-class PokerHand:
+class PokerEngine:
     """Instance to represent the lifetime of a full poker hand.
 
     A hand of poker is played at a table by playing for betting rounds:
@@ -33,9 +33,11 @@ class PokerHand:
         self.state = PokerGameState.new_hand(self.table)
         self.wins_and_losses = []
 
-    def play(self):
+    def play_one_round(self):
         self.assign_blinds()
         self.table.dealer.deal_private_cards(self.table.players)
+        # TODO(fedden): What if all but one player folds here? We need to be
+        #               able to skip the betting rounds I suppose.
         self.betting_round()
         self.table.dealer.deal_flop(self.table)
         self.betting_round()
@@ -54,7 +56,8 @@ class PokerHand:
     def compute_payouts(self, winners: list[Player]):
         if not winners:
             raise ValueError('At least one player must be in winners.')
-        # TODO(fedden): This doesn't take care of all-ins.
+        # TODO(fedden): This doesn't take care of all-ins and what if everyone
+        #               folds? Needs work.
         pot = sum(self.all_bets)
         n_winners = len(winners)
         pot_contribution = pot / n_winners
@@ -99,8 +102,8 @@ class PokerHand:
 
     def assign_blinds(self):
         """"""
-        self.table.players[0].bet(self.small_blind)
-        self.table.players[1].bet(self.big_blind)
+        self.table.players[0].add_to_pot(self.small_blind)
+        self.table.players[1].add_to_pot(self.big_blind)
 
     def move_blinds(self):
         """Rotate the table's player list.

@@ -1,5 +1,5 @@
 from pluribus.game.table import PokerTable
-from pluribus.game.hand import PokerHand
+from pluribus.game.engine import PokerEngine
 from pluribus.game.player import Player
 
 
@@ -12,8 +12,8 @@ players = [
     for player_i in range(6)
 ]
 table = PokerTable(players=players)
-hand = PokerHand(
+engine = PokerEngine(
     table=table,
     small_blind=small_blind_amount,
     big_blind=big_blind_amount)
-hand.play()
+engine.play_one_round()
