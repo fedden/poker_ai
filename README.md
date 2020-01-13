@@ -1,6 +1,13 @@
-# Open Source Pluribus Implementation
+# Pluribus Poker AI
 
-This repository will contain a best effort implementation of the key ideas from the Pluribus poker AI bot. 
+| type            | badge         |
+| --------------- | ------------- |
+| master          | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=master)](https://travis-ci.org/fedden/pluribus-poker-AI)  |
+| develop         | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=develop)](https://travis-ci.org/fedden/pluribus-poker-AI) |
+| maintainability | [![Maintainability](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/maintainability)](https://codeclimate.com/github/fedden/pluribus-poker-AI/maintainability) |
+| coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/pluribus-poker-AI/test_coverage) |
+
+This repository will contain a best effort, open source implementation of the key ideas from the Pluribus poker AI. 
 
 ## Pre-requisites
 

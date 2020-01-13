@@ -48,7 +48,6 @@ class PokerHand:
         self.compute_payouts(winners)
 
         self.move_blinds()
-        import ipdb; ipdb.set_trace()
 
     def compute_payouts(self, winners: list[Player]):
         if not winners:
