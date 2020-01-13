@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=develop)](https://travis-ci.org/fedden/pluribus-poker-AI)
+
 # Open Source Pluribus Implementation
 
 This repository will contain a best effort implementation of the key ideas from the Pluribus poker AI bot. 
