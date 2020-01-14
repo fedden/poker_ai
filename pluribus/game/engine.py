@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from pluribus.game.table import PokerTable
 
 
-class PokerHand:
+class PokerEngine:
     """Instance to represent the lifetime of a full poker hand.
 
     A hand of poker is played at a table by playing for betting rounds:
@@ -33,9 +33,11 @@ class PokerHand:
         self.state = PokerGameState.new_hand(self.table)
         self.wins_and_losses = []
 
-    def play(self):
+    def play_one_round(self):
         self.assign_blinds()
         self.table.dealer.deal_private_cards(self.table.players)
+        # TODO(fedden): What if all but one player folds here? We need to be
+        #               able to skip the betting rounds I suppose.
         self.betting_round()
         self.table.dealer.deal_flop(self.table)
         self.betting_round()
@@ -43,15 +45,19 @@ class PokerHand:
         self.betting_round()
         self.table.dealer.deal_river(self.table)
         self.betting_round()
-
+        # From the active players on the table, compute the winners.
+        # TODO(fedden): Does this code support the outcome of where everyone
+        #               folds? If they did what should be done here?
         winners = self.evaluate_hand()
         self.compute_payouts(winners)
-
+        # TODO(fedden): What if someone runs out of chips here?
         self.move_blinds()
 
     def compute_payouts(self, winners: list[Player]):
         if not winners:
             raise ValueError('At least one player must be in winners.')
+        # TODO(fedden): This doesn't take care of all-ins and what if everyone
+        #               folds? Needs work.
         pot = sum(self.all_bets)
         n_winners = len(winners)
         pot_contribution = pot / n_winners
@@ -96,8 +102,8 @@ class PokerHand:
 
     def assign_blinds(self):
         """"""
-        self.table.players[0].bet(self.small_blind)
-        self.table.players[1].bet(self.big_blind)
+        self.table.players[0].add_to_pot(self.small_blind)
+        self.table.players[1].add_to_pot(self.big_blind)
 
     def move_blinds(self):
         """Rotate the table's player list.
@@ -116,15 +122,22 @@ class PokerHand:
         actions in the order they were placed at the table. A betting round
         lasts until all players either call the highest placed bet or fold.
         """
-        if not self.is_betting_round_complete:
-            for player in self.table.players:
-                if player.is_active:
-                    self.state = player.take_action(self.state)
-
-    @property
-    def active_bets(self) -> list[int]:
-        """Returns all active bets made so far."""
-        return [p.bet_so_far for p in self.table.players if p.is_active]
+        max_betting_rounds = 4
+        for round_i in range(1, max_betting_rounds + 1):
+            if round_i > 1 and self.is_betting_round_complete:
+                # Players have all bet the same amount and we have had atleast
+                # one round of betting. Terminate the betting.
+                break
+            if round_i == max_betting_rounds:
+                # This is the final betting round.
+                # TODO(fedden): Ascertain exactly what should happen on the
+                #               final round of betting.
+                pass
+            else:
+                # For every active player compute the move.
+                for player in self.table.players:
+                    if player.is_active:
+                        self.state = player.take_action(self.state)
 
     @property
     def all_bets(self) -> list[int]:
@@ -138,5 +151,8 @@ class PokerHand:
         If all active players have settled, i.e everyone has called the highest
         bet or folded, the current betting round is complete.
         """
-        active_bets = self.active_bets
-        return all(x == active_bets[0] for x in active_bets)
+        active_complete_bets = []
+        for player in self.table.players:
+            if player.is_active and not player.is_all_in:
+                active_complete_bets.append(player.bet_so_far)
+        return all(x == active_complete_bets[0] for x in active_complete_bets)

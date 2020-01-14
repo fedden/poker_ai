@@ -104,7 +104,8 @@ class LookupTable(object):
 
         # 1277 = number of high cards
         # 1277 + len(str_flushes) is number of hands with all cards unique rank
-        for i in range(1277 + len(straight_flushes) - 1):  # we also iterate over SFs
+        for i in range(1277 + len(straight_flushes) - 1):
+            # we also iterate over SFs
             # pull the next flush pattern from our generator
             f = next(gen)
 
@@ -120,32 +121,35 @@ class LookupTable(object):
             if notSF:
                 flushes.append(f)
 
-        # we started from the lowest straight pattern, now we want to start ranking from
-        # the most powerful hands, so we reverse
+        # we started from the lowest straight pattern, now we want to start
+        # ranking from the most powerful hands, so we reverse
         flushes.reverse()
-
         # now add to the lookup map:
         # start with straight flushes and the rank of 1
         # since it is the best hand in poker
         # rank 1 = Royal Flush!
-        rank = 1
-        for sf in straight_flushes:
-            prime_product = EvaluationCard.prime_product_from_rankbits(sf)
-            self.flush_lookup[prime_product] = rank
-            rank += 1
-
+        self._fill_in_lookup_table(
+            rank_init=1,
+            rankbits_list=straight_flushes,
+            lookup_table=self.flush_lookup)
         # we start the counting for flushes on max full house, which
         # is the worst rank that a full house can have (2,2,2,3,3)
-        rank = LookupTable.MAX_FULL_HOUSE + 1
-        for f in flushes:
-            prime_product = EvaluationCard.prime_product_from_rankbits(f)
-            self.flush_lookup[prime_product] = rank
-            rank += 1
-
+        self._fill_in_lookup_table(
+            rank_init=LookupTable.MAX_FULL_HOUSE + 1,
+            rankbits_list=flushes,
+            lookup_table=self.flush_lookup)
         # we can reuse these bit sequences for straights
         # and high cards since they are inherently related
         # and differ only by context
         self.straight_and_highcards(straight_flushes, flushes)
+
+    def _fill_in_lookup_table(self, rank_init, rankbits_list, lookup_table):
+        """Iterate over rankbits and fill in lookup_table"""
+        rank = rank_init
+        for rb in rankbits_list:
+            prime_product = EvaluationCard.prime_product_from_rankbits(rb)
+            lookup_table[prime_product] = rank
+            rank += 1
 
     def straight_and_highcards(self, straights, highcards):
         """
@@ -153,18 +157,14 @@ class LookupTable(object):
 
         Reuses bit sequences from flush calculations.
         """
-        rank = LookupTable.MAX_FLUSH + 1
-
-        for s in straights:
-            prime_product = EvaluationCard.prime_product_from_rankbits(s)
-            self.unsuited_lookup[prime_product] = rank
-            rank += 1
-
-        rank = LookupTable.MAX_PAIR + 1
-        for h in highcards:
-            prime_product = EvaluationCard.prime_product_from_rankbits(h)
-            self.unsuited_lookup[prime_product] = rank
-            rank += 1
+        self._fill_in_lookup_table(
+            rank_init=LookupTable.MAX_FLUSH + 1,
+            rankbits_list=straights,
+            lookup_table=self.unsuited_lookup)
+        self._fill_in_lookup_table(
+            rank_init=LookupTable.MAX_PAIR + 1,
+            rankbits_list=highcards,
+            lookup_table=self.unsuited_lookup)
 
     def multiples(self):
         """

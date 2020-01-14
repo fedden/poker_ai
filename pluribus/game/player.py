@@ -44,21 +44,27 @@ class Player:
 
     def call(self, players: List[Player]):
         """Call the highest bet among all active players."""
-        # TODO(fedden) Need to handle all-ins.
-        amount_to_call = max(p.bet_so_far for p in players)
-        self.bet(amount_to_call)
-        return Call()
+        if self.is_all_in:
+            return Call()
+        else:
+            amount_to_call = max(p.bet_so_far for p in players)
+            self.add_to_pot(amount_to_call)
+            return Call()
 
     def raise_to(self, amount: int):
         """Raise your bet to a certain amount."""
-        self.bet(amount)
+        if self.chips - amount < 0:
+            # We can't bet more than we have.
+            amount = self.chips
+        self.add_to_pot(amount)
         _raise = Raise()
         _raise(amount)
         return _raise
 
-    def bet(self, amount: int):
+    def add_to_pot(self, amount: int):
         """Add to the amount put into the pot by this player."""
         self._total_in_pot += amount
+        self.chips -= amount
 
     def add_private_card(self, card: Card):
         """Add a private card to this player."""
@@ -97,6 +103,11 @@ class Player:
     def is_active(self, x):
         """Setter for if the player is playing or not."""
         self._is_active = x
+
+    @property
+    def is_all_in(self) -> bool:
+        """"""
+        return self._is_active and self.chips == 0
 
     @property
     def bet_so_far(self) -> int:

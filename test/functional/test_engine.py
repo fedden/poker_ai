@@ -5,7 +5,7 @@ import pytest
 def test_hand(n_players):
     """Test a hand can be played."""
     from pluribus.game.table import PokerTable
-    from pluribus.game.hand import PokerHand
+    from pluribus.game.engine import PokerEngine
     from pluribus.game.player import Player
     initial_chips_amount = 10000
     small_blind_amount = 10
@@ -15,9 +15,8 @@ def test_hand(n_players):
         for player_i in range(6)
     ]
     table = PokerTable(players=players)
-    hand = PokerHand(
+    engine = PokerEngine(
         table=table,
         small_blind=small_blind_amount,
         big_blind=big_blind_amount)
-    hand.play()
-
+    engine.play_one_round()
