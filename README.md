@@ -23,8 +23,17 @@ This repository assumes Python 3.7 or newer is used.
 There isn't much to do with this repository at the moment but one could install the Python package by cloning this repo and pip installing it:
 ```bash
 git clone https://github.com/fedden/pluribus-poker-AI.git # Though really we should use ssh here!
-cd pluribus-poker-AI
+cd /path/to/pluribus-poker-AI
 pip install .
+```
+
+## Running tests
+
+I'm working on improving the testing as I progress. You can run the tests by moving to this repositories root directory (i.e `pluribus-poker-AI/`) and call the python test library `pytest`:
+```
+cd /path/to/pluribus-poker-AI
+pip install pytest
+pytest
 ```
 
 ## Rough todo
@@ -55,7 +64,7 @@ At first, the goal is to prototype in Python as iteration will be much easier an
 
 Below is a rough structure of the repository. 
 
-```bash
+```
 ├── paper          # Main source of info and documentation :)
 ├── pluribus       # Main Python library.
 │   ├── ai         # Stub functions for ai algorithms.
