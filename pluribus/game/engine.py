@@ -71,7 +71,7 @@ class PokerEngine:
         self.wins_and_losses = payouts
 
     def evaluate_hand(self) -> list[Player]:
-        """"""
+        """Get the winner(s) from the showdown hands on the table."""
         # The cards that can be passed to the evaluator object from the table.
         table_cards = [card.eval_card for card in self.table.community_cards]
         # For every active player...
@@ -100,7 +100,7 @@ class PokerEngine:
         return winners
 
     def assign_blinds(self):
-        """"""
+        """Assign the blinds to the players."""
         self.table.players[0].add_to_pot(self.small_blind)
         self.table.players[1].add_to_pot(self.big_blind)
         logger.debug(f"Assigned blinds to players {self.table.players[:2]}")
@@ -123,18 +123,39 @@ class PokerEngine:
         actions in the order they were placed at the table. A betting round
         lasts until all players either call the highest placed bet or fold.
         """
-        # Ensure for the first move we do one round of betting.
-        first_round = True
-        logger.debug("Started round of betting.")
-        while first_round or self.more_betting_needed:
-            # For every active player compute the move.
-            for player in self.table.players:
-                if player.is_active:
-                    self.state = player.take_action(self.state)
-            first_round = False
+        if self.n_players_with_moves > 1:
+            # Ensure for the first move we do one round of betting.
+            first_round = True
+            logger.debug("Started round of betting.")
+            while first_round or self.more_betting_needed:
+                # For every active player compute the move.
+                for player in self.table.players:
+                    if player.is_active:
+                        self.state = player.take_action(self.state)
+                first_round = False
+                logger.debug(
+                    f"  Betting iteration, bet total: {sum(self.all_bets)}")
             logger.debug(
-                f"  Betting iteration, bet total: {sum(self.all_bets)}")
-        logger.debug("Finished round of betting")
+                f"Finished round of betting, {self.n_active_players} active "
+                f"players, {self.n_all_in_players} all in players.")
+        else:
+            logger.debug("Skipping betting as no players are free to bet.")
+        logger.debug(f"Pot at the end of betting: {self.table.pot}")
+
+    @property
+    def n_players_with_moves(self):
+        """Returns the amount of players that can freely make a move."""
+        return sum(p.is_active and not p.is_all_in for p in self.table.players)
+
+    @property
+    def n_active_players(self):
+        """Returns the number of active players."""
+        return sum(p.is_active for p in self.table.players)
+
+    @property
+    def n_all_in_players(self):
+        """Return the amount of players that are active and that are all in."""
+        return sum(p.is_active and p.is_all_in for p in self.table.players)
 
     @property
     def all_bets(self) -> list[int]:

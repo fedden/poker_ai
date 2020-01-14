@@ -15,15 +15,17 @@ class Pot:
         self._uid = str(uuid.uuid4().hex)
         self.reset()
 
-    @property
-    def uid(self):
-        """Get a unique identifier for this pot."""
-        return self._uid
+    def __repr__(self):
+        """"""
+        contributions = list(self._player_contributions.values())
+        return f"<Pot contributions={contributions}>"
 
-    @property
-    def total(self):
-        """Return the total in the pot from all players."""
-        return sum(self._player_contributions.values())
+    def __getitem__(self, player: Player):
+        """Get a players contribution to the pot."""
+        if not isinstance(player, Player):
+            raise ValueError(
+                f'Index the pot with the player to get the contribution.')
+        return self._player_contributions[player]
 
     def reset(self):
         """Reset the pot."""
@@ -35,9 +37,13 @@ class Pot:
             raise ValueError(f'Negative chips cannot be added to the pot.')
         self._player_contributions[player] += n_chips
 
-    def __getitem__(self, player: Player):
-        """Get a players contribution to the pot."""
-        if not isinstance(player, Player):
-            raise ValueError(
-                f'Index the pot with the player to get the contribution.')
-        return self._player_contributions[player]
+    @property
+    def uid(self):
+        """Get a unique identifier for this pot."""
+        return self._uid
+
+    @property
+    def total(self):
+        """Return the total in the pot from all players."""
+        return sum(self._player_contributions.values())
+
