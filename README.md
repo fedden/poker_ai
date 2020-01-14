@@ -30,7 +30,7 @@ pip install .
 ## Running tests
 
 I'm working on improving the testing as I progress. You can run the tests by moving to this repositories root directory (i.e `pluribus-poker-AI/`) and call the python test library `pytest`:
-```
+```bash
 cd /path/to/pluribus-poker-AI
 pip install pytest
 pytest
