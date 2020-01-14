@@ -34,6 +34,7 @@ class Player:
         self._is_active = True
         self._id = int(uuid.uuid4().hex, 16)
         self.pot = pot
+        self.order = None
 
     def __hash__(self):
         """Make player hashable so we can index the pot like `pot[player]`."""
@@ -62,7 +63,8 @@ class Player:
         if self.is_all_in:
             return Call()
         else:
-            n_chips_to_call = max(p.n_bet_chips for p in players)
+            biggest_bet = max(p.n_bet_chips for p in players)
+            n_chips_to_call = biggest_bet - self.n_bet_chips
             self.add_to_pot(n_chips_to_call)
             return Call()
 
@@ -82,6 +84,8 @@ class Player:
 
     def add_to_pot(self, n_chips: int):
         """Add to the n_chips put into the pot by this player."""
+        if n_chips < 0:
+            raise ValueError(f'Can not subtract chips from pot.')
         # TODO(fedden): This code is called by engine.py for the small and big
         #               blind. What if the player can't actually add the blind?
         #               What do the rules stipulate in these circumstances.

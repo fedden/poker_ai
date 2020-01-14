@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import collections
 import copy
 import logging
-from operator import itemgetter
-from typing import List, TYPE_CHECKING
+import operator
+from typing import Dict, List, TYPE_CHECKING
 
 from pluribus.game.evaluation.evaluator import Evaluator
 from pluribus.game.state import PokerGameState
@@ -34,10 +35,12 @@ class PokerEngine:
         self.wins_and_losses = []
 
     def play_one_round(self):
+        """"""
         self.table.pot.reset()
+        self.assign_order_to_players()
         self.assign_blinds()
         self.table.dealer.deal_private_cards(self.table.players)
-        self.betting_round()
+        self.betting_round(first_round=True)
         self.table.dealer.deal_flop(self.table)
         self.betting_round()
         self.table.dealer.deal_turn(self.table)
@@ -45,35 +48,48 @@ class PokerEngine:
         self.table.dealer.deal_river(self.table)
         self.betting_round()
         # From the active players on the table, compute the winners.
-        winners = self.evaluate_hand()
-        self.compute_payouts(winners)
+        ranked_player_groups = self.rank_players_by_best_hand()
+        payouts = self.compute_payouts(ranked_player_groups)
+        self.payout_players(payouts)
+        logger.debug("Winnings computation complete. Players:")
+        for player in self.table.players:
+            logger.debug(f"{player}")
         # TODO(fedden): What if someone runs out of chips here?
         self.move_blinds()
 
-    def compute_payouts(self, winners: list[Player]):
-        if not winners:
-            raise ValueError("At least one player must be in winners.")
-        # TODO(fedden): This doesn't take care of all-ins and what if everyone
-        #               folds? Needs work.
+    def compute_payouts(self, ranked_player_groups: List[Player]):
+        """"""
+        payouts = collections.Counter()
+        for side_pot in self.table.pot.side_pots:
+            for player_group in ranked_player_groups:
+                players_in_side_pot = sorted(
+                    [player for player in player_group if player in side_pot],
+                    key=operator.attrgetter("order"),
+                )
+                n_players = len(players_in_side_pot)
+                if n_players:
+                    n_total = sum(side_pot.values())
+                    n_per_player = n_total // n_players
+                    n_remainder = n_total - n_players * n_per_player
+                    for player in players_in_side_pot:
+                        payouts[player] += n_per_player
+                    for i in range(n_remainder):
+                        payouts[players_in_side_pot[i]] += 1
+                    break
+        return payouts
 
-        pot = sum(self.all_bets)
-        n_winners = len(winners)
-        pot_contribution = pot / n_winners
-        payouts = []
-        for player in self.table.players:
-            win = 0 if player not in winners else pot_contribution
-            loss = player.n_bet_chips
-            payout = win - loss
-            payouts.append(payout)
-            player.payout(payout)
-        self.wins_and_losses = payouts
+    def payout_players(self, payouts: Dict[Player, int]):
+        """"""
+        self.table.pot.reset()
+        for player, winnings in payouts.items():
+            player.add_chips(winnings)
 
-    def evaluate_hand(self) -> list[Player]:
-        """Get the winner(s) from the showdown hands on the table."""
+    def rank_players_by_best_hand(self) -> List[List[Player]]:
+        """Rank all players hands and return the players in order of rank."""
         # The cards that can be passed to the evaluator object from the table.
         table_cards = [card.eval_card for card in self.table.community_cards]
         # For every active player...
-        player_results = []
+        grouped_players = collections.defaultdict(list)
         for player in self.table.players:
             if player.is_active:
                 # Get evaluator friendly cards.
@@ -82,20 +98,20 @@ class PokerEngine:
                 rank = self.evaluator.evaluate(table_cards, hand_cards)
                 hand_class = self.evaluator.get_rank_class(rank)
                 hand_desc = self.evaluator.class_to_string(hand_class).lower()
-                player_results.append(
-                    dict(player=player, rank=rank, hand_desc=hand_desc)
-                )
-        # Sort results by rank.
-        player_results = sorted(player_results, key=itemgetter("rank"))
-        # The first definitely won, but did anyone draw? Use the rank to find
-        # out.
-        winning_rank = player_results[0]["rank"]
-        winners: List[Player] = [player_results[0]["player"]]
-        for result in player_results[1:]:
-            if result["rank"] > winning_rank:
-                break
-            winners.append(result["player"])
-        return winners
+                logger.debug(f'f"Rank #{rank} {player} {hand_desc}')
+                grouped_players[rank].append(player)
+        # Group players by hand ranks, going from best to worst. We group
+        # incase multiple players have identically ranked hands - these players
+        # should be in the same list together.
+        ranked_player_groups: List[List[Player]] = []
+        for rank in sorted(grouped_players.keys()):
+            ranked_player_groups.append(grouped_players[rank])
+        return ranked_player_groups
+
+    def assign_order_to_players(self):
+        """"""
+        for player_i, player in enumerate(self.table.players):
+            player.order = player_i
 
     def assign_blinds(self):
         """Assign the blinds to the players."""
@@ -114,13 +130,17 @@ class PokerEngine:
         logger.debug(f"Rotated players from {self.table.players} to {players}")
         self.table.set_players(players)
 
-    def betting_round(self):
+    def betting_round(self, first_round=False):
         """Computes the round(s) of betting.
 
         Until the current betting round is complete, all active players take
         actions in the order they were placed at the table. A betting round
         lasts until all players either call the highest placed bet or fold.
         """
+        if first_round:
+            players = self.table.players[2:] + self.table.players[:2]
+        else:
+            players = self.table.players
         if self.n_players_with_moves > 1:
             # Ensure for the first move we do one round of betting.
             first_round = True
@@ -128,16 +148,15 @@ class PokerEngine:
             while first_round or self.more_betting_needed:
                 # For every active player compute the move, but big and small
                 # blind move last..
-                for player in self.table.players[2:] + self.table.players[:2]:
+                for player in players:
                     if player.is_active:
                         self.state = player.take_action(self.state)
-                        import ipdb; ipdb.set_trace()
                 first_round = False
-                logger.debug(
-                    f"  Betting iteration, bet total: {sum(self.all_bets)}")
+                logger.debug(f"> Betting iter, total: {sum(self.all_bets)}")
             logger.debug(
                 f"Finished round of betting, {self.n_active_players} active "
-                f"players, {self.n_all_in_players} all in players.")
+                f"players, {self.n_all_in_players} all in players."
+            )
         else:
             logger.debug("Skipping betting as no players are free to bet.")
         self._post_betting_analysis()
@@ -149,14 +168,17 @@ class PokerEngine:
         for player in self.table.players:
             logger.debug(f"{player}")
         total_n_chips = self.table.pot.total + sum(
-            p.n_chips for p in self.table.players)
+            p.n_chips for p in self.table.players
+        )
         n_chips_correct = total_n_chips == self.table.total_n_chips_on_table
         pot_correct = self.table.pot.total == sum(
-            p.n_bet_chips for p in self.table.players)
+            p.n_bet_chips for p in self.table.players
+        )
         if not n_chips_correct or not pot_correct:
             raise ValueError(
-                'Bad logic - total n_chips are not the same as at the start '
-                'of the game')
+                "Bad logic - total n_chips are not the same as at the start "
+                "of the game"
+            )
 
     @property
     def n_players_with_moves(self):

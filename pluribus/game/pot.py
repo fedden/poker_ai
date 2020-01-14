@@ -24,9 +24,7 @@ class Pot:
         if not isinstance(player, Player):
             raise ValueError(
                 f'Index the pot with the player to get the contribution.')
-        return sum(
-            pot.get(player, 0) for pot in self._side_pots + [self._side_pot]
-        )
+        return sum(pot.get(player, 0) for pot in self.side_pots)
 
     def reset(self):
         """Reset the pot."""
@@ -64,6 +62,11 @@ class Pot:
             self._side_pot = {p: n_chips_diff for p in diff_players}
 
     @property
+    def side_pots(self):
+        """Returns all side pots."""
+        return self._side_pots + [self._side_pot]
+
+    @property
     def uid(self):
         """Get a unique identifier for this pot."""
         return self._uid
@@ -71,4 +74,4 @@ class Pot:
     @property
     def total(self):
         """Return the total in the pot from all players."""
-        return sum(sum(p.values()) for p in self._side_pots + [self._side_pot])
+        return sum(sum(p.values()) for p in self.side_pots)
