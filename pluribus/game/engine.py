@@ -124,9 +124,6 @@ class PokerEngine:
         lasts until all players either call the highest placed bet or fold.
         """
         # Ensure for the first move we do one round of betting.
-        import ipdb
-
-        ipdb.set_trace()
         first_round = True
         logger.debug("Started round of betting.")
         while first_round or self.more_betting_needed:
@@ -135,7 +132,8 @@ class PokerEngine:
                 if player.is_active:
                     self.state = player.take_action(self.state)
             first_round = False
-            logger.debug("  > Betting iteration")
+            logger.debug(
+                f"  Betting iteration, bet total: {sum(self.all_bets)}")
         logger.debug("Finished round of betting")
 
     @property
