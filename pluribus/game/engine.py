@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from operator import itemgetter
 from typing import List, TYPE_CHECKING
 
@@ -12,6 +13,9 @@ if TYPE_CHECKING:
     from pluribus.game.table import PokerTable
 
 
+logger = logging.getLogger(__name__)
+
+
 class PokerEngine:
     """Instance to represent the lifetime of a full poker hand.
 
@@ -20,11 +24,7 @@ class PokerEngine:
     hand, but should generally not change during a session on the table.
     """
 
-    def __init__(
-            self,
-            table: PokerTable,
-            small_blind: int,
-            big_blind: int):
+    def __init__(self, table: PokerTable, small_blind: int, big_blind: int):
         """"""
         self.table = table
         self.small_blind = small_blind
@@ -55,7 +55,7 @@ class PokerEngine:
 
     def compute_payouts(self, winners: list[Player]):
         if not winners:
-            raise ValueError('At least one player must be in winners.')
+            raise ValueError("At least one player must be in winners.")
         # TODO(fedden): This doesn't take care of all-ins and what if everyone
         #               folds? Needs work.
         pot = sum(self.all_bets)
@@ -84,26 +84,26 @@ class PokerEngine:
                 rank = self.evaluator.evaluate(table_cards, hand_cards)
                 hand_class = self.evaluator.get_rank_class(rank)
                 hand_desc = self.evaluator.class_to_string(hand_class).lower()
-                player_results.append(dict(
-                    player=player,
-                    rank=rank,
-                    hand_desc=hand_desc))
+                player_results.append(
+                    dict(player=player, rank=rank, hand_desc=hand_desc)
+                )
         # Sort results by rank.
-        player_results = sorted(player_results, key=itemgetter('rank'))
+        player_results = sorted(player_results, key=itemgetter("rank"))
         # The first definitely won, but did anyone draw? Use the rank to find
         # out.
-        winning_rank = player_results[0]['rank']
-        winners: List[Player] = [player_results[0]['player']]
+        winning_rank = player_results[0]["rank"]
+        winners: List[Player] = [player_results[0]["player"]]
         for result in player_results[1:]:
-            if result['rank'] > winning_rank:
+            if result["rank"] > winning_rank:
                 break
-            winners.append(result['player'])
+            winners.append(result["player"])
         return winners
 
     def assign_blinds(self):
         """"""
         self.table.players[0].add_to_pot(self.small_blind)
         self.table.players[1].add_to_pot(self.big_blind)
+        logger.debug(f"Assigned blinds to players {self.table.players[:2]}")
 
     def move_blinds(self):
         """Rotate the table's player list.
@@ -113,6 +113,7 @@ class PokerEngine:
         """
         players = copy.deepcopy(self.table.players)
         players.append(players.pop(0))
+        logger.debug(f"Rotated players from {self.table.players} to {players}")
         self.table.set_players(players)
 
     def betting_round(self):
@@ -122,22 +123,20 @@ class PokerEngine:
         actions in the order they were placed at the table. A betting round
         lasts until all players either call the highest placed bet or fold.
         """
-        max_betting_rounds = 4
-        for round_i in range(1, max_betting_rounds + 1):
-            if round_i > 1 and self.is_betting_round_complete:
-                # Players have all bet the same amount and we have had atleast
-                # one round of betting. Terminate the betting.
-                break
-            if round_i == max_betting_rounds:
-                # This is the final betting round.
-                # TODO(fedden): Ascertain exactly what should happen on the
-                #               final round of betting.
-                pass
-            else:
-                # For every active player compute the move.
-                for player in self.table.players:
-                    if player.is_active:
-                        self.state = player.take_action(self.state)
+        # Ensure for the first move we do one round of betting.
+        import ipdb
+
+        ipdb.set_trace()
+        first_round = True
+        logger.debug("Started round of betting.")
+        while first_round or self.more_betting_needed:
+            # For every active player compute the move.
+            for player in self.table.players:
+                if player.is_active:
+                    self.state = player.take_action(self.state)
+            first_round = False
+            logger.debug("  > Betting iteration")
+        logger.debug("Finished round of betting")
 
     @property
     def all_bets(self) -> list[int]:
@@ -145,14 +144,18 @@ class PokerEngine:
         return [p.bet_so_far for p in self.table.players]
 
     @property
-    def is_betting_round_complete(self) -> bool:
-        """Returns if the round of betting is complete or not.
+    def more_betting_needed(self) -> bool:
+        """Returns if more bets are required to terminate betting.
 
         If all active players have settled, i.e everyone has called the highest
-        bet or folded, the current betting round is complete.
+        bet or folded, the current betting round is complete, else, more
+        betting is required from the active players that are not all in.
         """
         active_complete_bets = []
         for player in self.table.players:
             if player.is_active and not player.is_all_in:
                 active_complete_bets.append(player.bet_so_far)
-        return all(x == active_complete_bets[0] for x in active_complete_bets)
+        all_bets_equal = all(
+            [x == active_complete_bets[0] for x in active_complete_bets]
+        )
+        return not all_bets_equal
