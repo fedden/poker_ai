@@ -20,6 +20,7 @@ class PokerTable:
     def __init__(self, players: List[Player], pot: Pot):
         """Construct the table."""
         self.players = players
+        self.total_n_chips_on_table = sum(p.n_chips for p in self.players)
         self.pot = pot
         self.dealer = Dealer()
         self.community_cards: List[Card] = []

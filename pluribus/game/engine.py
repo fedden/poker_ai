@@ -34,10 +34,9 @@ class PokerEngine:
         self.wins_and_losses = []
 
     def play_one_round(self):
+        self.table.pot.reset()
         self.assign_blinds()
         self.table.dealer.deal_private_cards(self.table.players)
-        # TODO(fedden): What if all but one player folds here? We need to be
-        #               able to skip the betting rounds I suppose.
         self.betting_round()
         self.table.dealer.deal_flop(self.table)
         self.betting_round()
@@ -46,8 +45,6 @@ class PokerEngine:
         self.table.dealer.deal_river(self.table)
         self.betting_round()
         # From the active players on the table, compute the winners.
-        # TODO(fedden): Does this code support the outcome of where everyone
-        #               folds? If they did what should be done here?
         winners = self.evaluate_hand()
         self.compute_payouts(winners)
         # TODO(fedden): What if someone runs out of chips here?
@@ -58,13 +55,14 @@ class PokerEngine:
             raise ValueError("At least one player must be in winners.")
         # TODO(fedden): This doesn't take care of all-ins and what if everyone
         #               folds? Needs work.
+
         pot = sum(self.all_bets)
         n_winners = len(winners)
         pot_contribution = pot / n_winners
         payouts = []
         for player in self.table.players:
             win = 0 if player not in winners else pot_contribution
-            loss = player.bet_so_far
+            loss = player.n_bet_chips
             payout = win - loss
             payouts.append(payout)
             player.payout(payout)
@@ -128,10 +126,12 @@ class PokerEngine:
             first_round = True
             logger.debug("Started round of betting.")
             while first_round or self.more_betting_needed:
-                # For every active player compute the move.
-                for player in self.table.players:
+                # For every active player compute the move, but big and small
+                # blind move last..
+                for player in self.table.players[2:] + self.table.players[:2]:
                     if player.is_active:
                         self.state = player.take_action(self.state)
+                        import ipdb; ipdb.set_trace()
                 first_round = False
                 logger.debug(
                     f"  Betting iteration, bet total: {sum(self.all_bets)}")
@@ -140,7 +140,23 @@ class PokerEngine:
                 f"players, {self.n_all_in_players} all in players.")
         else:
             logger.debug("Skipping betting as no players are free to bet.")
+        self._post_betting_analysis()
+
+    def _post_betting_analysis(self):
+        """Log objects and run checks at the end of each round of betting."""
         logger.debug(f"Pot at the end of betting: {self.table.pot}")
+        logger.debug("Players at the end of betting:")
+        for player in self.table.players:
+            logger.debug(f"{player}")
+        total_n_chips = self.table.pot.total + sum(
+            p.n_chips for p in self.table.players)
+        n_chips_correct = total_n_chips == self.table.total_n_chips_on_table
+        pot_correct = self.table.pot.total == sum(
+            p.n_bet_chips for p in self.table.players)
+        if not n_chips_correct or not pot_correct:
+            raise ValueError(
+                'Bad logic - total n_chips are not the same as at the start '
+                'of the game')
 
     @property
     def n_players_with_moves(self):
@@ -160,7 +176,7 @@ class PokerEngine:
     @property
     def all_bets(self) -> list[int]:
         """Returns all bets made by the players."""
-        return [p.bet_so_far for p in self.table.players]
+        return [p.n_bet_chips for p in self.table.players]
 
     @property
     def more_betting_needed(self) -> bool:
@@ -173,7 +189,7 @@ class PokerEngine:
         active_complete_bets = []
         for player in self.table.players:
             if player.is_active and not player.is_all_in:
-                active_complete_bets.append(player.bet_so_far)
+                active_complete_bets.append(player.n_bet_chips)
         all_bets_equal = all(
             [x == active_complete_bets[0] for x in active_complete_bets]
         )

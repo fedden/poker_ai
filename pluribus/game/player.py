@@ -29,7 +29,7 @@ class Player:
     def __init__(self, name: str, initial_chips: int, pot: Pot):
         """Instanciate a player."""
         self.name: str = name
-        self.chips: int = initial_chips
+        self.n_chips: int = initial_chips
         self.cards: List[Card] = []
         self._is_active = True
         self._id = int(uuid.uuid4().hex, 16)
@@ -41,11 +41,16 @@ class Player:
 
     def __repr__(self):
         """"""
-        return f'<Player name="{self.name}" chips={self.chips}>'
+        return '<Player name="{}" n_chips={:05d} n_bet_chips={:05d} ' \
+            'folded={}>'.format(
+                self.name,
+                self.n_chips,
+                self.n_bet_chips,
+                int(not self.is_active))
 
     def add_chips(self, chips: int):
         """Add chips."""
-        self.chips += chips
+        self.n_chips += chips
 
     def fold(self):
         """Deactivate player for this hand by folding cards."""
@@ -57,22 +62,22 @@ class Player:
         if self.is_all_in:
             return Call()
         else:
-            n_chips_to_call = max(p.bet_so_far for p in players)
+            n_chips_to_call = max(p.n_bet_chips for p in players)
             self.add_to_pot(n_chips_to_call)
             return Call()
 
     def raise_to(self, n_chips: int):
         """Raise your bet to a certain n_chips."""
-        self.add_to_pot(n_chips)
+        n_chips = self.add_to_pot(n_chips)
         raise_action = Raise()
         raise_action(n_chips)
         return raise_action
 
     def _try_to_make_full_bet(self, n_chips: int):
         """Ensures no bet is greater than the n_chips of chips left."""
-        if self.chips - n_chips < 0:
+        if self.n_chips - n_chips < 0:
             # We can't bet more than we have.
-            n_chips = self.chips
+            n_chips = self.n_chips
         return n_chips
 
     def add_to_pot(self, n_chips: int):
@@ -83,7 +88,8 @@ class Player:
         #               Ensure that this is sorted.
         n_chips = self._try_to_make_full_bet(n_chips)
         self.pot.add_chips(self, n_chips)
-        self.chips -= n_chips
+        self.n_chips -= n_chips
+        return n_chips
 
     def add_private_card(self, card: Card):
         """Add a private card to this player."""
@@ -97,6 +103,7 @@ class Player:
         state.
         """
         action = self._random_move(players=game_state.table.players)
+        logger.debug(f'{self.name} {action}')
         return PokerGameState(game_state, game_state.table, self, action)
 
     def _random_move(self, players: List[Player]):
@@ -126,9 +133,9 @@ class Player:
     @property
     def is_all_in(self) -> bool:
         """Return if the player is all in or not."""
-        return self._is_active and self.chips == 0
+        return self._is_active and self.n_chips == 0
 
     @property
-    def bet_so_far(self) -> int:
+    def n_bet_chips(self) -> int:
         """Returns the n_chips this player has bet so far."""
         return self.pot[self]
