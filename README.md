@@ -53,11 +53,17 @@ At first, the goal is to prototype in Python as iteration will be much easier an
 
 ## Structure
 
+Below is a rough structure of the repository. 
+
 ```bash
-├── paper    # main source of info and documentation
-└── pluribus # python code
-    ├── ai   # (currently) python stubs for ai algorithms.
-    └── game # wip code for managing a hand of poker
+├── paper          # Main source of info and documentation :)
+├── pluribus       # Main Python library.
+│   ├── ai         # Stub functions for ai algorithms.
+│   └── game       # WIP code for managing a hand of poker.
+├── scripts        # Scripts to help develop the main library.
+└── test           # Python tests.
+    ├── functional # Functional tests that test multiple components together.
+    └── unit       # Individual tests for functions and objects.
 ```
 
 ## Contributing
