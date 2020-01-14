@@ -6,9 +6,9 @@
 | coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/pluribus-poker-AI/test_coverage) |
 | license         | [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) |
 
-# Pluribus Poker AI
+# 🤖 Pluribus Poker AI
 
-This repository will contain a best effort, open source implementation of the key ideas from the Pluribus poker AI that plays Texas Holdem Poker. This includes the game engine needed to manage a hand of poker, and will implement the ideas from the paper with respect to the AI algorithms.
+This repository will contain a best effort, open source implementation of the key ideas from the [Pluribus poker AI](https://www.cs.cmu.edu/~noamb/papers/19-Science-Superhuman.pdf) that plays [Texas Hold'em Poker](https://en.wikipedia.org/wiki/Texas_hold_'em). This includes the game engine needed to manage a hand of poker, and will implement the ideas from the paper with respect to the AI algorithms.
 
 <p align="center">
   <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/poker.jpg">
