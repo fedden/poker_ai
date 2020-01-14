@@ -15,9 +15,8 @@ def test_hand(n_players):
         for player_i in range(6)
     ]
     table = PokerTable(players=players)
-    hand = PokerHand(
+    engine = PokerEngine(
         table=table,
         small_blind=small_blind_amount,
         big_blind=big_blind_amount)
-    hand.play()
-
+    engine.play_one_round()
