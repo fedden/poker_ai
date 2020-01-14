@@ -12,7 +12,7 @@ python:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
-  - pip install coverage
+  - pip install pytest pytest-cov
   - pip install .
 
 # Hook up code coverage in the before test script.
@@ -26,6 +26,5 @@ script: pytest
 
 # Code to run after the test script.
 after_script:
-  - coverage run --source=pluribus test/**.py
-  - coverage xml
+  - pytest test -v --cov-report term --cov-report xml --cov-fail-under=90 --cov=pluribus
   - if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
