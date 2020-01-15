@@ -47,7 +47,7 @@ At first, the goal is to prototype in Python as iteration will be much easier an
 - [x] Add poker hand evaluation code to the engine.
 - [x] Support a player going all in during betting.
 - [x] Support a player going all in during payouts.
-- [ ] Lots of testing for various scenarios to ensure logic is working as expected.
+- [x] Lots of testing for various scenarios to ensure logic is working as expected.
 - [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
 - [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
 
@@ -96,3 +96,6 @@ Following are blogposts and discussions on the paper that served as helpful refe
 Big shout out to the authors of the following repositories! Here are some MIT licensed codebases that I have found, pillaged and refactored to serve as the basis of the poker engine. 
 * [Poker game code based on this (dead!?!) python package](https://pypi.org/project/pluribus-python/#data)
 * [Pretty darn efficient poker hand evaluation (python 3 fork)](https://github.com/msaindon/deuces)
+
+Useful tools that contributed to the making of the poker engine:
+* [Poker hand winner calculator that came in handy for building tests for the engine.](https://www.pokerlistings.com/which-hand-wins-calculator)
