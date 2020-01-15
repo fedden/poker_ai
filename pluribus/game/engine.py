@@ -57,33 +57,41 @@ class PokerEngine:
         # TODO(fedden): What if someone runs out of chips here?
         self.move_blinds()
 
-    def _get_players_in_pot(player_group, pot):
+    def _get_players_in_pot(self, player_group, pot):
         """Return the players in the pot, ordered by hand played."""
         return sorted(
             [player for player in player_group if player in pot],
             key=operator.attrgetter("order"),
         )
 
+    def _process_side_pot(self, player_group, pot):
+        """Check if this list of players contributed to this side pot."""
+        payouts = collections.Counter()
+        players_in_pot = self._get_players_in_pot(player_group, pot)
+        n_players = len(players_in_pot)
+        if not n_players:
+            return {}
+        n_total = sum(pot.values())
+        n_per_player = n_total // n_players
+        n_remainder = n_total - n_players * n_per_player
+        for player in players_in_pot:
+            payouts[player] += n_per_player
+        for i in range(n_remainder):
+            payouts[players_in_pot[i]] += 1
+        return payouts
+
     def compute_payouts(self, ranked_player_groups: List[Player]):
-        """"""
+        """Find the highest ranked players for each sidepot and get winnings"""
+        import ipdb; ipdb.set_trace()
         payouts = collections.Counter()
         for pot in self.table.pot.side_pots:
             for player_group in ranked_player_groups:
-                players_in_pot = self._get_players_in_pot(player_group, pot)
-                n_players = len(players_in_pot)
-                if n_players:
-                    n_total = sum(pot.values())
-                    n_per_player = n_total // n_players
-                    n_remainder = n_total - n_players * n_per_player
-                    for player in players_in_pot:
-                        payouts[player] += n_per_player
-                    for i in range(n_remainder):
-                        payouts[players_in_pot[i]] += 1
-                    break
+                pot_payouts = self._process_side_pot(player_group, pot)
+                payouts.update(pot_payouts)
         return payouts
 
     def payout_players(self, payouts: Dict[Player, int]):
-        """"""
+        """Remove money from the pot and pay the winning players the chips."""
         self.table.pot.reset()
         for player, winnings in payouts.items():
             player.add_chips(winnings)
