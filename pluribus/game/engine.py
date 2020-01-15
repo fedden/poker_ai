@@ -36,26 +36,42 @@ class PokerEngine:
 
     def play_one_round(self):
         """"""
+        self._round_setup()
+        self._all_dealing_and_betting_rounds()
+        self._compute_winners()
+        self._round_cleanup()
+
+    def _round_setup(self):
+        """Code that must be done to setup the round before the game starts."""
         self.table.pot.reset()
-        self.assign_order_to_players()
-        self.assign_blinds()
+        self._assign_order_to_players()
+        self._assign_blinds()
+
+    def _all_dealing_and_betting_rounds(self):
+        """Run through dealing of all cards and all rounds of betting."""
         self.table.dealer.deal_private_cards(self.table.players)
-        self.betting_round(first_round=True)
+        self._betting_round(first_round=True)
         self.table.dealer.deal_flop(self.table)
-        self.betting_round()
+        self._betting_round()
         self.table.dealer.deal_turn(self.table)
-        self.betting_round()
+        self._betting_round()
         self.table.dealer.deal_river(self.table)
-        self.betting_round()
+        self._betting_round()
+
+    def _compute_winners(self):
+        """Compute winners and payout the chips to respective players."""
         # From the active players on the table, compute the winners.
-        ranked_player_groups = self.rank_players_by_best_hand()
-        payouts = self.compute_payouts(ranked_player_groups)
-        self.payout_players(payouts)
+        ranked_player_groups = self._rank_players_by_best_hand()
+        payouts = self._compute_payouts(ranked_player_groups)
+        self._payout_players(payouts)
         logger.debug("Winnings computation complete. Players:")
         for player in self.table.players:
             logger.debug(f"{player}")
         # TODO(fedden): What if someone runs out of chips here?
-        self.move_blinds()
+
+    def _round_cleanup(self):
+        """Any code that must be called at the end of a round."""
+        self._move_blinds()
 
     def _get_players_in_pot(self, player_group, pot):
         """Return the players in the pot, ordered by hand played."""
@@ -80,7 +96,7 @@ class PokerEngine:
             payouts[players_in_pot[i]] += 1
         return payouts
 
-    def compute_payouts(self, ranked_player_groups: List[Player]):
+    def _compute_payouts(self, ranked_player_groups: List[Player]):
         """Find the highest ranked players for each sidepot and get winnings"""
         payouts = collections.Counter()
         for pot in self.table.pot.side_pots:
@@ -91,13 +107,13 @@ class PokerEngine:
                     break
         return payouts
 
-    def payout_players(self, payouts: Dict[Player, int]):
+    def _payout_players(self, payouts: Dict[Player, int]):
         """Remove money from the pot and pay the winning players the chips."""
         self.table.pot.reset()
         for player, winnings in payouts.items():
             player.add_chips(winnings)
 
-    def rank_players_by_best_hand(self) -> List[List[Player]]:
+    def _rank_players_by_best_hand(self) -> List[List[Player]]:
         """Rank all players hands and return the players in order of rank."""
         # The cards that can be passed to the evaluator object from the table.
         table_cards = [card.eval_card for card in self.table.community_cards]
@@ -121,18 +137,18 @@ class PokerEngine:
             ranked_player_groups.append(grouped_players[rank])
         return ranked_player_groups
 
-    def assign_order_to_players(self):
-        """"""
+    def _assign_order_to_players(self):
+        """Assign order of play to each player (to aid sorting in payouts)."""
         for player_i, player in enumerate(self.table.players):
             player.order = player_i
 
-    def assign_blinds(self):
+    def _assign_blinds(self):
         """Assign the blinds to the players."""
         self.table.players[0].add_to_pot(self.small_blind)
         self.table.players[1].add_to_pot(self.big_blind)
         logger.debug(f"Assigned blinds to players {self.table.players[:2]}")
 
-    def move_blinds(self):
+    def _move_blinds(self):
         """Rotate the table's player list.
 
         This is so that the next player in line gets the small blind and the
@@ -143,13 +159,14 @@ class PokerEngine:
         logger.debug(f"Rotated players from {self.table.players} to {players}")
         self.table.set_players(players)
 
-    def betting_round(self, first_round=False):
+    def _betting_round(self, first_round=False):
         """Computes the round(s) of betting.
 
         Until the current betting round is complete, all active players take
         actions in the order they were placed at the table. A betting round
         lasts until all players either call the highest placed bet or fold.
         """
+        # TODO(fedden): Is this the correct order of play w.r.t the players?
         if first_round:
             players = self.table.players[2:] + self.table.players[:2]
         else:
