@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import uuid
 from typing import List, TYPE_CHECKING
 
 import numpy as np
@@ -9,33 +11,47 @@ from pluribus.game.state import PokerGameState
 
 if TYPE_CHECKING:
     from pluribus.game.cards import Card
+    from pluribus.game.pot import Pot
+
+
+logger = logging.getLogger(__name__)
 
 
 class Player:
     """Base class for all poker-playing agents.
 
     A poker player has a name, holds chips to bet with, and has private cards
-    to play with. The amount of contributions to the pot for a given hand of
+    to play with. The n_chips of contributions to the pot for a given hand of
     poker are stored cumulative, as the total pot to cash out is just the sum
     of all players' contributions.
     """
 
-    def __init__(self, name: str, initial_chips: int):
+    def __init__(self, name: str, initial_chips: int, pot: Pot):
         """Instanciate a player."""
         self.name: str = name
-        self.chips: int = initial_chips
+        self.n_chips: int = initial_chips
         self.cards: List[Card] = []
         self._is_active = True
-        self._total_in_pot = 0
+        self._id = int(uuid.uuid4().hex, 16)
+        self.pot = pot
+        self.order = None
+
+    def __hash__(self):
+        """Make player hashable so we can index the pot like `pot[player]`."""
+        return self._id
 
     def __repr__(self):
         """"""
-        return f'<Player name="{self.name}" chips={self.chips}>'
+        return '<Player name="{}" n_chips={:05d} n_bet_chips={:05d} ' \
+            'folded={}>'.format(
+                self.name,
+                self.n_chips,
+                self.n_bet_chips,
+                int(not self.is_active))
 
-    def payout(self, chips: int):
-        """Pay-out chips earned or lost in the last hand and reset the pot."""
-        self.chips += chips
-        self._total_in_pot = 0
+    def add_chips(self, chips: int):
+        """Add chips."""
+        self.n_chips += chips
 
     def fold(self):
         """Deactivate player for this hand by folding cards."""
@@ -47,24 +63,37 @@ class Player:
         if self.is_all_in:
             return Call()
         else:
-            amount_to_call = max(p.bet_so_far for p in players)
-            self.add_to_pot(amount_to_call)
+            biggest_bet = max(p.n_bet_chips for p in players)
+            n_chips_to_call = biggest_bet - self.n_bet_chips
+            self.add_to_pot(n_chips_to_call)
             return Call()
 
-    def raise_to(self, amount: int):
-        """Raise your bet to a certain amount."""
-        if self.chips - amount < 0:
-            # We can't bet more than we have.
-            amount = self.chips
-        self.add_to_pot(amount)
-        _raise = Raise()
-        _raise(amount)
-        return _raise
+    def raise_to(self, n_chips: int):
+        """Raise your bet to a certain n_chips."""
+        n_chips = self.add_to_pot(n_chips)
+        raise_action = Raise()
+        raise_action(n_chips)
+        return raise_action
 
-    def add_to_pot(self, amount: int):
-        """Add to the amount put into the pot by this player."""
-        self._total_in_pot += amount
-        self.chips -= amount
+    def _try_to_make_full_bet(self, n_chips: int):
+        """Ensures no bet is greater than the n_chips of chips left."""
+        if self.n_chips - n_chips < 0:
+            # We can't bet more than we have.
+            n_chips = self.n_chips
+        return n_chips
+
+    def add_to_pot(self, n_chips: int):
+        """Add to the n_chips put into the pot by this player."""
+        if n_chips < 0:
+            raise ValueError(f'Can not subtract chips from pot.')
+        # TODO(fedden): This code is called by engine.py for the small and big
+        #               blind. What if the player can't actually add the blind?
+        #               What do the rules stipulate in these circumstances.
+        #               Ensure that this is sorted.
+        n_chips = self._try_to_make_full_bet(n_chips)
+        self.pot.add_chips(self, n_chips)
+        self.n_chips -= n_chips
+        return n_chips
 
     def add_private_card(self, card: Card):
         """Add a private card to this player."""
@@ -78,6 +107,7 @@ class Player:
         state.
         """
         action = self._random_move(players=game_state.table.players)
+        logger.debug(f'{self.name} {action}')
         return PokerGameState(game_state, game_state.table, self, action)
 
     def _random_move(self, players: List[Player]):
@@ -106,10 +136,10 @@ class Player:
 
     @property
     def is_all_in(self) -> bool:
-        """"""
-        return self._is_active and self.chips == 0
+        """Return if the player is all in or not."""
+        return self._is_active and self.n_chips == 0
 
     @property
-    def bet_so_far(self) -> int:
-        """Returns the amount this player has be so far."""
-        return self._total_in_pot
+    def n_bet_chips(self) -> int:
+        """Returns the n_chips this player has bet so far."""
+        return self.pot[self]

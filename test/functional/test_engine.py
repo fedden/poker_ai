@@ -7,14 +7,19 @@ def test_hand(n_players):
     from pluribus.game.table import PokerTable
     from pluribus.game.engine import PokerEngine
     from pluribus.game.player import Player
+    from pluribus.game.pot import Pot
     initial_chips_amount = 10000
     small_blind_amount = 10
     big_blind_amount = 50
+    pot = Pot()
     players = [
-        Player(name=f'player {player_i}', initial_chips=initial_chips_amount)
-        for player_i in range(6)
+        Player(
+            name=f'player {player_i}',
+            initial_chips=initial_chips_amount,
+            pot=pot)
+        for player_i in range(n_players)
     ]
-    table = PokerTable(players=players)
+    table = PokerTable(players=players, pot=pot)
     engine = PokerEngine(
         table=table,
         small_blind=small_blind_amount,
