@@ -31,15 +31,35 @@ class Pot:
         self._side_pot = {}
         self._side_pots = []
 
+    def _add_new_side_pot(self, player: Player, n_chips: int):
+        """"""
+        # Save the current side pot.
+        self._side_pots.append({k: v for k, v in self._side_pot.items()})
+        self._side_pot = {player: n_chips}
+
+    def _split_side_pot(self, player: Player, n_chips: int):
+        """"""
+        original_n_chips = list(self._side_pot.values())[0]
+        original_players = list(self._side_pot.keys())
+        smallest_n_chips = min(original_n_chips, n_chips)
+        self._side_pot[player] = smallest_n_chips
+        self._side_pots.append({
+            p: smallest_n_chips for p in original_players + [player]
+        })
+        n_chips_diff = abs(original_n_chips - n_chips)
+        if original_n_chips > n_chips:
+            diff_players = original_players
+        else:
+            diff_players = [player]
+        self._side_pot = {p: n_chips_diff for p in diff_players}
+
     def add_chips(self, player: Player, n_chips: int):
         """Add chips to the pot, from a player for a given round."""
         if n_chips < 0:
             raise ValueError(f'Negative chips cannot be added to the pot.')
         if player in self._side_pot:
             # We have already bet with this player, make a new side pot.
-            self._side_pots.append({k: v for k, v in self._side_pot.items()})
-            self._side_pot = {}
-            self._side_pot[player] = n_chips
+            self._add_new_side_pot(player=player, n_chips=n_chips)
         elif all(c == n_chips for c in self._side_pot.values()):
             # All the other players bets are equal to this bet, so add to
             # current side pot.
@@ -47,19 +67,7 @@ class Pot:
         else:
             # Else player is not in the current side pot, and the amount is
             # different to the side current values in the side pot.
-            original_n_chips = list(self._side_pot.values())[0]
-            original_players = list(self._side_pot.keys())
-            smallest_n_chips = min(original_n_chips, n_chips)
-            self._side_pot[player] = smallest_n_chips
-            self._side_pots.append({
-                p: smallest_n_chips for p in original_players + [player]
-            })
-            n_chips_diff = abs(original_n_chips - n_chips)
-            if original_n_chips > n_chips:
-                diff_players = original_players
-            else:
-                diff_players = [player]
-            self._side_pot = {p: n_chips_diff for p in diff_players}
+            self._split_side_pot(player=player, n_chips=n_chips)
 
     @property
     def side_pots(self):

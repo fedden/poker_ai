@@ -57,24 +57,28 @@ class PokerEngine:
         # TODO(fedden): What if someone runs out of chips here?
         self.move_blinds()
 
+    def _get_players_in_pot(player_group, pot):
+        """Return the players in the pot, ordered by hand played."""
+        return sorted(
+            [player for player in player_group if player in pot],
+            key=operator.attrgetter("order"),
+        )
+
     def compute_payouts(self, ranked_player_groups: List[Player]):
         """"""
         payouts = collections.Counter()
-        for side_pot in self.table.pot.side_pots:
+        for pot in self.table.pot.side_pots:
             for player_group in ranked_player_groups:
-                players_in_side_pot = sorted(
-                    [player for player in player_group if player in side_pot],
-                    key=operator.attrgetter("order"),
-                )
-                n_players = len(players_in_side_pot)
+                players_in_pot = self._get_players_in_pot(player_group, pot)
+                n_players = len(players_in_pot)
                 if n_players:
-                    n_total = sum(side_pot.values())
+                    n_total = sum(pot.values())
                     n_per_player = n_total // n_players
                     n_remainder = n_total - n_players * n_per_player
-                    for player in players_in_side_pot:
+                    for player in players_in_pot:
                         payouts[player] += n_per_player
                     for i in range(n_remainder):
-                        payouts[players_in_side_pot[i]] += 1
+                        payouts[players_in_pot[i]] += 1
                     break
         return payouts
 
