@@ -66,10 +66,8 @@ class Pot:
             diff_players = [player]
         self._side_pots.append({p: n_chips_diff for p in diff_players})
 
-    @property
-    def side_pots(self):
-        """Returns all side pots."""
-        # Collapse side pots as there may be duplicates with the same keys."""
+    def _collapse_side_pots(self):
+        """Collapse the side pots."""
         summed_side_pots = collections.Counter()
         for side_pot in self._side_pots:
             if side_pot:
@@ -83,6 +81,13 @@ class Pot:
             combined_side_pots.append({})
         # Overwrite side_pots with the collapsed version.
         self._side_pots = combined_side_pots
+
+    @property
+    def side_pots(self):
+        """Returns all side pots."""
+        # Collapse side pots as there may be duplicates with the same keys."""
+        if len(self._side_pots) > 1:
+            self._collapse_side_pots()
         return self._side_pots
 
     @property
