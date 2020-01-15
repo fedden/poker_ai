@@ -1,8 +1,11 @@
+from pluribus import utils
 from pluribus.ai.dummy import RandomPlayer
 from pluribus.game.table import PokerTable
 from pluribus.game.engine import PokerEngine
 from pluribus.game.pot import Pot
 
+
+utils.random.seed(42)
 
 initial_chips_amount = 10000
 small_blind_amount = 10
