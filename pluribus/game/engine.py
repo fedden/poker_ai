@@ -165,7 +165,7 @@ class PokerEngine:
             return self.table.players[2:] + self.table.players[:2]
         return self.table.players
 
-    def _all_active_players_take_action(self, first_round):
+    def _all_active_players_take_action(self, first_round: bool):
         """Force all players to make a move."""
         # For every active player compute the move, but big and small
         # blind move last..
@@ -183,7 +183,7 @@ class PokerEngine:
             first_round = False
             logger.debug(f"> Betting iter, total: {sum(self.all_bets)}")
 
-    def _betting_round(self, first_round=False):
+    def _betting_round(self, first_round: bool = False):
         """Computes the round(s) of betting.
 
         Until the current betting round is complete, all active players take
@@ -220,22 +220,22 @@ class PokerEngine:
             )
 
     @property
-    def n_players_with_moves(self):
+    def n_players_with_moves(self) -> int:
         """Returns the amount of players that can freely make a move."""
         return sum(p.is_active and not p.is_all_in for p in self.table.players)
 
     @property
-    def n_active_players(self):
+    def n_active_players(self) -> int:
         """Returns the number of active players."""
         return sum(p.is_active for p in self.table.players)
 
     @property
-    def n_all_in_players(self):
+    def n_all_in_players(self) -> int:
         """Return the amount of players that are active and that are all in."""
         return sum(p.is_active and p.is_all_in for p in self.table.players)
 
     @property
-    def all_bets(self) -> list[int]:
+    def all_bets(self) -> List[int]:
         """Returns all bets made by the players."""
         return [p.n_bet_chips for p in self.table.players]
 
