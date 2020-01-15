@@ -159,6 +159,26 @@ class PokerEngine:
         logger.debug(f"Rotated players from {self.table.players} to {players}")
         self.table.set_players(players)
 
+    def _players_in_order_of_betting(self, first_round: bool) -> List[Player]:
+        """Players bet in different orders depending on the round it is."""
+        if first_round:
+            return self.table.players[2:] + self.table.players[:2]
+        return self.table.players
+
+    def _bet_until_everyone_has_bet_evenly(self):
+        """Iteratively bet until all have put the same num chips in the pot."""
+        # Ensure for the first move we do one round of betting.
+        first_round = True
+        logger.debug("Started round of betting.")
+        while first_round or self.more_betting_needed:
+            # For every active player compute the move, but big and small
+            # blind move last..
+            for player in self._players_in_order_of_betting(first_round):
+                if player.is_active:
+                    self.state = player.take_action(self.state)
+            first_round = False
+            logger.debug(f"> Betting iter, total: {sum(self.all_bets)}")
+
     def _betting_round(self, first_round=False):
         """Computes the round(s) of betting.
 
@@ -166,23 +186,8 @@ class PokerEngine:
         actions in the order they were placed at the table. A betting round
         lasts until all players either call the highest placed bet or fold.
         """
-        # TODO(fedden): Is this the correct order of play w.r.t the players?
-        if first_round:
-            players = self.table.players[2:] + self.table.players[:2]
-        else:
-            players = self.table.players
         if self.n_players_with_moves > 1:
-            # Ensure for the first move we do one round of betting.
-            first_round = True
-            logger.debug("Started round of betting.")
-            while first_round or self.more_betting_needed:
-                # For every active player compute the move, but big and small
-                # blind move last..
-                for player in players:
-                    if player.is_active:
-                        self.state = player.take_action(self.state)
-                first_round = False
-                logger.debug(f"> Betting iter, total: {sum(self.all_bets)}")
+            self._bet_until_everyone_has_bet_evenly()
             logger.debug(
                 f"Finished round of betting, {self.n_active_players} active "
                 f"players, {self.n_all_in_players} all in players."
