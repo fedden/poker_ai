@@ -46,7 +46,8 @@ At first, the goal is to prototype in Python as iteration will be much easier an
 - [x] Lay down the foundation of game objects (player, card etc).
 - [x] Add poker hand evaluation code to the engine.
 - [x] Support a player going all in during betting.
-- [ ] Support a player going all in during payouts.
+- [x] Support a player going all in during payouts.
+- [ ] Lots of testing for various scenarios to ensure logic is working as expected.
 - [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
 - [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
 
