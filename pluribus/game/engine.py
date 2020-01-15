@@ -165,17 +165,21 @@ class PokerEngine:
             return self.table.players[2:] + self.table.players[:2]
         return self.table.players
 
+    def _all_active_players_take_action(self, first_round):
+        """Force all players to make a move."""
+        # For every active player compute the move, but big and small
+        # blind move last..
+        for player in self._players_in_order_of_betting(first_round):
+            if player.is_active:
+                self.state = player.take_action(self.state)
+
     def _bet_until_everyone_has_bet_evenly(self):
         """Iteratively bet until all have put the same num chips in the pot."""
         # Ensure for the first move we do one round of betting.
         first_round = True
         logger.debug("Started round of betting.")
         while first_round or self.more_betting_needed:
-            # For every active player compute the move, but big and small
-            # blind move last..
-            for player in self._players_in_order_of_betting(first_round):
-                if player.is_active:
-                    self.state = player.take_action(self.state)
+            self._all_active_players_take_action(first_round)
             first_round = False
             logger.debug(f"> Betting iter, total: {sum(self.all_bets)}")
 
