@@ -56,7 +56,7 @@ def _scenario_helper(
 
 
 def test_scenario_a():
-    """"""
+    """Player 0 and 1 should share winnings."""
     winner_indices = [0, 1]
     player_cards = [
         [Card(rank='ace', suit='hearts'), Card(rank='8', suit='diamonds')],
@@ -76,5 +76,49 @@ def test_scenario_a():
         board_cards=board_cards)
 
 
-test_scenario_a()
+def test_scenario_b():
+    """Player 3 should win winnings."""
+    winner_indices = [3]
+    player_cards = [
+        [Card(rank='2', suit='clubs'), Card(rank='3', suit='clubs')],
+        [Card(rank='4', suit='diamonds'), Card(rank='6', suit='clubs')],
+        [Card(rank='3', suit='hearts'), Card(rank='king', suit='diamonds')],
+        [Card(rank='6', suit='spades'), Card(rank='6', suit='hearts')],
+        [Card(rank='3', suit='spades'), Card(rank='8', suit='diamonds')],
+        [Card(rank='ace', suit='spades'), Card(rank='3', suit='diamonds')],
+    ]
+    board_cards = [
+        Card(rank='6', suit='diamonds'),
+        Card(rank='jack', suit='diamonds'),
+        Card(rank='10', suit='hearts'),
+        Card(rank='ace', suit='hearts'),
+        Card(rank='jack', suit='hearts')
+    ]
+    _scenario_helper(
+        winner_indices=winner_indices,
+        player_cards=player_cards,
+        board_cards=board_cards)
 
+
+def test_scenario_c():
+    """Player 3 should win winnings."""
+    winner_indices = [5]
+    player_cards = [
+        [Card(rank='2', suit='clubs'), Card(rank='3', suit='clubs')],
+        [Card(rank='4', suit='diamonds'), Card(rank='6', suit='clubs')],
+        [Card(rank='3', suit='hearts'), Card(rank='king', suit='diamonds')],
+        [Card(rank='6', suit='spades'), Card(rank='6', suit='hearts')],
+        [Card(rank='3', suit='spades'), Card(rank='8', suit='diamonds')],
+        [Card(rank='ace', suit='spades'), Card(rank='3', suit='diamonds')],
+    ]
+    board_cards = [
+        Card(rank='ace', suit='diamonds'),
+        Card(rank='ace', suit='clubs'),
+        Card(rank='king', suit='clubs'),
+        Card(rank='7', suit='diamonds'),
+        Card(rank='ace', suit='hearts')
+    ]
+    _scenario_helper(
+        winner_indices=winner_indices,
+        player_cards=player_cards,
+        board_cards=board_cards)
