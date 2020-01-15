@@ -42,6 +42,12 @@ class Player(ABC):
         """Make player hashable so we can index the pot like `pot[player]`."""
         return self._id
 
+    def __eq__(self, other):
+        """Is the player equal to another reference?"""
+        if isinstance(other, Player):
+            return self._id == other._id
+        return False
+
     def __repr__(self):
         """"""
         return '<Player name="{}" n_chips={:05d} n_bet_chips={:05d} ' \
