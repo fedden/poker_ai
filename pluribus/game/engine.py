@@ -82,12 +82,13 @@ class PokerEngine:
 
     def compute_payouts(self, ranked_player_groups: List[Player]):
         """Find the highest ranked players for each sidepot and get winnings"""
-        import ipdb; ipdb.set_trace()
         payouts = collections.Counter()
         for pot in self.table.pot.side_pots:
             for player_group in ranked_player_groups:
                 pot_payouts = self._process_side_pot(player_group, pot)
-                payouts.update(pot_payouts)
+                if pot_payouts:
+                    payouts.update(pot_payouts)
+                    break
         return payouts
 
     def payout_players(self, payouts: Dict[Player, int]):
