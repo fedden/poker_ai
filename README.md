@@ -94,26 +94,32 @@ engine.play_one_round()
 
 The Pluribus AI algorithm is the next thing to implement so more coming on that as soon as possible...
 
-## Rough todo
+## Roadmap
 
 The following todo will change dynamically as my understanding of the algorithms and the pluribus project evolves. 
 
 At first, the goal is to prototype in Python as iteration will be much easier and quicker. Once there is a working prototype, write in a systems level language like C++ and optimise for performance. 
 
-### 1. Implement a multiplayer working heads up no limit poker game engine to support the self-play.
+### 1. First game engine iteration.
+_Implement a multiplayer working heads up no limit poker game engine to support the self-play._
 - [x] Lay down the foundation of game objects (player, card etc).
 - [x] Add poker hand evaluation code to the engine.
 - [x] Support a player going all in during betting.
 - [x] Support a player going all in during payouts.
 - [x] Lots of testing for various scenarios to ensure logic is working as expected.
-- [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
-- [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
 
-### 2. Iterate on the AI algorithms and the integration into the poker engine. 
+### 2. First AI iteration.
+_Iterate on the AI algorithms and the integration into the poker engine._
 - [ ] Integrate the AI strategy to support self-play in the multiplayer poker game engine.
 - [ ] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
 - [ ] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
 - [ ] Add the real-time search for better strategies during the game.
+
+### 2. Second game engine iteration.
+_Strengthen the game engine with more tests and allow users to see live visualisation of game state._
+- [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
+- [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
+- [ ] Work through the coverage, adding more tests, can never have enough.
 
 <p align="center">
   <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/regret.jpeg">
