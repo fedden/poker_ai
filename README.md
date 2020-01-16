@@ -36,31 +36,6 @@ pip install pytest
 pytest
 ```
 
-## Rough todo
-
-The following todo will change dynamically as my understanding of the algorithms and the pluribus project evolves. 
-
-At first, the goal is to prototype in Python as iteration will be much easier and quicker. Once there is a working prototype, write in a systems level language like C++ and optimise for performance. 
-
-### 1. Implement a multiplayer working heads up no limit poker game engine to support the self-play.
-- [x] Lay down the foundation of game objects (player, card etc).
-- [x] Add poker hand evaluation code to the engine.
-- [x] Support a player going all in during betting.
-- [x] Support a player going all in during payouts.
-- [ ] Lots of testing for various scenarios to ensure logic is working as expected.
-- [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
-- [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
-
-### 2. Iterate on the AI algorithms and the integration into the poker engine. 
-- [ ] Integrate the AI strategy to support self-play in the multiplayer poker game engine.
-- [ ] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
-- [ ] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
-- [ ] Add the real-time search for better strategies during the game.
-
-<p align="center">
-  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/regret.jpeg">
-</p>
-
 ## Structure
 
 Below is a rough structure of the repository. 
@@ -75,6 +50,74 @@ Below is a rough structure of the repository.
     ├── functional # Functional tests that test multiple components together.
     └── unit       # Individual tests for functions and objects.
 ```
+
+## Code Examples
+
+There are two parts to this repository, the code to manage a game of poker, and the code to train an AI algorithm to play the game of poker. The reason the poker engine is being implemented is because it will likely be useful to have a well-integrated poker environment available during the development of the AI algorithm, incase there are tweaks that must be made to accomadate things like the history of state or the replay of a scenario during Monte Carlo Counterfactual Regret Minimisation. The following code is how one might program a round of poker that is deterministic using the engine. This engine is now the first pass that will be used support self play.
+
+```python
+from pluribus import utils
+from pluribus.ai.dummy import RandomPlayer
+from pluribus.game.table import PokerTable
+from pluribus.game.engine import PokerEngine
+from pluribus.game.pot import Pot
+
+# Seed so things are deterministic.
+utils.random.seed(42)
+
+# Some settings for the amount of chips.
+initial_chips_amount = 10000
+small_blind_amount = 10
+big_blind_amount = 50
+
+# Create the pot.
+pot = Pot()
+# Instanciate six players that will make random moves, make sure 
+# they can reference the pot so they can add chips to it.
+players = [
+    RandomPlayer(
+        name=f'player {player_i}',
+        initial_chips=initial_chips_amount,
+        pot=pot)
+    for player_i in range(6)
+]
+# Create the table with the players on it.
+table = PokerTable(players=players, pot=pot)
+# Create the engine that will manage the poker game lifecycle.
+engine = PokerEngine(
+    table=table,
+    small_blind=small_blind_amount,
+    big_blind=big_blind_amount)
+# Play a round of Texas Hold'em Poker!
+engine.play_one_round()
+```
+
+The Pluribus AI algorithm is the next thing to implement so more coming on that as soon as possible...
+
+## Rough todo
+
+The following todo will change dynamically as my understanding of the algorithms and the pluribus project evolves. 
+
+At first, the goal is to prototype in Python as iteration will be much easier and quicker. Once there is a working prototype, write in a systems level language like C++ and optimise for performance. 
+
+### 1. Implement a multiplayer working heads up no limit poker game engine to support the self-play.
+- [x] Lay down the foundation of game objects (player, card etc).
+- [x] Add poker hand evaluation code to the engine.
+- [x] Support a player going all in during betting.
+- [x] Support a player going all in during payouts.
+- [x] Lots of testing for various scenarios to ensure logic is working as expected.
+- [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
+- [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
+
+### 2. Iterate on the AI algorithms and the integration into the poker engine. 
+- [ ] Integrate the AI strategy to support self-play in the multiplayer poker game engine.
+- [ ] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
+- [ ] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
+- [ ] Add the real-time search for better strategies during the game.
+
+<p align="center">
+  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/regret.jpeg">
+</p>
 
 ## Contributing
 
@@ -96,3 +139,6 @@ Following are blogposts and discussions on the paper that served as helpful refe
 Big shout out to the authors of the following repositories! Here are some MIT licensed codebases that I have found, pillaged and refactored to serve as the basis of the poker engine. 
 * [Poker game code based on this (dead!?!) python package](https://pypi.org/project/pluribus-python/#data)
 * [Pretty darn efficient poker hand evaluation (python 3 fork)](https://github.com/msaindon/deuces)
+
+Useful tools that contributed to the making of the poker engine:
+* [Poker hand winner calculator that came in handy for building tests for the engine.](https://www.pokerlistings.com/which-hand-wins-calculator)

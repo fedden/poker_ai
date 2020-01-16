@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 import uuid
+from abc import ABC, abstractmethod
 from typing import List, TYPE_CHECKING
-
-import numpy as np
 
 from pluribus.game.actions import Call, Fold, Raise
 from pluribus.game.state import PokerGameState
@@ -17,8 +16,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Player:
-    """Base class for all poker-playing agents.
+class Player(ABC):
+    """Abstract base class for all poker-playing agents.
+
+    All agents should inherit from this class and implement the take_action
+    method.
 
     A poker player has a name, holds chips to bet with, and has private cards
     to play with. The n_chips of contributions to the pot for a given hand of
@@ -39,6 +41,12 @@ class Player:
     def __hash__(self):
         """Make player hashable so we can index the pot like `pot[player]`."""
         return self._id
+
+    def __eq__(self, other):
+        """Is the player equal to another reference?"""
+        if isinstance(other, Player):
+            return self._id == other._id
+        return False
 
     def __repr__(self):
         """"""
@@ -99,6 +107,7 @@ class Player:
         """Add a private card to this player."""
         self.cards.append(card)
 
+    @abstractmethod
     def take_action(self, game_state: PokerGameState) -> PokerGameState:
         """All poker strategy is implemented here.
 
@@ -106,23 +115,7 @@ class Player:
         action, agents receive the current game state and have to emit the next
         state.
         """
-        action = self._random_move(players=game_state.table.players)
-        logger.debug(f'{self.name} {action}')
-        return PokerGameState(game_state, game_state.table, self, action)
-
-    def _random_move(self, players: List[Player]):
-        """Random move to make FOR DEVELOPMENT PURPOSES"""
-        # TODO(fedden): Delete this method.
-        dice_roll = np.random.sample()
-        if 0.0 < dice_roll < 0.05:
-            # 5% chance to fold.
-            return self.fold()
-        elif 0.05 < dice_roll < 0.10:
-            # 10% chance to raise.
-            return self.raise_to(100)
-        else:
-            # 85% chance to call.
-            return self.call(players=players)
+        pass
 
     @property
     def is_active(self) -> bool:
