@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 
-from pluribus.game.card import Card, get_all_suits, get_all_ranks
+from pluribus.game.card import Card, get_all_suits
 
 
 class Deck:

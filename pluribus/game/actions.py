@@ -13,12 +13,12 @@ class Action:
 
 class Call(Action):
     def __repr__(self):
-        return "c"
+        return "call"
 
 
 class Fold(Action):
     def __repr__(self):
-        return "f"
+        return "fold"
 
 
 class Raise(Action):
@@ -26,7 +26,7 @@ class Raise(Action):
         self.amount = amount
 
     def __repr__(self):
-        return f"r{self.amount}"
+        return f"raise {self.amount}"
 
 
 class AbstractedRaise(Action):
@@ -39,11 +39,10 @@ class AbstractedRaise(Action):
                 f"Specified amount '{amount}' is not valid for this action "
                 f"abstraction, check 'allowed_amounts()' for more information"
             )
-
         self.amount = amount
 
     def __repr__(self):
-        return f"r{self.amount}"
+        return f"raise {self.amount}"
 
     @property
     def allowed_amounts(self):
