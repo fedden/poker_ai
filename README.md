@@ -36,6 +36,64 @@ pip install pytest
 pytest
 ```
 
+## Structure
+
+Below is a rough structure of the repository. 
+
+```
+├── paper          # Main source of info and documentation :)
+├── pluribus       # Main Python library.
+│   ├── ai         # Stub functions for ai algorithms.
+│   └── game       # WIP code for managing a hand of poker.
+├── scripts        # Scripts to help develop the main library.
+└── test           # Python tests.
+    ├── functional # Functional tests that test multiple components together.
+    └── unit       # Individual tests for functions and objects.
+```
+
+## Code Examples
+
+There are two parts to this repository, the code to manage a game of poker, and the code to train an AI algorithm to play the game of poker. The reason the poker engine is being implemented is because it will likely be useful to have a well-integrated poker environment available during the development of the AI algorithm, incase there are tweaks that must be made to accomadate things like the history of state or the replay of a scenario during Monte Carlo Counterfactual Regret Minimisation. The following code is how one might program a round of poker that is deterministic using the engine. This engine is now the first pass that will be used support self play.
+
+```python
+from pluribus import utils
+from pluribus.ai.dummy import RandomPlayer
+from pluribus.game.table import PokerTable
+from pluribus.game.engine import PokerEngine
+from pluribus.game.pot import Pot
+
+# Seed so things are deterministic.
+utils.random.seed(42)
+
+# Some settings for the amount of chips.
+initial_chips_amount = 10000
+small_blind_amount = 10
+big_blind_amount = 50
+
+# Create the pot.
+pot = Pot()
+# Instanciate six players that will make random moves, make sure 
+# they can reference the pot so they can add chips to it.
+players = [
+    RandomPlayer(
+        name=f'player {player_i}',
+        initial_chips=initial_chips_amount,
+        pot=pot)
+    for player_i in range(6)
+]
+# Create the table with the players on it.
+table = PokerTable(players=players, pot=pot)
+# Create the engine that will manage the poker game lifecycle.
+engine = PokerEngine(
+    table=table,
+    small_blind=small_blind_amount,
+    big_blind=big_blind_amount)
+# Play a round of Texas Hold'em Poker!
+engine.play_one_round()
+```
+
+The Pluribus AI algorithm is the next thing to implement so more coming on that as soon as possible...
+
 ## Rough todo
 
 The following todo will change dynamically as my understanding of the algorithms and the pluribus project evolves. 
@@ -60,21 +118,6 @@ At first, the goal is to prototype in Python as iteration will be much easier an
 <p align="center">
   <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/regret.jpeg">
 </p>
-
-## Structure
-
-Below is a rough structure of the repository. 
-
-```
-├── paper          # Main source of info and documentation :)
-├── pluribus       # Main Python library.
-│   ├── ai         # Stub functions for ai algorithms.
-│   └── game       # WIP code for managing a hand of poker.
-├── scripts        # Scripts to help develop the main library.
-└── test           # Python tests.
-    ├── functional # Functional tests that test multiple components together.
-    └── unit       # Individual tests for functions and objects.
-```
 
 ## Contributing
 
