@@ -168,3 +168,8 @@ MISC:
 * Some [original author papers](https://www.cs.cmu.edu/~noamb/research.html)
 * [Implementing MCCFR in python](https://www.youtube.com/watch?v=7m4bnmSkjow)
     * [Example Applied to Poker](https://github.com/geohot/ai-notebooks/blob/master/cfr_kuhn_poker.ipynb)
+
+Other useful blog links, papers and resources:
+* [Blog post on CFR](https://int8.io/counterfactual-regret-minimization-for-poker-ai/)
+* [No regret dynamics tutorial](https://theory.stanford.edu/~tim/f13/l/l17.pdf)
+* [Prediction, Learning and Games book.](http://www.ii.uni.wroc.pl/~lukstafi/pmwiki/uploads/AGT/Prediction_Learning_and_Games.pdf)
