@@ -21,6 +21,8 @@ Notation
   sigma (lowercase) :
     A strategy (i.e a policy). Here sigma(I) is a probability vector over the
     actions for acting player P_i in infoset I.
+  φ :
+    The final strategy for infoset I is φ(I) normalized.
 """
 import numpy as np
 
@@ -28,8 +30,15 @@ import numpy as np
 def monte_carlo_cfr_with_pruning(t):
     """Conduct External-Sampling Monte Carlo CFR with pruning."""
     for player in players:
-        pass
-
+        # Something with an infoset - are there multiple infosets for each
+        # player?
+        # TODO(fedden): What is for I_i ∈ I_i where P(I_i) = i do
+        # TODO(fedden): What is A(I)?
+        for action in available_actions_info_set:
+            # What is: R(I, a) <- 0?
+            reward_for_infoset_and_action = 0
+            if betting_round(infoset):
+                normalised
 
 def calculate_strategy(R, I):
     """Caluclates the strategy based on regrets."""
@@ -41,9 +50,38 @@ def update_strategy(h, P):
     pass
 
 
-def traverse_monte_carlo_cfr(h, P):
-    """"Update the regrets for P_i"""
-    pass
+def traverse_monte_carlo_cfr(node, player):
+    """"Update the regrets for player."""
+    if node.is_terminal:
+        # Possibly utility.
+        return u(node)
+    elif player not in hand:
+        # What does this mean?
+        # The remaining actions are irrelevant to player.
+        return traverse_monte_carlo_cfr(node_0, player)
+    elif node is chance_node:
+        # Wtf is a chance node? A human player choice or another players move?
+        action = sample_action(node)
+        return traverse_monte_carlo_cfr(action, player)
+    elif player.is_turn:
+        infoset = node.infoset(player)
+        # Probability vector over actions for player and infoset.
+        # Wtf is R? I think it's regret! Determine strategy for this infoset.
+        policy = calculate_strategy(infoset_regret, infoset)
+        # Initialise expected value at zero.
+        value = 0
+        for action in node.available_actions:
+            # Traverse each action.
+            value_of_action = traverse_monte_carlo_cfr(action, player)
+            # Update the expected value.
+            # TODO(fedden): What is this policy multiplier: σ(I_i, a)?
+            value = value + policy_factor * value_of_action
+        for action in node.available_actions:
+            # Update the regret of each action.
+            regret += regret + value_of_action - value
+        return value
+    else:
+        # What is going on here?
 
 
 def traverse_monte_carlo_cfr_with_pruning(h, P):
