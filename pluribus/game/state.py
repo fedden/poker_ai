@@ -18,12 +18,24 @@ class PokerGameState:
     def __repr__(self):
         """Make a nice printable node."""
         name = "<PokerGameState prev_state={} table={} player={} action={}>"
-        return name.format(self._previous_state, self._table, self._player,
-                self._action)
+        return name.format(
+            self._previous_state, self._table, self._player, self._action
+        )
 
     @classmethod
     def new_hand(cls, table):
-        return PokerGameState(None, table, None, None)
+        return PokerGameState(
+            previous_state=None,
+            table=table,
+            player=None,
+            action=None,
+            is_terminal=False,
+        )
+
+    @property
+    def table(self):
+        """"""
+        return self._table
 
     @property
     def is_terminal(self):
@@ -49,5 +61,3 @@ class PokerGameState:
             utility[winner_i] = 1.0
             return utility
         return [0.0 for _ in range(self._table.n_players)]
-
-

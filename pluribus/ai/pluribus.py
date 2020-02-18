@@ -86,6 +86,7 @@ def traverse_monte_carlo_cfr(node, player):
         return traverse_monte_carlo_cfr(node_0, player)
     else:
         # What is going on here?
+        pass
 
 
 def traverse_monte_carlo_cfr_with_pruning(h, P):

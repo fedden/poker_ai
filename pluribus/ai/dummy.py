@@ -53,4 +53,4 @@ class RandomPlayer(Player):
     def take_action(self, game_state: PokerGameState) -> PokerGameState:
         action = self._random_move(players=game_state.table.players)
         logger.debug(f'{self.name} {action}')
-        return PokerGameState(game_state, game_state.table, self, action)
+        return PokerGameState(game_state, game_state.table, self, action, False)
