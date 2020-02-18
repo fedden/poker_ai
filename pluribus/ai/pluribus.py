@@ -40,6 +40,7 @@ def monte_carlo_cfr_with_pruning(t):
             if betting_round(infoset):
                 normalised
 
+
 def calculate_strategy(R, I):
     """Caluclates the strategy based on regrets."""
     pass
@@ -51,19 +52,18 @@ def update_strategy(h, P):
 
 
 def traverse_monte_carlo_cfr(node, player):
-    """"Update the regrets for player."""
+    """"Performs a traversal of the game tree.
+
+    Update the regrets for player.
+    """
     if node.is_terminal:
         # Possibly utility.
-        return u(node)
-    elif player not in hand:
-        # What does this mean?
-        # The remaining actions are irrelevant to player.
-        return traverse_monte_carlo_cfr(node_0, player)
-    elif node is chance_node:
-        # Wtf is a chance node? A human player choice or another players move?
-        action = sample_action(node)
+        return node.returns()[player]
+    elif node.is_chance_node:
+        # If a chance node, sample an action.
+        action = node.sample_action()
         return traverse_monte_carlo_cfr(action, player)
-    elif player.is_turn:
+    elif node.current_player == player:
         infoset = node.infoset(player)
         # Probability vector over actions for player and infoset.
         # Wtf is R? I think it's regret! Determine strategy for this infoset.
@@ -80,6 +80,10 @@ def traverse_monte_carlo_cfr(node, player):
             # Update the regret of each action.
             regret += regret + value_of_action - value
         return value
+    elif player not in hand:
+        # What does this mean?
+        # The remaining actions are irrelevant to player.
+        return traverse_monte_carlo_cfr(node_0, player)
     else:
         # What is going on here?
 
