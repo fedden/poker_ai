@@ -8,8 +8,8 @@ from pluribus.game.pot import Pot
 utils.random.seed(42)
 
 initial_chips_amount = 10000
-small_blind_amount = 10
-big_blind_amount = 50
+small_blind_amount = 50
+big_blind_amount = 100
 
 pot = Pot()
 players = [
