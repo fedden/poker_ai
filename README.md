@@ -45,9 +45,12 @@ Below is a rough structure of the repository.
 ├── pluribus       # Main Python library.
 │   ├── ai         # Stub functions for ai algorithms.
 │   └── game       # WIP code for managing a hand of poker.
+├── research       # A directory for research/development scripts 
+│                  # to help formulate understanding and ideas.
 ├── scripts        # Scripts to help develop the main library.
 └── test           # Python tests.
-    ├── functional # Functional tests that test multiple components together.
+    ├── functional # Functional tests that test multiple components 
+    │              # together.
     └── unit       # Individual tests for functions and objects.
 ```
 
