@@ -45,9 +45,12 @@ Below is a rough structure of the repository.
 ├── pluribus       # Main Python library.
 │   ├── ai         # Stub functions for ai algorithms.
 │   └── game       # WIP code for managing a hand of poker.
+├── research       # A directory for research/development scripts 
+│                  # to help formulate understanding and ideas.
 ├── scripts        # Scripts to help develop the main library.
 └── test           # Python tests.
-    ├── functional # Functional tests that test multiple components together.
+    ├── functional # Functional tests that test multiple components 
+    │              # together.
     └── unit       # Individual tests for functions and objects.
 ```
 
@@ -168,3 +171,8 @@ MISC:
 * Some [original author papers](https://www.cs.cmu.edu/~noamb/research.html)
 * [Implementing MCCFR in python](https://www.youtube.com/watch?v=7m4bnmSkjow)
     * [Example Applied to Poker](https://github.com/geohot/ai-notebooks/blob/master/cfr_kuhn_poker.ipynb)
+
+Other useful blog links, papers and resources:
+* [Blog post on CFR](https://int8.io/counterfactual-regret-minimization-for-poker-ai/)
+* [No regret dynamics tutorial](https://theory.stanford.edu/~tim/f13/l/l17.pdf)
+* [Prediction, Learning and Games book.](http://www.ii.uni.wroc.pl/~lukstafi/pmwiki/uploads/AGT/Prediction_Learning_and_Games.pdf)
