@@ -28,3 +28,7 @@ script: pytest
 after_script:
   - pytest test -v --cov-report term --cov-report xml --cov-fail-under=90 --cov=pluribus
   - if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
+
+# Alert us in slack.
+notifications:
+  slack: pluribusworkspace:MSz1cpRLvkGsMHpYkDhbGOLE
