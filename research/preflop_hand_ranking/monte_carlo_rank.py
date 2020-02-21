@@ -30,6 +30,7 @@ python monte_carlo_rank.py --n_threads 4 --max_n_players 6
 ```
 """
 import collections
+import pickle
 import queue
 from typing import Dict, List
 from threading import Thread
@@ -196,7 +197,7 @@ def multithreaded_matrix_summation(
     sentinal_queue = queue.Queue()
     threads = []
     min_n_players = 2
-    args = (n_ranks, min_n_players, max_n_players, sentinal_queue, delta_matrix_queue)
+    args = (n_ranks, min_n_players, max_n_players + 1, sentinal_queue, delta_matrix_queue)
     for _ in range(n_threads):
         thread = Thread(target=delta_matrix_worker, args=args)
         threads.append(thread)
@@ -205,14 +206,15 @@ def multithreaded_matrix_summation(
     # players.
     matrices = {
         n_players: np.zeros(shape=(n_ranks, n_ranks))
-        for n_players in range(min_n_players, max_n_players)
+        for n_players in range(min_n_players, max_n_players + 1)
     }
+    np.set_printoptions(precision=2)
     try:
         for i in trange(n_iterations):
             result = delta_matrix_queue.get()
             n_players = result["n_players"]
             matrices[n_players] += result["delta_matrix"]
-            if i % print_n_steps == 0:
+            if i > 0 and i % print_n_steps == 0:
                 tqdm.write(f"\nStep {i} reached.")
                 for n_players, matrix in matrices.items():
                     tqdm.write(
@@ -222,6 +224,9 @@ def multithreaded_matrix_summation(
     except KeyboardInterrupt:
         print(f"Control-c detected, quitting looping at iteration {i}.")
         pass
+    # Save the rankings.
+    with open(save_path, 'wb') as f:
+        pickle.dump(matrices, f, pickle.HIGHEST_PROTOCOL)
     print(f"Saved matrix to {save_path}")
     for thread in threads:
         sentinal_queue.put("terminate")
