@@ -130,7 +130,11 @@ _Strengthen the game engine with more tests and allow users to see live visualis
 
 ## Contributing
 
-This is an open effort and help, criticisms and ideas are all welcome. Feel free to start a discussion on the github issues or to reach out to me at leonfedden at gmail dot com. 
+This is an open effort and help, criticisms and ideas are all welcome. 
+
+First of all, please check out the [CONTRIBUTING](/CONTRIBUTING.md) guide.
+
+Feel free to start a discussion on the github issues or to reach out to me at leonfedden at gmail dot com. 
 
 ## Useful links and acknowledgements
 
