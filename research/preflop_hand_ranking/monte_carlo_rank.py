@@ -50,6 +50,7 @@ class PreflopMatrixEvaluator:
         ranks_to_hands = collections.defaultdict(list)
         for player_i in range(n_players):
             eval_hand = self._to_eval_cards(hands[player_i])
+            import ipdb; ipdb.set_trace()
             rank = self._evaluator.evaluate(cards=eval_hand, board=table)
             ranks_to_hands[rank].append(hands[player_i])
         score = len(set(ranks_to_hands.keys()))
@@ -75,3 +76,7 @@ class PreflopMatrixEvaluator:
         rank_to_hands = self._compute_preflop_rankings(n_players)
         delta_matrix = self._compute_delta_matrix(rank_to_hands)
         return delta_matrix
+
+
+evaluator = PreflopMatrixEvaluator()
+print(evaluator.next(6))
