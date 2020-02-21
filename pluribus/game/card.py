@@ -54,6 +54,11 @@ class Card:
         return self._eval_card
 
     @property
+    def rank_int(self) -> int:
+        """Get the rank as an int"""
+        return self._rank
+
+    @property
     def rank(self) -> str:
         """Get the rank as a string."""
         return self._rank_to_str(self._rank)
@@ -124,9 +129,7 @@ class Card:
 
     def _suit_to_icon(self, suit: str) -> str:
         """Icons for pretty printing."""
-        return {
-            "hearts": "♥", "diamonds": "♦", "clubs": "♣", "spades": "♠"
-        }[suit]
+        return {"hearts": "♥", "diamonds": "♦", "clubs": "♣", "spades": "♠"}[suit]
 
     def __repr__(self):
         """Pretty printing the object."""
