@@ -134,6 +134,7 @@ class PreflopMatrixEvaluator:
 
 def delta_matrix_worker(
     n_ranks: int, 
+    min_n_players: int,
     max_n_players: int,
     sentinal_queue: queue.Queue,
     delta_matrix_queue: queue.Queue,
@@ -149,7 +150,7 @@ def delta_matrix_worker(
             # Handle empty queue here
             pass
         # Read from sentinal queue, if any sentinals then quit!
-        for n_players in range(max_n_players):
+        for n_players in range(min_n_players, max_n_players):
             delta_matrix = evaluator(n_players=n_players)
             delta_matrix_queue.put(dict(
                 n_players=n_players, 
@@ -194,7 +195,8 @@ def multithreaded_matrix_summation(
     delta_matrix_queue = queue.Queue()
     sentinal_queue = queue.Queue()
     threads = []
-    args = (n_ranks, max_n_players, sentinal_queue, delta_matrix_queue)
+    min_n_players = 2
+    args = (n_ranks, min_n_players, max_n_players, sentinal_queue, delta_matrix_queue)
     for _ in range(n_threads):
         thread = Thread(target=delta_matrix_worker, args=args)
         threads.append(thread)
@@ -203,7 +205,7 @@ def multithreaded_matrix_summation(
     # players.
     matrices = {
         n_players: np.zeros(shape=(n_ranks, n_ranks))
-        for n_players in range(max_n_players)
+        for n_players in range(min_n_players, max_n_players)
     }
     try:
         for i in trange(n_iterations):
