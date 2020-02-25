@@ -55,8 +55,7 @@ class KuhnState:
         """"""
         if len(players) != 2:
             raise ValueError(f"Expected 2 players but got {len(players)}.")
-        self._pass = 0
-        self._bet = 1
+        self._actions = ["pass", "bet"]
         self._deck = [
             Card(rank="2", suit="spades"),
             Card(rank="3", suit="spades"),
@@ -95,18 +94,19 @@ class KuhnState:
         elif double_bet:
             return 2 if active_player_wins else -2
 
-    def sample_action(self):
+    def sample_action(self) -> str:
         """"""
-        pass
+        return random.choice(self._actions)
 
-    def apply_action(self, action):
+    def apply_action(self, action: str):
         """"""
-        pass
+        self._history.append(action)
+        return self
 
 
 def cfr(state: KuhnState):
     if state.is_terminal:
-        return state.utility(player)
+        return state.payoff
     elif state.is_chance:
         action = state.sample_action()
         new_state: KuhnState = state.apply_action(action)
