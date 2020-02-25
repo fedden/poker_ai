@@ -53,8 +53,8 @@ class KuhnState:
 
     def __init__(self, players: List[Player], active_player_i: int):
         """"""
-        self._players = players
-        self._active_player_i = active_player_i
+        if len(players) != 2:
+            raise ValueError(f"Expected 2 players but got {len(players)}.")
         self._pass = 0
         self._bet = 1
         self._deck = [
@@ -63,16 +63,37 @@ class KuhnState:
             Card(rank="4", suit="spades"),
         ]
         random.shuffle(self._deck)
+        self._hand = dict(active=self._deck[0], opponent=self._deck[1])
+        self._history: List[str] = []
+        self._players = dict(
+            active=players[active_player_i], opponent=players[active_player_i + 1 % 2]
+        )
 
     @property
-    def is_terminal(self):
+    def is_terminal(self) -> bool:
         """"""
         return False
 
     @property
-    def is_chance(self):
+    def is_chance(self) -> bool:
         """"""
         return False
+
+    @property
+    def payoff(self) -> int:
+        """"""
+        if not self.is_terminal:
+            raise ValueError("Both players have not had atleast one action.")
+        terminal_pass = self._history[-1] == "pass"
+        double_bet = self._history[-2:] == ["bet", "bet"]
+        double_pass = self._history == ["pass", "pass"]
+        active_player_wins = self._hand["active"] > self._hand["opponent"]
+        if terminal_pass and double_pass:
+            return 1 if active_player_wins else -1
+        elif terminal_pass:
+            return 1
+        elif double_bet:
+            return 2 if active_player_wins else -2
 
     def sample_action(self):
         """"""
@@ -81,11 +102,6 @@ class KuhnState:
     def apply_action(self, action):
         """"""
         pass
-
-
-def payoff_for_terminal_states(history):
-    if len(history) <= 1:
-        raise ValueError("Both players have not had atleast one action.")
 
 
 def cfr(state: KuhnState):
