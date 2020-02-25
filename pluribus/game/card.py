@@ -48,6 +48,24 @@ class Card:
         suit_char = self.suit.lower()[0]
         self._eval_card = EvaluationCard.new(f"{rank_char}{suit_char}")
 
+    def __lt__(self, other):
+        return self.rank_int < other.rank_int
+
+    def __le__(self, other):
+        return self.rank_int <= other.rank_int
+
+    def __gt__(self, other):
+        return self.rank_int > other.rank_int
+
+    def __ge__(self, other):
+        return self.rank_int >= other.rank_int
+
+    def __eq__(self, other):
+        return self.rank_int == other.rank_int
+
+    def __ne__(self, other):
+        return self.rank_int != other.rank_int
+
     @property
     def eval_card(self) -> EvaluationCard:
         """Return an `EvaluationCard` for use in the `Evaluator`."""
