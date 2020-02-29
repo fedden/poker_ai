@@ -4,7 +4,7 @@ import copy
 import random
 from collections import defaultdict
 from functools import partial
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from tqdm import tqdm, trange
@@ -166,7 +166,9 @@ class KuhnState:
         return f"hand=[{hand_str}], actions=[{history_str}]"
 
 
-def cfr(state: KuhnState, opponent_player_pi: float):
+def cfr(
+    state: KuhnState, active_player_pi: float = 1.0, opponent_player_pi: float = 1.0
+) -> Optional[int]:
     """Depth-wise recursive CFR."""
     if state.is_terminal:
         return state.payoff
@@ -177,7 +179,7 @@ def cfr(state: KuhnState, opponent_player_pi: float):
             KuhnState.actions, info_set
         )
         new_state = state.apply_action(action)
-        return cfr(new_state, opponent_player_pi * probability)
+        return cfr(new_state, active_player_pi, opponent_player_pi * probability)
     else:
         # Otherwise execution continues, computing the active player
         # information set representation by concatenating the active players
@@ -186,25 +188,30 @@ def cfr(state: KuhnState, opponent_player_pi: float):
         utility = np.zeros(KuhnState.n_actions)
         for action_i, action in enumerate(KuhnState.actions):
             new_state = state.apply_action(action)
-            utility[action_i] = cfr(new_state, opponent_player_pi)
+            probability = state.active_player.strategy[info_set][action_i]
+            utility[action_i] = cfr(
+                new_state, active_player_pi * probability, opponent_player_pi
+            )
         # Each action probability multiplied by the corresponding returned
         # action utility is accumulated to the utility for playing to this node
         # for the current player.
         info_set_utility = np.sum(state.active_player.strategy[info_set] * utility)
         regret = utility - info_set_utility
         state.active_player.regret_sum[info_set] += opponent_player_pi * regret
-        # TODO(fedden): Realisation weight shouldn't be 1.0 here.
-        state.active_player.update_strategy(info_set, 1.0)
+        state.active_player.update_strategy(info_set, active_player_pi)
         state.active_player.update_strategy_sum(info_set)
 
 
 def train(n_iterations: int) -> List[Player]:
     """Train two agents with self-play."""
-    players = [Player(n_actions=KuhnState.n_actions), Player(n_actions=KuhnState.n_actions)]
+    players = [
+        Player(n_actions=KuhnState.n_actions),
+        Player(n_actions=KuhnState.n_actions),
+    ]
     for iteration_i in trange(n_iterations):
         active_player_i = iteration_i % 2
         state = KuhnState(players=players, active_player_i=active_player_i)
-        cfr(state, 1.0)
+        cfr(state)
     return players
 
 
@@ -219,6 +226,6 @@ def print_players_strategy(players: List[Player]):
 
 
 if __name__ == "__main__":
-    players: List[Player] = train(n_iterations=10)
+    players: List[Player] = train(n_iterations=10000)
     print_players_strategy(players)
     print("Finished!")
