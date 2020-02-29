@@ -72,7 +72,10 @@ class KuhnState:
     actions = ["check", "bet"]
 
     def __init__(self, players: List[Player], active_player_i: int):
-        """"""
+        """Initialise the deck and hands, history and players.
+
+        Only one player can be active in a game, and the other is the opponent.
+        """
         if len(players) != 2:
             raise ValueError(f"Expected 2 players but got {len(players)}.")
         self._deck = [
@@ -90,12 +93,12 @@ class KuhnState:
 
     @property
     def is_terminal(self) -> bool:
-        """"""
+        """Should the game finish?"""
         return bool(self.payoff)
 
     @property
     def is_chance(self) -> bool:
-        """"""
+        """Is it the opponents turn?"""
         return len(self._history) % 2 == 1
 
     @property
