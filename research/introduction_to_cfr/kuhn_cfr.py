@@ -22,6 +22,11 @@ class Player:
         self.regret_sum = defaultdict(partial(np.zeros, n_actions))
         self.n_actions = n_actions
 
+    @property
+    def info_sets(self) -> List[str]:
+        """Return the info sets that we have strategies for."""
+        return sorted(list(self.strategy.keys()))
+
     def average_strategy(self, info_set: str) -> np.ndarray:
         """Property average_strategy returns the mean strategy."""
         return self._normalise(self.strategy_sum[info_set])
@@ -157,6 +162,7 @@ class KuhnState:
 
 
 def cfr(state: KuhnState, opponent_player_pi: float):
+    """Depth-wise recursive CFR."""
     if state.is_terminal:
         return state.payoff
     elif state.is_chance:
@@ -186,10 +192,29 @@ def cfr(state: KuhnState, opponent_player_pi: float):
         state.active_player.update_strategy(info_set, 1.0)
 
 
-utility = 0
-n_iterations = 1000
-players = [Player(n_actions=KuhnState.n_actions), Player(n_actions=KuhnState.n_actions)]
-for iteration_i in trange(n_iterations):
-    active_player_i = iteration_i % 2
-    state = KuhnState(players=players, active_player_i=active_player_i)
-    cfr(state, 1.0)
+def train(n_iterations: int) -> List[Player]:
+    """Train two agents with self-play."""
+    players = [Player(n_actions=KuhnState.n_actions), Player(n_actions=KuhnState.n_actions)]
+    for iteration_i in trange(n_iterations):
+        active_player_i = iteration_i % 2
+        state = KuhnState(players=players, active_player_i=active_player_i)
+        cfr(state, 1.0)
+    return players
+
+
+def print_players_strategy(players: List[Player]):
+    """Print the players learned strategy."""
+    for player_i, player in enumerate(players):
+        print(f"player {player_i} strategy:")
+        for info_set in player.info_sets:
+            average_strategy = player.average_strategy(info_set)
+            print(f"> info set <{info_set}> strategy: {average_strategy}")
+        print()
+
+
+if __name__ == "__main__":
+    players: List[Player] = train(n_iterations=100)
+    print_players_strategy(players)
+    import ipdb
+    ipdb.set_trace()
+    print("Finished!")
