@@ -7,7 +7,7 @@ from functools import partial
 from typing import List, Tuple
 
 import numpy as np
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from pluribus.game.card import Card
 
@@ -211,14 +211,14 @@ def train(n_iterations: int) -> List[Player]:
 def print_players_strategy(players: List[Player]):
     """Print the players learned strategy."""
     for player_i, player in enumerate(players):
-        print(f"player {player_i} strategy:")
+        tqdm.write(f"player {player_i} strategy:")
         for info_set in player.info_sets:
             average_strategy = player.average_strategy(info_set)
-            print(f" * info set <{info_set}> strategy: {average_strategy}")
-        print()
+            tqdm.write(f" * info set <{info_set}> strategy: {average_strategy}")
+        tqdm.write("")
 
 
 if __name__ == "__main__":
-    players: List[Player] = train(n_iterations=10000)
+    players: List[Player] = train(n_iterations=10)
     print_players_strategy(players)
     print("Finished!")
