@@ -79,13 +79,14 @@ class KuhnState:
         self._hand = dict(active=self._deck[0], opponent=self._deck[1])
         self._history: List[str] = []
         self._players = dict(
-            active=players[active_player_i], opponent=players[active_player_i + 1 % 2]
+            active=players[active_player_i],
+            opponent=players[(active_player_i + 1) % 2],
         )
 
     @property
     def is_terminal(self) -> bool:
         """"""
-        return len(self._history) > 1
+        return bool(self.payoff)
 
     @property
     def is_chance(self) -> bool:
@@ -125,8 +126,8 @@ class KuhnState:
     @property
     def payoff(self) -> int:
         """"""
-        if not self.is_terminal:
-            raise ValueError("Both players have not had atleast one action.")
+        if len(self._history) < 2:
+            return 0
         terminal_pass = self._history[-1] == "pass"
         double_bet = self._history[-2:] == ["bet", "bet"]
         double_pass = self._history == ["pass", "pass"]
@@ -137,12 +138,14 @@ class KuhnState:
             return 1
         elif double_bet:
             return 2 if active_player_wins else -2
+        else:
+            return 0
 
     def apply_action(self, action: str) -> KuhnState:
         """Apply an action to the game and make a new game state."""
-        new_state = self
         # Deep copy history to prevent unwanted mutations.
-        new_state._history = copy.deepcopy(self._history)
+        new_state = copy.deepcopy(self)
+        # Apply the action.
         new_state._history.append(action)
         return new_state
 
@@ -154,7 +157,6 @@ class KuhnState:
 
 
 def cfr(state: KuhnState, opponent_player_pi: float):
-    print(state._history)
     if state.is_terminal:
         return state.payoff
     elif state.is_chance:
@@ -173,7 +175,7 @@ def cfr(state: KuhnState, opponent_player_pi: float):
         utility = np.zeros(KuhnState.n_actions)
         for action_i, action in enumerate(KuhnState.actions):
             new_state = state.apply_action(action)
-            utility[action_i] += cfr(new_state, opponent_player_pi)
+            utility[action_i] = cfr(new_state, opponent_player_pi)
         # Each action probability multiplied by the corresponding returned
         # action utility is accumulated to the utility for playing to this node
         # for the current player.
@@ -181,11 +183,11 @@ def cfr(state: KuhnState, opponent_player_pi: float):
         regret = utility - info_set_utility
         state.active_player.regret_sum[info_set] += opponent_player_pi * regret
         # TODO(fedden): Realisation weight shouldn't be 1.0 here.
-        state.update_strategy(info_set, 1.0)
+        state.active_player.update_strategy(info_set, 1.0)
 
 
 utility = 0
-n_iterations = 1
+n_iterations = 1000
 players = [Player(n_actions=KuhnState.n_actions), Player(n_actions=KuhnState.n_actions)]
 for iteration_i in trange(n_iterations):
     active_player_i = iteration_i % 2
