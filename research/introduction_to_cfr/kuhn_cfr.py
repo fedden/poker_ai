@@ -69,7 +69,7 @@ class Player:
 
 class KuhnState:
     n_actions = 2
-    actions = ["pass", "bet"]
+    actions = ["check", "bet"]
 
     def __init__(self, players: List[Player], active_player_i: int):
         """"""
@@ -133,13 +133,13 @@ class KuhnState:
         """"""
         if len(self._history) < 2:
             return 0
-        terminal_pass = self._history[-1] == "pass"
+        terminal_check = self._history[-1] == "check"
         double_bet = self._history[-2:] == ["bet", "bet"]
-        double_pass = self._history == ["pass", "pass"]
+        double_check = self._history == ["check", "check"]
         active_player_wins = self._hand["active"] > self._hand["opponent"]
-        if terminal_pass and double_pass:
+        if terminal_check and double_check:
             return 1 if active_player_wins else -1
-        elif terminal_pass:
+        elif terminal_check:
             return 1
         elif double_bet:
             return 2 if active_player_wins else -2
@@ -192,6 +192,7 @@ def cfr(state: KuhnState, opponent_player_pi: float):
         state.active_player.regret_sum[info_set] += opponent_player_pi * regret
         # TODO(fedden): Realisation weight shouldn't be 1.0 here.
         state.active_player.update_strategy(info_set, 1.0)
+        state.active_player.update_strategy_sum(info_set)
 
 
 def train(n_iterations: int) -> List[Player]:
@@ -215,6 +216,6 @@ def print_players_strategy(players: List[Player]):
 
 
 if __name__ == "__main__":
-    players: List[Player] = train(n_iterations=100)
+    players: List[Player] = train(n_iterations=10000)
     print_players_strategy(players)
     print("Finished!")
