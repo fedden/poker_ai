@@ -152,6 +152,8 @@ class KuhnState:
         new_state = copy.deepcopy(self)
         # Apply the action.
         new_state._history.append(action)
+        # Ensure the players are references.
+        new_state._players = self._players
         return new_state
 
     def _get_info_set(self, hand: Card) -> str:
@@ -208,13 +210,11 @@ def print_players_strategy(players: List[Player]):
         print(f"player {player_i} strategy:")
         for info_set in player.info_sets:
             average_strategy = player.average_strategy(info_set)
-            print(f"> info set <{info_set}> strategy: {average_strategy}")
+            print(f" * info set <{info_set}> strategy: {average_strategy}")
         print()
 
 
 if __name__ == "__main__":
     players: List[Player] = train(n_iterations=100)
     print_players_strategy(players)
-    import ipdb
-    ipdb.set_trace()
     print("Finished!")
