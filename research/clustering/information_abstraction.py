@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.cluster import KMeans
 from scipy.stats import wasserstein_distance
+from tqdm import tqdm
 
 from pluribus.game.deck import Deck
 from pluribus.game.evaluation import Evaluator
@@ -31,6 +32,7 @@ class ShortDeck(Deck):
     TODO: maybe I should just use _cards rather than _evals? but, _evals directly might have better performance?
 
     """
+
     def __init__(self, num_cards: int):
         super().__init__()
 
@@ -52,6 +54,7 @@ class GameUtility:
     """
     This class takes care of some game related functions
     """
+
     def __init__(self, our_hand: List[int], board: List[int], cards: List[int]):
 
         self._evaluator = Evaluator()
@@ -96,6 +99,7 @@ class InfoSets(ShortDeck):
     This class stores combinations of cards (histories) per street (for flop, turn, river)
     # TODO: should this be isomorphic/lossless to reduce the program run time?
     """
+
     def __init__(self, num_cards):
         super().__init__(num_cards)
 
@@ -118,7 +122,7 @@ class InfoSets(ShortDeck):
         :return: Combinations of private information (hole cards) and public information (board)
         """
         our_cards = []
-        for combos in start_combos:
+        for combos in tqdm(start_combos):
             for public_combo in publics:
                 # TODO: need a way to create these combos with better performance?
                 if not np.any(np.isin(combos, public_combo)):
@@ -132,6 +136,7 @@ class InfoBucketMaker(InfoSets):
     # TODO: create key to access these from a dictionary, store more efficiently somehow
     # TODO: change cluster to num_clusters=200 for full deck
     """
+
     def __init__(self, num_cards):
         super().__init__(num_cards)
 
@@ -153,12 +158,24 @@ class InfoBucketMaker(InfoSets):
     def __call__(self):
         # TODO: switch to log
         self.dump_data(location="data/information_abstraction.pkl")
-        self.print_cluster_example(X=self._river_ehs, clusters=self._river_clusters,
-                                   cluster_name="Expected Hand Strength on River", cluster_id=4)
-        self.print_cluster_example(X=self._turn_ehs_distributions, clusters=self._turn_clusters,
-                                   cluster_name="Expected Hand Strength Distribution on Turn", cluster_id=4)
-        self.print_cluster_example(X=self._turn_ehs_distributions, clusters=self._turn_clusters,
-                                   cluster_name="Potential Aware Distribution on Flop", cluster_id=4)
+        self.print_cluster_example(
+            X=self._river_ehs,
+            clusters=self._river_clusters,
+            cluster_name="Expected Hand Strength on River",
+            cluster_id=4,
+        )
+        self.print_cluster_example(
+            X=self._turn_ehs_distributions,
+            clusters=self._turn_clusters,
+            cluster_name="Expected Hand Strength Distribution on Turn",
+            cluster_id=4,
+        )
+        self.print_cluster_example(
+            X=self._turn_ehs_distributions,
+            clusters=self._turn_clusters,
+            cluster_name="Potential Aware Distribution on Flop",
+            cluster_id=4,
+        )
         self.plot_river_clusters()
 
     @staticmethod
@@ -179,8 +196,13 @@ class InfoBucketMaker(InfoSets):
 
         return ehs
 
-    def simulate_get_turn_ehs_distributions(self, available_cards: List[int], the_board: List[int],
-                                            our_hand: List[int], num_simulations: int = 5) -> np.array:
+    def simulate_get_turn_ehs_distributions(
+        self,
+        available_cards: List[int],
+        the_board: List[int],
+        our_hand: List[int],
+        num_simulations: int = 5,
+    ) -> np.array:
         """
         # TODO num_simulations should be higher
 
@@ -199,9 +221,7 @@ class InfoBucketMaker(InfoSets):
             board = list(the_board)  # copy list
             board = board + river_card
 
-            game = GameUtility(
-                our_hand=our_hand, board=board, cards=self._evals
-            )
+            game = GameUtility(our_hand=our_hand, board=board, cards=self._evals)
             ehs = self.simulate_get_ehs(game)
 
             # get EMD for expected hand strength against each river centroid
@@ -219,9 +239,7 @@ class InfoBucketMaker(InfoSets):
                         min_emd = emd
 
             # now increment the cluster to which it belongs -
-            turn_ehs_distribution[min_idx] += (
-                    1 / num_simulations
-            )
+            turn_ehs_distribution[min_idx] += 1 / num_simulations
         return turn_ehs_distribution
 
     def get_river_ehs(self, num_print: int) -> np.ndarray:
@@ -234,7 +252,7 @@ class InfoBucketMaker(InfoSets):
         river_ehs = [0] * len(self.river)
 
         # iterate over possible boards/hole cards
-        for i, public in enumerate(self.river):
+        for i, public in enumerate(tqdm(self.river)):
 
             our_hand = list(public[:2])
             board = list(public[2:7])
@@ -244,7 +262,7 @@ class InfoBucketMaker(InfoSets):
             river_ehs[i] = self.simulate_get_ehs(game)
 
             if i % num_print == 0:
-                print(
+                tqdm.write(
                     f"Finding River Expected Hand Strength, iteration {i} of {len(self.river)}"
                 )
         end = time.time()
@@ -260,25 +278,30 @@ class InfoBucketMaker(InfoSets):
         start = time.time()
         turn_ehs_distributions = [0] * len(self.turn)
 
-        for i, public in enumerate(self.turn):
+        for i, public in enumerate(tqdm(self.turn)):
             available_cards = [
-                x for x in self._evals if x not in public  # TODO need better implementation of this
+                x
+                for x in self._evals
+                if x not in public  # TODO need better implementation of this
             ]
 
             # sample river cards and run a simulation
             turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
-                available_cards, the_board=list(public[2:6]), our_hand=list(public[:2]))
+                available_cards, the_board=list(public[2:6]), our_hand=list(public[:2])
+            )
 
             turn_ehs_distributions[i] = turn_ehs_distribution
             if i % num_print == 0:
-                print(
+                tqdm.write(
                     f"Finding Turn Distribution Aware Histograms, iteration {i} of {len(self.turn)}"
                 )
         end = time.time()
         print(f"Finding Turn Distribution Aware Histograms Took {end - start} Seconds")
         return np.array(turn_ehs_distributions)
 
-    def get_flop_potential_aware_distributions(self, num_print: int, num_simulations: int = 5) -> np.ndarray:
+    def get_flop_potential_aware_distributions(
+        self, num_print: int, num_simulations: int = 5
+    ) -> np.ndarray:
         """
 
         :param num_print: frequency at which to print
@@ -288,7 +311,7 @@ class InfoBucketMaker(InfoSets):
         start = time.time()
         potential_aware_distribution_flops = [0] * len(self.flop)
 
-        for i, public in enumerate(self.flop):
+        for i, public in enumerate(tqdm(self.flop)):
             available_cards = [
                 x for x in self._evals if x not in public
             ]  # TODO: find better implementation of this
@@ -308,9 +331,9 @@ class InfoBucketMaker(InfoSets):
                     x for x in available_cards if x != turn_card[0]
                 ]  # TODO: get better implementation of this
 
-
-                turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(available_cards_turn,
-                                                                                 the_board=the_board, our_hand=our_hand)
+                turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
+                    available_cards_turn, the_board=the_board, our_hand=our_hand
+                )
                 for idx, turn_centroid in enumerate(self._turn_centroids):
 
                     # earth mover distance
@@ -330,7 +353,7 @@ class InfoBucketMaker(InfoSets):
                 # object for storing flop potential aware expected hand strength distributions
             potential_aware_distribution_flops[i] = potential_aware_distribution_flop
             if i % num_print == 0:
-                print(
+                tqdm.write(
                     f"Finding Flop Potential Aware Histogram, iteration {i} of {len(self.flop)}"
                 )
         end = time.time()
@@ -356,7 +379,9 @@ class InfoBucketMaker(InfoSets):
         return centroids, y_km
 
     @staticmethod
-    def print_cluster_example(X: np.ndarray, clusters: np.ndarray, cluster_name: str, cluster_id: int = 4):
+    def print_cluster_example(
+        X: np.ndarray, clusters: np.ndarray, cluster_name: str, cluster_id: int = 4
+    ):
         """
 
         :param X
