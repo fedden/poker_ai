@@ -8,19 +8,20 @@ Important Notes
 --Run with `python information_abstraction.py`
 --Budget an hour to run with a 10 card deck, you may want to cmd + F "num_simulations" and reduce the defaults to test
 """
-from pluribus.game.deck import Deck
-from pluribus.game.evaluation import Evaluator
-
-import numpy as np
 import random
+import time
 from itertools import combinations
-from sklearn.cluster import KMeans
-from scipy.stats import wasserstein_distance
+from typing import List
+
+import dill as pickle
+import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from typing import List
-import time
-import dill as pickle
+from sklearn.cluster import KMeans
+from scipy.stats import wasserstein_distance
+
+from pluribus.game.deck import Deck
+from pluribus.game.evaluation import Evaluator
 
 
 class ShortDeck(Deck):
@@ -38,7 +39,7 @@ class ShortDeck(Deck):
         self._evals = [c.eval_card for c in self._cards]
         self._evals_to_cards = {i.eval_card: i for i in self._cards}
 
-    def get_card_combos(self, num_cards: int) -> np.array:
+    def get_card_combos(self, num_cards: int) -> np.ndarray:
         """
 
         :param num_cards: number of cards you want returned
