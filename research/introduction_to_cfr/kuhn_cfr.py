@@ -4,7 +4,7 @@ import copy
 import random
 from collections import defaultdict
 from functools import partial
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from tqdm import tqdm, trange
@@ -17,9 +17,15 @@ class Player:
 
     def __init__(self, n_actions: int):
         """Initialise the strategy according the amount of actions."""
-        self.strategy = defaultdict(partial(np.full, n_actions, 1 / n_actions))
-        self.strategy_sum = defaultdict(partial(np.zeros, n_actions))
-        self.regret_sum = defaultdict(partial(np.zeros, n_actions))
+        self.strategy: Dict[str, np.ndarray] = defaultdict(
+            partial(np.full, n_actions, 1 / n_actions)
+        )
+        self.strategy_sum: Dict[str, np.ndarray] = defaultdict(
+            partial(np.zeros, n_actions)
+        )
+        self.regret_sum: Dict[str, np.ndarray] = defaultdict(
+            partial(np.zeros, n_actions)
+        )
         self.n_actions = n_actions
 
     @property
@@ -94,7 +100,7 @@ class KuhnState:
     @property
     def is_terminal(self) -> bool:
         """Should the game finish?"""
-        return bool(self.payoff)
+        return self._check_is_terminal(self._history)
 
     @property
     def is_chance(self) -> bool:
@@ -133,9 +139,11 @@ class KuhnState:
 
     @property
     def payoff(self) -> int:
-        """"""
+        """Get the utility/reward for the active agent playing."""
         if len(self._history) < 2:
-            return 0
+            raise ValueError(f"History not long enough yet {self._history}")
+        if not self._check_is_terminal(self._history):
+            raise ValueError(f"Unexpected history {self._history}")
         terminal_check = self._history[-1] == "check"
         double_bet = self._history[-2:] == ["bet", "bet"]
         double_check = self._history == ["check", "check"]
@@ -147,20 +155,34 @@ class KuhnState:
         elif double_bet:
             return 2 if active_player_wins else -2
         else:
-            return 0
+            raise ValueError(f"Unexpected payoff state.")
 
     def apply_action(self, action: str) -> KuhnState:
         """Apply an action to the game and make a new game state."""
-        # Deep copy history to prevent unwanted mutations.
+        # Deep copy history and other vars to prevent unwanted mutations to
+        # this copy of the state.
         new_state = copy.deepcopy(self)
-        # Apply the action.
+        # Apply the action to the "future" state.
         new_state._history.append(action)
-        # Ensure the players are references.
+        # Ensure the players are references so we can mutate their state.
         new_state._players = self._players
         return new_state
 
+    def _check_is_terminal(self, history: List[str]) -> bool:
+        """Return true if the history means we are in a terminal state."""
+        terminal_states = [
+            ["check", "check"],
+            ["check", "bet", "check"],
+            ["check", "bet", "bet"],
+            ["bet", "check"],
+            ["bet", "bet"],
+        ]
+        return history in terminal_states
+
     def _get_info_set(self, hand: Card) -> str:
         """Gets string infomation set for a given hand (of one card)."""
+        if self._check_is_terminal(self._history):
+            raise ValueError(f"Shouldn't be getting terminal history info set.")
         hand_str: str = self.active_player_hand.rank
         history_str: str = ", ".join(self._history)
         return f"hand=[{hand_str}], actions=[{history_str}]"
@@ -174,29 +196,31 @@ def cfr(
         return state.payoff
     elif state.is_chance:
         # Sample the opponent's strategy.
-        info_set = state.opponent_player_info_set
+        info_set: str = state.opponent_player_info_set
         action, probability = state.opponent_player.sample_action(
             KuhnState.actions, info_set
         )
-        new_state = state.apply_action(action)
+        new_state: KuhnState = state.apply_action(action)
         return cfr(new_state, active_player_pi, opponent_player_pi * probability)
     else:
         # Otherwise execution continues, computing the active player
         # information set representation by concatenating the active players
         # card with the history of all player actions.
-        info_set = state.active_player_info_set
-        utility = np.zeros(KuhnState.n_actions)
+        info_set: str = state.active_player_info_set
+        utility: np.ndarray = np.zeros(KuhnState.n_actions)
         for action_i, action in enumerate(KuhnState.actions):
-            new_state = state.apply_action(action)
-            probability = state.active_player.strategy[info_set][action_i]
+            new_state: KuhnState = state.apply_action(action)
+            probability: float = state.active_player.strategy[info_set][action_i]
             utility[action_i] = cfr(
                 new_state, active_player_pi * probability, opponent_player_pi
             )
         # Each action probability multiplied by the corresponding returned
         # action utility is accumulated to the utility for playing to this node
         # for the current player.
-        info_set_utility = np.sum(state.active_player.strategy[info_set] * utility)
-        regret = utility - info_set_utility
+        info_set_utility: float = np.sum(
+            state.active_player.strategy[info_set] * utility
+        )
+        regret: np.ndarray = utility - info_set_utility
         state.active_player.regret_sum[info_set] += opponent_player_pi * regret
         state.active_player.update_strategy(info_set, active_player_pi)
         state.active_player.update_strategy_sum(info_set)
@@ -204,13 +228,13 @@ def cfr(
 
 def train(n_iterations: int) -> List[Player]:
     """Train two agents with self-play."""
-    players = [
+    players: List[Player] = [
         Player(n_actions=KuhnState.n_actions),
         Player(n_actions=KuhnState.n_actions),
     ]
     for iteration_i in trange(n_iterations):
-        active_player_i = iteration_i % 2
-        state = KuhnState(players=players, active_player_i=active_player_i)
+        active_player_i: int = iteration_i % 2
+        state: KuhnState = KuhnState(players=players, active_player_i=active_player_i)
         cfr(state)
     return players
 
@@ -220,7 +244,7 @@ def print_players_strategy(players: List[Player]):
     for player_i, player in enumerate(players):
         tqdm.write(f"player {player_i} strategy:")
         for info_set in player.info_sets:
-            average_strategy = player.average_strategy(info_set)
+            average_strategy = np.round(player.average_strategy(info_set), 2)
             tqdm.write(f" * info set <{info_set}> strategy: {average_strategy}")
         tqdm.write("")
 
