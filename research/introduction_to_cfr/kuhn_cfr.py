@@ -245,6 +245,10 @@ def print_players_strategy(players: List[Player]):
         tqdm.write(f"player {player_i} strategy:")
         for info_set in player.info_sets:
             average_strategy = np.round(player.average_strategy(info_set), 2)
+            average_strategy = {
+                action: prob
+                for action, prob in zip(KuhnState.actions, average_strategy)
+            }
             tqdm.write(f" * info set <{info_set}> strategy: {average_strategy}")
         tqdm.write("")
 
