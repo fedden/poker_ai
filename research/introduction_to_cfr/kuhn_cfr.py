@@ -57,7 +57,7 @@ class Player:
         try:
             action_i = np.random.choice(actions_ints, p=self.strategy[info_set])
         except ValueError as e:
-            print(f"strategy: {self.strategy[info_set]}")
+            print(f"Invalid strategy: {self.strategy[info_set]}")
             raise e
         prob_i = self.strategy[info_set][action_i]
         action_str = actions[action_i]
@@ -101,6 +101,11 @@ class KuhnState:
     def is_terminal(self) -> bool:
         """Should the game finish?"""
         return self._check_is_terminal(self._history)
+
+    @property
+    def is_active_players_turn(self) -> bool:
+        """"""
+        return len(self._history) % 2 == 0
 
     @property
     def is_chance(self) -> bool:
@@ -188,10 +193,14 @@ class KuhnState:
         return f"hand=[{hand_str}], actions=[{history_str}]"
 
 
-def cfr(
+def one_active_player_cfr(
     state: KuhnState, active_player_pi: float = 1.0, opponent_player_pi: float = 1.0
-) -> Optional[int]:
-    """Depth-wise recursive CFR."""
+) -> float:
+    """Depth-wise recursive CFR.
+
+    Currently not working. More like in the style of pluribus where there is
+    one players strategy being updated each hand.
+    """
     if state.is_terminal:
         return state.payoff
     elif state.is_chance:
@@ -201,7 +210,7 @@ def cfr(
             KuhnState.actions, info_set
         )
         new_state: KuhnState = state.apply_action(action)
-        return cfr(new_state, active_player_pi, opponent_player_pi * probability)
+        return - one_active_player_cfr(new_state, active_player_pi, opponent_player_pi * probability)
     else:
         # Otherwise execution continues, computing the active player
         # information set representation by concatenating the active players
@@ -211,7 +220,7 @@ def cfr(
         for action_i, action in enumerate(KuhnState.actions):
             new_state: KuhnState = state.apply_action(action)
             probability: float = state.active_player.strategy[info_set][action_i]
-            utility[action_i] = cfr(
+            utility[action_i] = - one_active_player_cfr(
                 new_state, active_player_pi * probability, opponent_player_pi
             )
         # Each action probability multiplied by the corresponding returned
@@ -224,9 +233,52 @@ def cfr(
         state.active_player.regret_sum[info_set] += opponent_player_pi * regret
         state.active_player.update_strategy(info_set, active_player_pi)
         state.active_player.update_strategy_sum(info_set)
+        return info_set_utility
 
 
-def train(n_iterations: int) -> List[Player]:
+def cfr(
+    state: KuhnState, active_player_pi: float = 1.0, opponent_player_pi: float = 1.0
+) -> Optional[int]:
+    """Depth-wise recursive CFR as specified in the paper."""
+    if state.is_terminal:
+        return state.payoff
+    else:
+        # Otherwise execution continues, computing the active player
+        # information set representation by concatenating the active players
+        # card with the history of all player actions.
+        utility: np.ndarray = np.zeros(KuhnState.n_actions)
+        if state.is_active_players_turn:
+            strategy: Dict[str, np.ndarray] = state.active_player.strategy
+            info_set: str = state.active_player_info_set
+            player: Player = state.active_player
+        else:
+            strategy: Dict[str, np.ndarray] = state.opponent_player.strategy
+            info_set: str = state.opponent_player_info_set
+            player: Player = state.opponent_player
+        for action_i, action in enumerate(KuhnState.actions):
+            new_state: KuhnState = state.apply_action(action)
+            probability: float = strategy[info_set][action_i]
+            if state.is_active_players_turn:
+                utility[action_i] = - cfr(
+                    new_state, active_player_pi * probability, opponent_player_pi
+                )
+            else:
+                utility[action_i] = - cfr(
+                    new_state, active_player_pi, opponent_player_pi * probability
+                )
+        # Each action probability multiplied by the corresponding returned
+        # action utility is accumulated to the utility for playing to this node
+        # for the current player.
+        info_set_utility: float = np.sum(strategy[info_set] * utility)
+        regret: np.ndarray = utility - info_set_utility
+        probability: float = opponent_player_pi if state.is_active_players_turn else active_player_pi
+        player.regret_sum[info_set] += probability * regret
+        player.update_strategy(info_set, active_player_pi)
+        player.update_strategy_sum(info_set)
+        return info_set_utility
+
+
+def train(n_iterations: int, print_iterations: int = 10000) -> List[Player]:
     """Train two agents with self-play."""
     players: List[Player] = [
         Player(n_actions=KuhnState.n_actions),
@@ -236,13 +288,16 @@ def train(n_iterations: int) -> List[Player]:
         active_player_i: int = iteration_i % 2
         state: KuhnState = KuhnState(players=players, active_player_i=active_player_i)
         cfr(state)
+        if iteration_i > 0 and iteration_i % print_iterations == 0:
+            tqdm.write(f"Strategies at iteration: {iteration_i}")
+            print_players_strategy(players)
     return players
 
 
 def print_players_strategy(players: List[Player]):
     """Print the players learned strategy."""
     for player_i, player in enumerate(players):
-        tqdm.write(f"player {player_i} strategy:")
+        tqdm.write(f"player {player_i}:")
         for info_set in player.info_sets:
             average_strategy = np.round(player.average_strategy(info_set), 2)
             average_strategy = {
@@ -254,6 +309,5 @@ def print_players_strategy(players: List[Player]):
 
 
 if __name__ == "__main__":
-    players: List[Player] = train(n_iterations=10000)
-    print_players_strategy(players)
+    players: List[Player] = train(n_iterations=1000000)
     print("Finished!")
