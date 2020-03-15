@@ -2,21 +2,22 @@ from __future__ import annotations
 
 import copy
 import random
+
 from collections import defaultdict
 from functools import partial
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
-from tqdm import tqdm, trange
+from tqdm import trange, tqdm
 
 from pluribus.game.card import Card
 
 
 class Player:
-    """Player that learns to minimise its regrets."""
-
-    def __init__(self, n_actions: int):
+    def __init__(self):
         """Initialise the strategy according the amount of actions."""
+        self.hand = None
+        n_actions = 2
         self.strategy: Dict[str, np.ndarray] = defaultdict(
             partial(np.full, n_actions, 1 / n_actions)
         )
@@ -24,146 +25,51 @@ class Player:
             partial(np.zeros, n_actions)
         )
         self.regret: Dict[str, np.ndarray] = defaultdict(partial(np.zeros, n_actions))
-        self.n_actions = n_actions
-
-    @property
-    def info_sets(self) -> List[str]:
-        """Return the info sets that we have strategies for."""
-        return sorted(list(self.strategy.keys()))
-
-    def average_strategy(self, info_set: str) -> np.ndarray:
-        """Property average_strategy returns the mean strategy."""
-        return self._normalise(self.strategy_sum[info_set])
-
-    def update_strategy(self, info_set: str, realisation_weight: float):
-        """Inform strategy according to positive regrets."""
-        # First find all positive regrets.
-        self.strategy[info_set] = np.maximum(self.regret[info_set], 0)
-        self.strategy[info_set] = self._normalise(self.strategy[info_set])
-        self.strategy[info_set] *= realisation_weight
-
-    def update_strategy_sum(self, info_set: str):
-        """Accumalate the strategy which is informed by positive regrets."""
-        self.strategy_sum[info_set] += self.strategy[info_set]
-
-    def sample_action(self, actions: List[str], info_set: str) -> Tuple[str, float]:
-        """Sample according to the strategy.
-
-        Returns action name and probability of taking such an action.
-        """
-        actions_ints = np.arange(self.n_actions)
-        try:
-            action_i = np.random.choice(actions_ints, p=self.strategy[info_set])
-        except ValueError as e:
-            print(f"Invalid strategy: {self.strategy[info_set]}")
-            raise e
-        prob_i = self.strategy[info_set][action_i]
-        action_str = actions[action_i]
-        return action_str, prob_i
-
-    def _normalise(self, x: np.ndarray) -> np.ndarray:
-        """Return `x` as a valid probability distribution."""
-        normalising_sum = np.sum(x)
-        if normalising_sum > 0:
-            x /= normalising_sum
-        else:
-            x = np.ones_like(x) / len(x)
-        return x
 
 
 class KuhnState:
     n_actions = 2
     actions = ["check", "bet"]
 
-    def __init__(self, players: List[Player], active_player_i: int):
-        """Initialise the deck and hands, history and players.
-
-        Only one player can be active in a game, and the other is the opponent.
-        """
-        if len(players) != 2:
-            raise ValueError(f"Expected 2 players but got {len(players)}.")
+    def __init__(self, player_i, player_1, player_2):
+        """"""
+        self.player_i = player_i
+        self.player_1 = player_1
+        self.player_2 = player_2
+        # Create the deck.
         self._deck = [
             Card(rank="2", suit="spades"),
             Card(rank="3", suit="spades"),
             Card(rank="4", suit="spades"),
         ]
         random.shuffle(self._deck)
-        self._hand = dict(active=self._deck[0], opponent=self._deck[1])
+        self.player_1.hand = self._deck[0]
+        self.player_2.hand = self._deck[1]
         self._history: List[str] = []
-        self._players = dict(
-            active=players[active_player_i],
-            opponent=players[(active_player_i + 1) % 2],
-        )
-        self.active_player_i = active_player_i
-
-    @property
-    def is_terminal(self) -> bool:
-        """Should the game finish?"""
-        return self._check_is_terminal(self._history)
-
-    @property
-    def is_active_players_turn(self) -> bool:
-        """"""
-        return len(self._history) % 2 == 0
-
-    @property
-    def history(self):
-        return self._history
-
-    @property
-    def is_chance(self) -> bool:
-        """Is it the opponents turn?"""
-        return len(self._history) % 2 == 1
-
-    @property
-    def opponent_player(self) -> Player:
-        """"""
-        return self._players["opponent"]
-
-    @property
-    def active_player(self) -> Player:
-        """"""
-        return self._players["active"]
-
-    @property
-    def active_player_hand(self) -> Card:
-        """"""
-        return self._hand["active"]
-
-    @property
-    def opponent_player_hand(self) -> Card:
-        """"""
-        return self._hand["opponent"]
-
-    @property
-    def active_player_info_set(self) -> str:
-        """Return the active players info set."""
-        return self._get_info_set(self.active_player_hand)
-
-    @property
-    def opponent_player_info_set(self) -> str:
-        """Return the active players info set."""
-        return self._get_info_set(self.active_player_hand)
 
     @property
     def payout(self) -> int:
-        """Get the utility/reward for the active agent playing."""
-        if len(self._history) < 2:
-            raise ValueError(f"History not long enough yet {self._history}")
-        if not self._check_is_terminal(self._history):
-            raise ValueError(f"Unexpected history {self._history}")
-        terminal_check = self._history[-1] == "check"
-        double_bet = self._history[-2:] == ["bet", "bet"]
-        double_check = self._history == ["check", "check"]
-        active_player_wins = self._hand["active"] > self._hand["opponent"]
-        if terminal_check and double_check:
-            return 1 if active_player_wins else -1
-        elif terminal_check:
-            return 1
-        elif double_bet:
-            return 2 if active_player_wins else -2
-        else:
-            raise ValueError(f"Unexpected payout state.")
+        """"""
+        return self._payout(self.player_1.hand, self.player_2.hand, self._history) * (
+            1 if self.player_i == 1 else -1
+        )
+
+    @property
+    def is_terminal(self) -> bool:
+        """"""
+        return self._check_is_terminal(self._history)
+
+    @property
+    def info_set(self) -> str:
+        """"""
+        return self._get_information_set(
+            self.player_1.hand, self.player_2.hand, self._history
+        )
+
+    @property
+    def player_turn(self) -> int:
+        """"""
+        return 2 if len(self._history) == 1 else 1
 
     def apply_action(self, action: str) -> KuhnState:
         """Apply an action to the game and make a new game state."""
@@ -173,8 +79,24 @@ class KuhnState:
         # Apply the action to the "future" state.
         new_state._history.append(action)
         # Ensure the players are references so we can mutate their state.
-        new_state._players = self._players
+        new_state.player_1 = self.player_1
+        new_state.player_2 = self.player_2
         return new_state
+
+    def _payout(
+        self, player_1_hand: Card, player_2_hand: Card, history: List[str]
+    ) -> int:
+        """"""
+        if history == ["check", "bet", "check"]:
+            return -1
+        elif history == ["bet", "check"]:
+            return 1
+        m = 1 if (player_1_hand > player_2_hand) else -1
+        if history == ["check", "check"]:
+            return m
+        if history in [["bet", "bet"], ["check", "bet", "bet"]]:
+            return m * 2
+        assert False
 
     def _check_is_terminal(self, history: List[str]) -> bool:
         """Return true if the history means we are in a terminal state."""
@@ -187,111 +109,86 @@ class KuhnState:
         ]
         return history in terminal_states
 
-    def _get_info_set(self, hand: Card) -> str:
-        """Gets string infomation set for a given hand (of one card)."""
-        if self._check_is_terminal(self._history):
+    def _get_information_set(
+        self, player_1_hand: Card, player_2_hand: Card, history: List[str],
+    ) -> str:
+        """"""
+        if self.is_terminal:
             raise ValueError(f"Shouldn't be getting terminal history info set.")
-        hand_str: str = self.active_player_hand.rank
-        history_str: str = ", ".join(self._history)
-        return f"hand=[{hand_str}], actions=[{history_str}]"
+        if len(history) == 0:
+            hand = player_1_hand
+        elif len(history) == 1:
+            hand = player_2_hand
+        else:
+            hand = player_1_hand
+            history = ["check", "bet"]
+        return f"hand: {hand}, history: {history}"
 
 
-def cfr(
-    state: KuhnState, active_player_pi: float = 1.0, opponent_player_pi: float = 1.0
-) -> float:
-    """Depth-wise recursive CFR as specified in the paper."""
+def cfr(state: KuhnState, pi1: float = 1.0, pi2: float = 1.0) -> float:
+    """"""
     if state.is_terminal:
-        multiplier: int = 1 if state.is_active_players_turn else -1
-        return state.payout * multiplier
-    else:
-        if not len(state.history):
-            info_set = str(state.active_player_hand)
-        elif len(state.history) == 1:
-            info_set = str(state.opponent_player_hand) + str(state.history)
+        return state.payout
+    info_set = state.info_set
+    player = state.player_1 if state.player_turn == 1 else state.player_2
+    # if we are here, we have both actions available
+    utility = np.zeros(KuhnState.n_actions)
+    for action_i, action in enumerate(KuhnState.actions):
+        new_state = state.apply_action(action)
+        if state.player_turn == 1:
+            utility[action_i] = cfr(
+                state=new_state, pi1=player.strategy[info_set][action_i] * pi1, pi2=pi2,
+            )
         else:
-            info_set = str(state.active_player_hand) + str(["check", "bet"])
-        # Otherwise execution continues, computing the active player
-        # information set representation by concatenating the active players
-        # card with the history of all player actions.
-        player_hand = int(len(state.history) == 1)
-        if player_hand == 0:
-            player: Player = state.active_player
+            utility[action_i] = cfr(
+                state=new_state, pi1=pi1, pi2=player.strategy[info_set][action_i] * pi2,
+            )
+    info_set_utility = np.sum(player.strategy[info_set] * utility)
+    if state.player_turn == state.player_i:
+        if state.player_i == 1:
+            pi = pi1
+            neg_pi = pi2
         else:
-            player: Player = state.opponent_player
-        utility: np.ndarray = np.zeros(KuhnState.n_actions)
-        for action_i, action in enumerate(KuhnState.actions):
-            new_state: KuhnState = state.apply_action(action)
-            probability: float = player.strategy[info_set][action_i]
-            if player_hand == 0:
-                utility[action_i] = cfr(
-                    state=new_state,
-                    active_player_pi=active_player_pi * probability,
-                    opponent_player_pi=opponent_player_pi,
-                )
-            else:
-                utility[action_i] = cfr(
-                    state=new_state,
-                    active_player_pi=active_player_pi,
-                    opponent_player_pi=opponent_player_pi * probability,
-                )
-        info_set_utility: float = np.sum(player.strategy[info_set] * utility)
-        if player_hand == state.active_player_i:
-            # Each action probability multiplied by the corresponding returned
-            # action utility is accumulated to the utility for playing to this
-            # node for the current player.
-            if state.active_player_i == 0:
-                pi = active_player_pi
-                negpi = opponent_player_pi
-            else:
-                pi = opponent_player_pi
-                negpi = active_player_pi
-            player.regret[info_set] += negpi * (utility - info_set_utility)
-            player.strategy_sum[info_set] += pi * player.strategy[info_set]
-            regret_sum = np.sum(np.maximum(player.regret[info_set], 0))
-            if regret_sum > 0:
-                player.strategy[info_set] = (
-                    np.maximum(player.regret[info_set], 0) / regret_sum
-                )
-            else:
-                player.strategy[info_set] = np.full(KuhnState.n_actions, 0.5)
-        return info_set_utility
+            pi = pi2
+            neg_pi = pi1
+        player.regret[info_set] += neg_pi * (utility - info_set_utility)
+        player.strategy_sum[info_set] += pi * player.strategy[info_set]
+        # update the strategy_sum based on regret
+        regret_sum = np.sum(np.maximum(player.regret[info_set], 0))
+        if regret_sum > 0:
+            player.strategy[info_set] = np.maximum(player.regret[info_set], 0) / regret_sum
+        else:
+            player.strategy[info_set] = np.full(KuhnState.n_actions, 0.5)
+    return info_set_utility
 
 
-def train(n_iterations: int, print_iterations: int = 10000) -> List[Player]:
-    """Train two agents with self-play."""
-    players: List[Player] = [
-        Player(n_actions=KuhnState.n_actions),
-        Player(n_actions=KuhnState.n_actions),
-    ]
-    players[1].strategy = players[0].strategy
-    players[1].strategy_sum = players[0].strategy_sum
-    players[1].regret = players[0].regret
-    for iteration_i in trange(n_iterations):
-        active_player_i: int = iteration_i % 2
-        state: KuhnState = KuhnState(players=players, active_player_i=active_player_i)
+def train(n_iterations: int = 40000, print_iterations: int = 1000):
+    """"""
+    # Initialise players
+    player_1 = Player()
+    player_2 = Player()
+    # If this is uncommented the players share the same strategy_sum.
+    player_2.regret = player_1.regret
+    player_2.strategy_sum = player_1.strategy_sum
+    player_2.strategy = player_1.strategy
+    # learn strategy_sum
+    for iteration_i in trange(n_iterations, desc="train iter"):
+        player_i = (iteration_i % 2) + 1
+        state = KuhnState(player_i=player_i, player_1=player_1, player_2=player_2)
         cfr(state)
-        if iteration_i > 0 and iteration_i % print_iterations == 0:
-            tqdm.write(f"Strategies at iteration: {iteration_i}")
-            print_players_strategy(players)
-    tqdm.write(f"Strategies at iteration: {iteration_i}")
-    print_players_strategy(players)
-    return players
+        if iteration_i % print_iterations == 0 and iteration_i:
+            tqdm.write(f"\n\nAverage strategy at iteration {iteration_i}:")
+            # Print "average" strategy_sum.
+            for info_set in sorted(player_1.strategy_sum.keys()):
+                strategy_sum = player_1.strategy_sum[info_set]
+                total = np.sum(strategy_sum)
+                if total:
+                    strategy_sum /= total
+                    strategy_sum = np.round(strategy_sum, 2)
+                else:
+                    strategy_sum = [0.5, 0.5]
+                tqdm.write(f"  {info_set}")
+                tqdm.write(f"    check={strategy_sum[0]} bet={strategy_sum[1]}")
 
 
-def print_players_strategy(players: List[Player]):
-    """Print the players learned strategy."""
-    for player_i, player in enumerate(players):
-        tqdm.write(f"player {player_i}:")
-        for info_set in player.info_sets:
-            average_strategy = np.round(player.average_strategy(info_set), 2)
-            average_strategy = {
-                action: prob
-                for action, prob in zip(KuhnState.actions, average_strategy)
-            }
-            tqdm.write(f" * info set <{info_set}> strategy: {average_strategy}")
-        tqdm.write("")
-
-
-if __name__ == "__main__":
-    players: List[Player] = train(n_iterations=20000)
-    print("Finished!")
+train()
