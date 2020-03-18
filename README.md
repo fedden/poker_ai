@@ -156,20 +156,8 @@ Big shout out to the authors of the following repositories! Here are some MIT li
 Useful tools that contributed to the making of the poker engine:
 * [Poker hand winner calculator that came in handy for building tests for the engine.](https://www.pokerlistings.com/which-hand-wins-calculator)
 
-On abstraction:
-* Pluribus uses abstraction to reduce possibilities and eliminates some decision points
-    * for example, bet sizes - there are only 14
-        * [Pseudo-Harmonic Mapping](https://www.ijcai.org/Proceedings/13/Papers/028.pdf)
-    
-MCCFR:
-* Pluribus uses Monte Carlo CFR
-    * [Just an Overview of MCCFR, not the particular variant that is used in Pluribus](https://papers.nips.cc/paper/3306-regret-minimization-in-games-with-incomplete-information.pdf)
-* Pluribus uses linear CFR for first iterations (400?) in self play:
-    * [Discounted Regret Minimization; Also by Original Authors](https://arxiv.org/pdf/1809.04040.pdf)
-    * if subgame large or beginning of the game, then use linear MCCFR
-* then updates to a variation that only samples the rest of the tree
-    * [Talks About Sampled Form of Regret-Based Pruning in Libratus](https://www.cs.cmu.edu/~noamb/papers/17-IJCAI-Libratus.pdf)
-    * [Goes On to Explain for Extensive Games](https://papers.nips.cc/paper/3713-monte-carlo-sampling-for-regret-minimization-in-extensive-games.pdf)
+Linked Notes 
+* [Based off the supplemental materials](https://github.com/fedden/pluribus-poker-AI/blob/develop/paper/linked_notes.md)
 
 MISC:
 * Some [original author papers](https://www.cs.cmu.edu/~noamb/research.html)
