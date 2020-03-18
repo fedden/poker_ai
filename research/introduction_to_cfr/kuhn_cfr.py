@@ -50,21 +50,43 @@ class KuhnState:
     @property
     def payout(self) -> int:
         """"""
-        return self._payout(self.player_1.hand, self.player_2.hand, self._history) * (
-            1 if self.player_i == 1 else -1
-        )
+        if self._history == ["check", "bet", "check"]:
+            payout = -1
+        elif self._history == ["bet", "check"]:
+            payout = 1
+        m = 1 if (self.player_1.hand > self.player_2.hand) else -1
+        if self._history == ["check", "check"]:
+            payout = m
+        if self._history in [["bet", "bet"], ["check", "bet", "bet"]]:
+            payout = m * 2
+        return payout * (1 if self.player_i == 1 else -1)
 
     @property
     def is_terminal(self) -> bool:
         """"""
-        return self._check_is_terminal(self._history)
+        """Return true if the history means we are in a terminal state."""
+        terminal_states = [
+            ["check", "check"],
+            ["check", "bet", "check"],
+            ["check", "bet", "bet"],
+            ["bet", "check"],
+            ["bet", "bet"],
+        ]
+        return self._history in terminal_states
 
     @property
     def info_set(self) -> str:
         """"""
-        return self._get_information_set(
-            self.player_1.hand, self.player_2.hand, self._history
-        )
+        if self.is_terminal:
+            raise ValueError(f"Shouldn't be getting terminal history info set.")
+        if len(self._history) == 0:
+            hand = self.player_1.hand
+        elif len(self._history) == 1:
+            hand = self.player_2.hand
+        else:
+            hand = self.player_1.hand
+            assert self._history == ["check", "bet"]
+        return f"hand: {hand}, history: {self._history}"
 
     @property
     def player_turn(self) -> int:
@@ -82,47 +104,6 @@ class KuhnState:
         new_state.player_1 = self.player_1
         new_state.player_2 = self.player_2
         return new_state
-
-    def _payout(
-        self, player_1_hand: Card, player_2_hand: Card, history: List[str]
-    ) -> int:
-        """"""
-        if history == ["check", "bet", "check"]:
-            return -1
-        elif history == ["bet", "check"]:
-            return 1
-        m = 1 if (player_1_hand > player_2_hand) else -1
-        if history == ["check", "check"]:
-            return m
-        if history in [["bet", "bet"], ["check", "bet", "bet"]]:
-            return m * 2
-        assert False
-
-    def _check_is_terminal(self, history: List[str]) -> bool:
-        """Return true if the history means we are in a terminal state."""
-        terminal_states = [
-            ["check", "check"],
-            ["check", "bet", "check"],
-            ["check", "bet", "bet"],
-            ["bet", "check"],
-            ["bet", "bet"],
-        ]
-        return history in terminal_states
-
-    def _get_information_set(
-        self, player_1_hand: Card, player_2_hand: Card, history: List[str],
-    ) -> str:
-        """"""
-        if self.is_terminal:
-            raise ValueError(f"Shouldn't be getting terminal history info set.")
-        if len(history) == 0:
-            hand = player_1_hand
-        elif len(history) == 1:
-            hand = player_2_hand
-        else:
-            hand = player_1_hand
-            history = ["check", "bet"]
-        return f"hand: {hand}, history: {history}"
 
 
 def cfr(state: KuhnState, pi1: float = 1.0, pi2: float = 1.0) -> float:
@@ -156,10 +137,28 @@ def cfr(state: KuhnState, pi1: float = 1.0, pi2: float = 1.0) -> float:
         # update the strategy_sum based on regret
         regret_sum = np.sum(np.maximum(player.regret[info_set], 0))
         if regret_sum > 0:
-            player.strategy[info_set] = np.maximum(player.regret[info_set], 0) / regret_sum
+            player.strategy[info_set] = (
+                np.maximum(player.regret[info_set], 0) / regret_sum
+            )
         else:
             player.strategy[info_set] = np.full(KuhnState.n_actions, 0.5)
     return info_set_utility
+
+
+def print_strategy(player: Player, iteration_i: int):
+    """Print the strategy learned."""
+    tqdm.write(f"\n\nAverage strategy at iteration {iteration_i}:")
+    # Print "average" strategy_sum.
+    for info_set in sorted(player.strategy_sum.keys()):
+        strategy_sum = player.strategy_sum[info_set]
+        total = np.sum(strategy_sum)
+        if total:
+            strategy_sum /= total
+            strategy_sum = np.round(strategy_sum, 2)
+        else:
+            strategy_sum = [0.5, 0.5]
+        tqdm.write(f"  {info_set}")
+        tqdm.write(f"    check={strategy_sum[0]} bet={strategy_sum[1]}")
 
 
 def train(n_iterations: int = 40000, print_iterations: int = 1000):
@@ -177,18 +176,12 @@ def train(n_iterations: int = 40000, print_iterations: int = 1000):
         state = KuhnState(player_i=player_i, player_1=player_1, player_2=player_2)
         cfr(state)
         if iteration_i % print_iterations == 0 and iteration_i:
-            tqdm.write(f"\n\nAverage strategy at iteration {iteration_i}:")
-            # Print "average" strategy_sum.
-            for info_set in sorted(player_1.strategy_sum.keys()):
-                strategy_sum = player_1.strategy_sum[info_set]
-                total = np.sum(strategy_sum)
-                if total:
-                    strategy_sum /= total
-                    strategy_sum = np.round(strategy_sum, 2)
-                else:
-                    strategy_sum = [0.5, 0.5]
-                tqdm.write(f"  {info_set}")
-                tqdm.write(f"    check={strategy_sum[0]} bet={strategy_sum[1]}")
+            print_strategy(player=player_1, iteration_i=iteration_i)
+    print_strategy(player=player_1, iteration_i=iteration_i)
 
 
-train()
+if __name__ == "__main__":
+    seed = 42
+    random.seed(seed)
+    np.random.seed(seed)
+    train()
