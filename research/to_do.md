@@ -26,5 +26,5 @@ A Place for Next Steps in Short Deck Implementation
 - 10000 in stack, 50 small blind, 100 big blind
 
 #### Possible Next Steps
-- fix shot deck game and roll out to online hosting?
+- fix short deck game and roll out to online hosting?
 - go right on to full game?
