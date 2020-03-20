@@ -36,7 +36,7 @@ class PokerEngine:
 
     def play_one_round(self):
         """"""
-        self._round_setup()
+        self.round_setup()
         self._all_dealing_and_betting_rounds()
         self._compute_winners()
         self._round_cleanup()
