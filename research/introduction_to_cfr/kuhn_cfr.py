@@ -177,26 +177,6 @@ def train(n_iterations: int = 1000, print_iterations: int = 1000):
         player_2.strategy = player_1.strategy
         for player_i in [1, 2]:
             state = KuhnState(player_i=player_i, player_1=player_1, player_2=player_2)
-            # uncomment this block to see comparison with geohot code, matches exactly, use n_iterations = 1000
-            # if iteration_i % 6 == 0:
-            #     state.player_1.hand = Card(rank="2", suit="spades")
-            #     state.player_2.hand = Card(rank="3", suit="spades")
-            # elif iteration_i % 6 == 1:
-            #     state.player_1.hand = Card(rank="2", suit="spades")
-            #     state.player_2.hand = Card(rank="4", suit="spades")
-            # elif iteration_i % 6 == 2:
-            #     state.player_1.hand = Card(rank="3", suit="spades")
-            #     state.player_2.hand = Card(rank="2", suit="spades")
-            # elif iteration_i % 6 == 3:
-            #     state.player_1.hand = Card(rank="3", suit="spades")
-            #     state.player_2.hand = Card(rank="4", suit="spades")
-            # elif iteration_i % 6 == 4:
-            #     state.player_1.hand = Card(rank="4", suit="spades")
-            #     state.player_2.hand = Card(rank="2", suit="spades")
-            # elif iteration_i % 6 == 5:
-            #     state.player_1.hand = Card(rank="4", suit="spades")
-            #     state.player_2.hand = Card(rank="3", suit="spades")
-            cfr(iteration_i, state)
         del player_1.strategy[iteration_i]
         if iteration_i % print_iterations == 0 and iteration_i:
             print_strategy(player=player_1, iteration_i=iteration_i)
