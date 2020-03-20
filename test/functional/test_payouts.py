@@ -35,7 +35,7 @@ def _scenario_helper(
     ]
     table = PokerTable(players=players, pot=pot)
     engine = PokerEngine(table=table, small_blind=50, big_blind=10)
-    engine._round_setup()
+    engine.round_setup()
     engine._all_dealing_and_betting_rounds()
     # Inject cards here.
     for player, cards in zip(players, player_cards):
