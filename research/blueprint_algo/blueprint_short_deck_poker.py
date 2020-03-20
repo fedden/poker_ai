@@ -171,6 +171,16 @@ class ShortDeckPokerState:
         #               retain the references needed here too.
         return new_state
 
+    @property
+    def h(self):
+        """Returns the history."""
+        return self._history
+
+    @property
+    def rs(self):
+        """Returns the players hands."""
+        return [player.cards for player in self._table.players]
+
 
 def payout(rs: Tuple[int, int], h: str) -> int:
     """
