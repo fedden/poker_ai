@@ -18,7 +18,8 @@ class Player:
         """Initialise the strategy according the amount of actions."""
         self.hand = None
         n_actions = 2
-        self.strategy: Dict[str, np.ndarray] = defaultdict(
+        self.strategy = {}
+        self.strategy[1]: Dict[str, np.ndarray] = defaultdict(
             partial(np.full, n_actions, 1 / n_actions)
         )
         self.strategy_sum: Dict[str, np.ndarray] = defaultdict(
@@ -54,7 +55,7 @@ class KuhnState:
             payout = -1
         elif self._history == ["bet", "check"]:
             payout = 1
-        m = 1 if (self.player_1.hand > self.player_2.hand) else -1
+        m = 1 if (self.player_1.hand.rank_int > self.player_2.hand.rank_int) else -1
         if self._history == ["check", "check"]:
             payout = m
         if self._history in [["bet", "bet"], ["check", "bet", "bet"]]:
@@ -106,7 +107,7 @@ class KuhnState:
         return new_state
 
 
-def cfr(state: KuhnState, pi1: float = 1.0, pi2: float = 1.0) -> float:
+def cfr(iteration_i, state: KuhnState, pi1: float = 1.0, pi2: float = 1.0) -> float:
     """"""
     if state.is_terminal:
         return state.payout
@@ -118,13 +119,13 @@ def cfr(state: KuhnState, pi1: float = 1.0, pi2: float = 1.0) -> float:
         new_state = state.apply_action(action)
         if state.player_turn == 1:
             utility[action_i] = cfr(
-                state=new_state, pi1=player.strategy[info_set][action_i] * pi1, pi2=pi2,
+                iteration_i, state=new_state, pi1=player.strategy[iteration_i][info_set][action_i] * pi1, pi2=pi2,
             )
         else:
             utility[action_i] = cfr(
-                state=new_state, pi1=pi1, pi2=player.strategy[info_set][action_i] * pi2,
+                iteration_i, state=new_state, pi1=pi1, pi2=player.strategy[iteration_i][info_set][action_i] * pi2,
             )
-    info_set_utility = np.sum(player.strategy[info_set] * utility)
+    info_set_utility = np.sum(player.strategy[iteration_i][info_set] * utility)
     if state.player_turn == state.player_i:
         if state.player_i == 1:
             pi = pi1
@@ -133,15 +134,15 @@ def cfr(state: KuhnState, pi1: float = 1.0, pi2: float = 1.0) -> float:
             pi = pi2
             neg_pi = pi1
         player.regret[info_set] += neg_pi * (utility - info_set_utility)
-        player.strategy_sum[info_set] += pi * player.strategy[info_set]
+        player.strategy_sum[info_set] += pi * player.strategy[iteration_i][info_set]
         # update the strategy_sum based on regret
         regret_sum = np.sum(np.maximum(player.regret[info_set], 0))
         if regret_sum > 0:
-            player.strategy[info_set] = (
+            player.strategy[iteration_i + 1][info_set] = (
                 np.maximum(player.regret[info_set], 0) / regret_sum
             )
         else:
-            player.strategy[info_set] = np.full(KuhnState.n_actions, 0.5)
+            player.strategy[iteration_i + 1][info_set] = np.full(KuhnState.n_actions, 0.5)
     return info_set_utility
 
 
@@ -154,14 +155,14 @@ def print_strategy(player: Player, iteration_i: int):
         total = np.sum(strategy_sum)
         if total:
             strategy_sum /= total
-            strategy_sum = np.round(strategy_sum, 2)
+            strategy_sum = np.round(strategy_sum, 4)
         else:
             strategy_sum = [0.5, 0.5]
         tqdm.write(f"  {info_set}")
         tqdm.write(f"    check={strategy_sum[0]} bet={strategy_sum[1]}")
 
 
-def train(n_iterations: int = 40000, print_iterations: int = 1000):
+def train(n_iterations: int = 1000, print_iterations: int = 1000):
     """"""
     # Initialise players
     player_1 = Player()
@@ -171,17 +172,36 @@ def train(n_iterations: int = 40000, print_iterations: int = 1000):
     player_2.strategy_sum = player_1.strategy_sum
     player_2.strategy = player_1.strategy
     # learn strategy_sum
-    for iteration_i in trange(n_iterations, desc="train iter"):
-        player_i = (iteration_i % 2) + 1
-        state = KuhnState(player_i=player_i, player_1=player_1, player_2=player_2)
-        cfr(state)
+    for iteration_i in trange(1, n_iterations, desc="train iter"):
+        player_1.strategy[iteration_i + 1] = copy.deepcopy(player_1.strategy[iteration_i])
+        player_2.strategy = player_1.strategy
+        for player_i in [1, 2]:
+            state = KuhnState(player_i=player_i, player_1=player_1, player_2=player_2)
+            # uncomment this block to see comparison with geohot code, matches exactly, use n_iterations = 1000
+            # if iteration_i % 6 == 0:
+            #     state.player_1.hand = Card(rank="2", suit="spades")
+            #     state.player_2.hand = Card(rank="3", suit="spades")
+            # elif iteration_i % 6 == 1:
+            #     state.player_1.hand = Card(rank="2", suit="spades")
+            #     state.player_2.hand = Card(rank="4", suit="spades")
+            # elif iteration_i % 6 == 2:
+            #     state.player_1.hand = Card(rank="3", suit="spades")
+            #     state.player_2.hand = Card(rank="2", suit="spades")
+            # elif iteration_i % 6 == 3:
+            #     state.player_1.hand = Card(rank="3", suit="spades")
+            #     state.player_2.hand = Card(rank="4", suit="spades")
+            # elif iteration_i % 6 == 4:
+            #     state.player_1.hand = Card(rank="4", suit="spades")
+            #     state.player_2.hand = Card(rank="2", suit="spades")
+            # elif iteration_i % 6 == 5:
+            #     state.player_1.hand = Card(rank="4", suit="spades")
+            #     state.player_2.hand = Card(rank="3", suit="spades")
+            cfr(iteration_i, state)
+        del player_1.strategy[iteration_i]
         if iteration_i % print_iterations == 0 and iteration_i:
             print_strategy(player=player_1, iteration_i=iteration_i)
     print_strategy(player=player_1, iteration_i=iteration_i)
 
 
 if __name__ == "__main__":
-    seed = 42
-    random.seed(seed)
-    np.random.seed(seed)
     train()
