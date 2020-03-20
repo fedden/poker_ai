@@ -41,7 +41,7 @@ class PokerEngine:
         self._compute_winners()
         self._round_cleanup()
 
-    def _round_setup(self):
+    def round_setup(self):
         """Code that must be done to setup the round before the game starts."""
         self.table.pot.reset()
         self._assign_order_to_players()
