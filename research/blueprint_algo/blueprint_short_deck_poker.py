@@ -134,7 +134,7 @@ class ShortDeckPokerState:
         # Shorten the deck.
         self._table.dealer.deck._cards = [
             card for card in self._table.dealer.deck._cards
-            if card.rank_int not in {2, 3, 4, 5}
+            if card.rank_int not in {2, 3, 4, 5, 6, 7, 8, 9}
         ]
         small_blind = 50
         big_blind = 100
