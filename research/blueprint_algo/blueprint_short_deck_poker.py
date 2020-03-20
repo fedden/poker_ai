@@ -60,27 +60,24 @@ we denote by A(Ii) the set A(h) and by P(Ii) the player P(h) for any h ∈ Ii
 -- https://papers.nips.cc/paper/3306-regret-minimization-in-games-with-incomplete-information.pdf
 
 """
+from __future__ import annotations
+
 import copy
 import random
-from typing import Tuple, Dict
+from typing import Dict, List, Tuple
 
 import numpy as np
 from tqdm import trange
 
+from pluribus import utils
+from pluribus.game.actions import Action, Call, Fold, Raise
+from pluribus.game.engine import PokerEngine
+from pluribus.game.pot import Pot
+from pluribus.game.player import Player
+from pluribus.game.table import PokerTable
 
-# there are 12 information sets
-# p1(1st) 1 {2,3}
-# p1(1st) 2 {1,3}
-# p1(1st) 3 {1,2}
-# p2(2nd) 1, p1 pass {2,3}
-# p2(2nd) 1, p1 bet  {2,3}
-# p2(2nd) 2, p1 pass {1,3}
-# p2(2nd) 2, p1 bet  {1,3}
-# p2(2nd) 3, p1 pass {1,2}
-# p2(2nd) 3, p1 bet  {1,2}
-# p1(3rd) 1, p1 pass, p2 bet  {2,3}
-# p1(3rd) 2, p1 pass, p2 bet  {1,3}
-# p1(3rd) 3, p1 pass, p2 bet  {1,2}
+
+utils.random.seed(42)
 
 
 ISETS = [
@@ -104,6 +101,77 @@ TERMINAL = ["PP", "PBP", "PBB", "BP", "BB"]
 ACTIONS = ["P", "B"]
 
 
+class ShortDeckPokerPlayer(Player):
+    """Inherits from Player which will interface easily with the PokerEngine.
+
+    This class should manage the state of the players personal pot, and the
+    private cards that are dealt to the player. Also manages whether this
+    player has folded or not.
+    """
+
+    def __init__(self, player_i: int, initial_chips: int, pot: Pot):
+        """Instanciate a player."""
+        super().__init__(
+            name=f"player_{player_i}",
+            initial_chips=initial_chips,
+            pot=pot,
+        )
+
+
+class ShortDeckPokerState:
+    """The state of a Short Deck Poker game at some given point in time.
+
+    The class is immutable and new state can be instanciated from once an
+    action is applied via the `ShortDeckPokerState.new_state` method.
+    """
+    def __init__(self, players: List[ShortDeckPokerPlayer]):
+        """Initialise state."""
+        # Get a reference of the pot from the first player.
+        self._table = PokerTable(players=players, pot=players[0].pot)
+        # TODO(fedden): There are an awful lot of layers of abstraction here,
+        #               this could be much neater, maybe refactor and clean
+        #               things up a bit here in the future.
+        # Shorten the deck.
+        self._table.dealer.deck._cards = [
+            card for card in self._table.dealer.deck._cards
+            if card.rank_int not in {2, 3, 4, 5}
+        ]
+        small_blind = 50
+        big_blind = 100
+        self._poker_engine = PokerEngine(
+            table=self._table, small_blind=small_blind, big_blind=big_blind
+        )
+        # Reset the pot, assign betting order to players (might need to remove
+        # this), assign blinds to the players.
+        self._poker_engine.round_setup()
+        # Deal private cards to players.
+        self._table.dealer.deal_private_cards(self._table.players)
+        # Store the actions as they come in here.
+        self._history: List[Action] = []
+
+    def new_state(self, action: Action) -> ShortDeckPokerState:
+        """Create a new state after applying an action."""
+        if isinstance(action, Call):
+            # TODO(fedden): Player called, get money from player if needed.
+            pass
+        elif isinstance(action, Fold):
+            # TODO(fedden): Player folded, update player status.
+            pass
+        elif isinstance(action, Raise):
+            # TODO(fedden): Player raised, get money into pot, and subtract
+            #               from player.
+            pass
+        else:
+            raise ValueError(
+                f"Expected action to be derived from class Action, but found "
+                f"type {type(action)}."
+            )
+        new_state = ShortDeckPokerState(players=self._table.players)
+        # TODO(fedden): Deep copy the parts of state that are needed, and
+        #               retain the references needed here too.
+        return new_state
+
+
 def payout(rs: Tuple[int, int], h: str) -> int:
     """
 
@@ -125,7 +193,6 @@ def payout(rs: Tuple[int, int], h: str) -> int:
 
 def get_information_set(rs: Tuple[int, int], h: str) -> str:
     """
-
     :param rs: realstate, a tuple of two ints, first is card for player one, second player 2
     :param h: the action sequences without the card information
     :return: I: information set, which contains all h that the p_i cannot distinguish
@@ -305,12 +372,20 @@ if __name__ == "__main__":
     discount_interval = 100
     prune_threshold = 2000
     C = -20000  # somewhat arbitrary
-
+    n_players = 3
+    initial_chips = 10000
+    pot = Pot()
+    players = [
+        Player(player_i=i, initial_chips=initial_chips, pot=pot)
+        for i in range(n_players)
+    ]
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
     for t in trange(1, 20000):
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in [1, 2]:  # fixed position i
+            # Create a new state.
+            state = ShortDeckPokerState(players=players)
             h = ""
             rs = random.choice(HANDS)
             if t % strategy_interval == 0:

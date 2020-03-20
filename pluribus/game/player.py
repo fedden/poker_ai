@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Player(ABC):
+class Player:
     """Abstract base class for all poker-playing agents.
 
     All agents should inherit from this class and implement the take_action
@@ -107,7 +107,7 @@ class Player(ABC):
         """Add a private card to this player."""
         self.cards.append(card)
 
-    @abstractmethod
+    # @abstractmethod
     def take_action(self, game_state: PokerGameState) -> PokerGameState:
         """All poker strategy is implemented here.
 
