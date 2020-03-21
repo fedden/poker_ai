@@ -153,26 +153,25 @@ class ShortDeckPokerState:
         self._betting_stage = "private_cards"
         self._betting_round = 0
 
-    def apply_action(self, action: Optional[Action]) -> ShortDeckPokerState:
+    def apply_action(self, action_str: Optional[str], **kwargs) -> ShortDeckPokerState:
         """Create a new state after applying an action."""
         # TODO(fedden): Split this method up it's getting big!
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state = copy.deepcopy(self)
         new_state._players_turn += 1
-        if action is None:
+        if action_str is None:
             # Assert active player has folded already.
-            assert not new_state.current_player.is_active
-        elif isinstance(action, Call):
-            # TODO(fedden): Player called, get money from player if needed.
-            pass
-        elif isinstance(action, Fold):
-            # TODO(fedden): Player folded, update player status.
-            pass
-        elif isinstance(action, Raise):
-            # TODO(fedden): Player raised, get money into pot, and subtract
-            #               from player.
-            pass
+            assert not new_state.current_player.is_active, \
+                "Active player cannot do nothing!"
+        elif action_str == "call":
+            action = new_state.current_player.call(players=self._table.players)
+        elif action_str == "fold":
+            action = new_state.current_player.fold()
+        elif action_str == "raise":
+            if "n_chips" not in kwargs:
+                raise ValueError("'n_chips' must be specified when action is raise")
+            action = new_state.current_player.raise_to(**kwargs)
         else:
             raise ValueError(
                 f"Expected action to be derived from class Action, but found "
