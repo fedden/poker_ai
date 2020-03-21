@@ -154,7 +154,14 @@ class ShortDeckPokerState:
 
     def apply_action(self, action: Optional[Action]) -> ShortDeckPokerState:
         """Create a new state after applying an action."""
-        if isinstance(action, Call):
+        # Deep copy the parts of state that are needed that must be immutable
+        # from state to state.
+        new_state = copy.deepcopy(self)
+        # TODO(fedden): Split this method up it's getting big!
+        if action is None:
+            # TODO(fedden): Assert active player has folded already.
+            pass
+        elif isinstance(action, Call):
             # TODO(fedden): Player called, get money from player if needed.
             pass
         elif isinstance(action, Fold):
@@ -169,20 +176,21 @@ class ShortDeckPokerState:
                 f"Expected action to be derived from class Action, but found "
                 f"type {type(action)}."
             )
-        # Deep copy the parts of state that are needed that must be immutable
-        # from state to state.
-        new_state = copy.deepcopy(self)
         # Update the new state.
         new_state._history.append(action)
         new_state._players_turn += 1
         finished_betting = not new_state._poker_engine.more_betting_needed
-        if self._poker_engine.n_players_with_moves == 0:
+        if new_state._poker_engine.n_players_with_moves == 0:
             # No players left.
-            self._betting_stage = "terminal"
-        elif self._betting_round > 0 and finished_betting:
+            new_state._betting_stage = "terminal"
+        elif new_state._betting_round > 0 and finished_betting:
             # We have done atleast one full round of betting, increment stage
             # of the game.
-            self._increment_stage()
+            new_state._increment_stage()
+        # Now check if the game is terminal.
+        if new_state._betting_stage in {"terminal", "showdown"}:
+            # TODO(fedden): Distribute winnings.
+            pass
         return new_state
 
     def _increment_stage(self):
