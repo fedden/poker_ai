@@ -64,7 +64,7 @@ from __future__ import annotations
 
 import copy
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 from tqdm import trange
@@ -150,8 +150,9 @@ class ShortDeckPokerState:
         self._history: List[Action] = []
         self._players_turn = 0
         self._betting_stage = "private_cards"
+        self._betting_round = 0
 
-    def apply_action(self, action: Action) -> ShortDeckPokerState:
+    def apply_action(self, action: Optional[Action]) -> ShortDeckPokerState:
         """Create a new state after applying an action."""
         if isinstance(action, Call):
             # TODO(fedden): Player called, get money from player if needed.
@@ -168,17 +169,27 @@ class ShortDeckPokerState:
                 f"Expected action to be derived from class Action, but found "
                 f"type {type(action)}."
             )
-        # Retain references.
-        new_state = self
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
-        new_state._history = copy.deepcopy(self._history)
+        new_state = copy.deepcopy(self)
+        # Update the new state.
         new_state._history.append(action)
         new_state._players_turn += 1
+        finished_betting = not new_state._poker_engine.more_betting_needed
+        if self._poker_engine.n_players_with_moves == 0:
+            # No players left.
+            self._betting_stage = "terminal"
+        elif self._betting_round > 0 and finished_betting:
+            # We have done atleast one full round of betting, increment stage
+            # of the game.
+            self._increment_stage()
         return new_state
 
-    def _increment_game_stage(self):
+    def _increment_stage(self):
         """Once betting has finished, increment the stage of the poker game."""
+        # Reset the round of betting to zero.
+        self._betting_round = 0
+        # Progress the stage of the game.
         if self._betting_stage == "private_cards":
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
@@ -431,6 +442,8 @@ if __name__ == "__main__":
     for t in trange(1, 20000):
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in [1, 2]:  # fixed position i
+            # TODO(fedden): Do we need to rotate players around the table after
+            #               a game?
             # Create a new state.
             state = ShortDeckPokerState(players=players)
             import ipdb
