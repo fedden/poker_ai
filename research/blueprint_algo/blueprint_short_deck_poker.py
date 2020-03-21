@@ -288,10 +288,10 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
-    ph = 2 if len(h) == 1 else 1  # this is always the case no matter what i is
+    ph = 2 if len(state.h) == 1 else 1  # this is always the case no matter what i is
 
     if h in TERMINAL:
-        return payout(rs, h) * (1 if i == 1 else -1)
+        return payout(state) * (1 if i == 1 else -1)
     # elif p_i not in hand:
     #   cfr()
     # TODO: this will be needed for No Limit Hold'Em, but in two player the player is always in the hand
@@ -299,25 +299,27 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
-        I = get_information_set(rs, h)
+        I = get_information_set(state)
         # calculate strategy
         calculate_strategy(regret, sigma, I)
         vo = 0.0
         voa = {}
         for a in ACTIONS:
-            voa[a] = cfr(rs, h + a, i, t)
+            new_state: ShortDeckPokerState = state.apply_action(a)
+            voa[a] = cfr(new_state, i, t)
             vo += sigma[t][I][a] * voa[a]
         for a in ACTIONS:
             regret[I][a] += voa[a] - vo
             # do not need update the strategy based on regret, strategy does that with sigma
         return vo
     else:
-        Iph = get_information_set(rs, h)
+        Iph = get_information_set(state)
         calculate_strategy(regret, sigma, Iph)
         a = np.random.choice(
             list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
         )[0]
-        return cfr(rs, h + a, i, t)
+        new_state: ShortDeckPokerState = state.apply_action(a)
+        return cfr(new_state, i, t)
 
 
 def cfrp(state: ShortDeckPokerState, i: int, t: int):
@@ -330,10 +332,10 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     :param t: iteration
     :return: expected value for node for player i
     """
-    ph = 2 if len(h) == 1 else 1
+    ph = 2 if len(state.h) == 1 else 1
 
-    if h in TERMINAL:
-        return payout(rs, h) * (1 if i == 1 else -1)
+    if state.h in TERMINAL:
+        return payout(state) * (1 if i == 1 else -1)
     # elif p_i not in hand:
     #   cfrp()
     # TODO: this will be needed for No Limit Hold'Em, but in two player the player is always in the hand
@@ -341,7 +343,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     #   sample action from strategy for h
     #   cfrp()
     elif ph == i:
-        I = get_information_set(rs, h)
+        I = get_information_set(state)
         # calculate strategy
         calculate_strategy(regret, sigma, I)
         vo = 0.0
@@ -349,7 +351,8 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         explored = {}  # keeps tracked of items that can be skipped
         for a in ACTIONS:
             if regret[I][a] > C:
-                voa[a] = cfrp(rs, h + a, i, t)
+                new_state: ShortDeckPokerState = state.apply_action(a)
+                voa[a] = cfrp(new_state, i, t)
                 explored[a] = True
                 vo += sigma[t][I][a] * voa[a]
             else:
@@ -360,12 +363,13 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
                 # do not need update the strategy based on regret, strategy does that with sigma
         return vo
     else:
-        Iph = get_information_set(rs, h)
+        Iph = get_information_set(state)
         calculate_strategy(regret, sigma, Iph)
         a = np.random.choice(
             list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
         )[0]
-        return cfrp(rs, h + a, i, t)
+        new_state: ShortDeckPokerState = state.apply_action(a)
+        return cfrp(new_state, i, t)
 
 
 if __name__ == "__main__":
