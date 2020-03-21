@@ -71,6 +71,7 @@ from tqdm import trange
 
 from pluribus import utils
 from pluribus.game.actions import Action, Call, Fold, Raise
+from pluribus.game.card import Card
 from pluribus.game.engine import PokerEngine
 from pluribus.game.pot import Pot
 from pluribus.game.player import Player
@@ -154,13 +155,14 @@ class ShortDeckPokerState:
 
     def apply_action(self, action: Optional[Action]) -> ShortDeckPokerState:
         """Create a new state after applying an action."""
+        # TODO(fedden): Split this method up it's getting big!
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state = copy.deepcopy(self)
-        # TODO(fedden): Split this method up it's getting big!
+        new_state._players_turn += 1
         if action is None:
-            # TODO(fedden): Assert active player has folded already.
-            pass
+            # Assert active player has folded already.
+            assert not new_state.current_player.is_active
         elif isinstance(action, Call):
             # TODO(fedden): Player called, get money from player if needed.
             pass
@@ -178,7 +180,6 @@ class ShortDeckPokerState:
             )
         # Update the new state.
         new_state._history.append(action)
-        new_state._players_turn += 1
         finished_betting = not new_state._poker_engine.more_betting_needed
         if new_state._poker_engine.n_players_with_moves == 0:
             # No players left.
@@ -217,17 +218,22 @@ class ShortDeckPokerState:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
 
     @property
-    def legal_actions(self):
+    def current_player(self) -> ShortDeckPokerPlayer:
+        """Returns a reference to player that makes a move for this state."""
+        raise NotImplementedError()
+
+    @property
+    def legal_actions(self) -> List[Action]:
         """Return the actions that are legal for this game state."""
         pass
 
     @property
-    def h(self):
+    def h(self) -> List[Action]:
         """Returns the history."""
         return self._history
 
     @property
-    def rs(self):
+    def rs(self) -> List[List[Card]]:
         """Returns the players hands."""
         return [player.cards for player in self._table.players]
 
