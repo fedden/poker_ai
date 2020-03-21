@@ -166,9 +166,11 @@ class ShortDeckPokerState:
                 f"Expected action to be derived from class Action, but found "
                 f"type {type(action)}."
             )
-        new_state = ShortDeckPokerState(players=self._table.players)
-        # TODO(fedden): Deep copy the parts of state that are needed, and
-        #               retain the references needed here too.
+        # Retain references.
+        new_state = self
+        # Deep copy the parts of state that are needed that must be immutable
+        # from state to state.
+        new_state._history = copy.deepcopy(self._history)
         return new_state
 
     @property
