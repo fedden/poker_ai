@@ -112,9 +112,7 @@ class ShortDeckPokerPlayer(Player):
     def __init__(self, player_i: int, initial_chips: int, pot: Pot):
         """Instanciate a player."""
         super().__init__(
-            name=f"player_{player_i}",
-            initial_chips=initial_chips,
-            pot=pot,
+            name=f"player_{player_i}", initial_chips=initial_chips, pot=pot,
         )
 
 
@@ -124,6 +122,7 @@ class ShortDeckPokerState:
     The class is immutable and new state can be instanciated from once an
     action is applied via the `ShortDeckPokerState.new_state` method.
     """
+
     def __init__(self, players: List[ShortDeckPokerPlayer]):
         """Initialise state."""
         # Get a reference of the pot from the first player.
@@ -133,7 +132,8 @@ class ShortDeckPokerState:
         #               things up a bit here in the future.
         # Shorten the deck.
         self._table.dealer.deck._cards = [
-            card for card in self._table.dealer.deck._cards
+            card
+            for card in self._table.dealer.deck._cards
             if card.rank_int not in {2, 3, 4, 5, 6, 7, 8, 9}
         ]
         small_blind = 50
@@ -149,7 +149,7 @@ class ShortDeckPokerState:
         # Store the actions as they come in here.
         self._history: List[Action] = []
 
-    def new_state(self, action: Action) -> ShortDeckPokerState:
+    def apply_action(self, action: Action) -> ShortDeckPokerState:
         """Create a new state after applying an action."""
         if isinstance(action, Call):
             # TODO(fedden): Player called, get money from player if needed.
@@ -201,23 +201,23 @@ def payout(rs: Tuple[int, int], h: str) -> int:
     assert False
 
 
-def get_information_set(rs: Tuple[int, int], h: str) -> str:
+def get_information_set(state: ShortDeckPokerState) -> str:
     """
     :param rs: realstate, a tuple of two ints, first is card for player one, second player 2
     :param h: the action sequences without the card information
     :return: I: information set, which contains all h that the p_i cannot distinguish
     """
-    assert h not in TERMINAL
-    if h == "":
-        return str(rs[0])
-    elif len(h) == 1:
-        return h + str(rs[1])
+    assert state.h not in TERMINAL
+    if state.h == []:
+        return str(state.rs[0])
+    elif len(state.h) == 1:
+        return state.h + str(state.rs[1])
     else:
-        return "PB" + str(rs[0])
+        return "PB" + str(state.rs[0])
     assert False
 
 
-def update_strategy(rs: Tuple[int, int], h: str, i: int):
+def update_strategy(state: ShortDeckPokerState, i: int):
     """
 
     :param rs: realstate, a tuple of two ints, first is card for player one, second player 2
@@ -227,17 +227,17 @@ def update_strategy(rs: Tuple[int, int], h: str, i: int):
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
-    ph = 2 if len(h) == 1 else 1  # this is always the case no matter what i is
+    ph = 2 if len(state.h) == 1 else 1  # this is always the case no matter what i is
 
     if (
-        h in TERMINAL
+        state.h in TERMINAL
     ):  # or if p_i is not in the hand or if betting round is > 0, strategy is only
         return  # updated in betting round 1 for Pluribus, but I am doing all rounds in this example
     # elif h is chance_node:  -- we don't care about chance nodes here, but we will for No Limit
     #   sample action from strategy for h
     #   update_strategy(rs, h + a, i)
     elif ph == i:
-        I = get_information_set(rs, h)
+        I = get_information_set(state)
         # calculate regret
         calculate_strategy(regret, sigma, I)
         # choose an action based of sigma
@@ -247,11 +247,13 @@ def update_strategy(rs: Tuple[int, int], h: str, i: int):
         strategy[I][a] += 1
         # so strategy is counts based on sigma, this takes into account the reach probability
         # so there is no need to pass around that pi guy..
-        update_strategy(rs, h + a, i)
+        new_state: ShortDeckPokerState = state.apply_action(a)
+        update_strategy(new_state, i)
     else:
         for a in ACTIONS:
             # not actually updating the strategy for p_i != i, only one i at a time
-            update_strategy(rs, h + a, i)
+            new_state: ShortDeckPokerState = state.apply_action(a)
+            update_strategy(new_state, i)
 
 
 def calculate_strategy(
@@ -274,7 +276,7 @@ def calculate_strategy(
             sigma[t + 1][I][a] = 1 / len(ACTIONS)
 
 
-def cfr(rs: Tuple[int, int], h: str, i: int, t: int) -> float:
+def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     """
     regular cfr algo
 
@@ -316,7 +318,7 @@ def cfr(rs: Tuple[int, int], h: str, i: int, t: int) -> float:
         return cfr(rs, h + a, i, t)
 
 
-def cfrp(rs: Tuple[int, int], h: str, i: int, t: int):
+def cfrp(state: ShortDeckPokerState, i: int, t: int):
     """
     pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
 
@@ -386,7 +388,7 @@ if __name__ == "__main__":
     initial_chips = 10000
     pot = Pot()
     players = [
-        Player(player_i=i, initial_chips=initial_chips, pot=pot)
+        ShortDeckPokerPlayer(player_i=i, initial_chips=initial_chips, pot=pot)
         for i in range(n_players)
     ]
     # algorithm presented here, pg.16:
@@ -396,17 +398,18 @@ if __name__ == "__main__":
         for i in [1, 2]:  # fixed position i
             # Create a new state.
             state = ShortDeckPokerState(players=players)
-            h = ""
-            rs = random.choice(HANDS)
+            import ipdb
+
+            ipdb.set_trace()
             if t % strategy_interval == 0:
-                update_strategy(rs, h, i)
+                update_strategy(state, i)
             if t > prune_threshold:
                 if random.uniform(0, 1) < 0.05:
-                    cfr(rs, h, i, t)
+                    cfr(state, i, t)
                 else:
-                    cfrp(rs, h, i, t)
+                    cfrp(state, i, t)
             else:
-                cfr(rs, h, i, t)
+                cfr(state, i, t)
         if t < LCFR_threshold & t % discount_interval == 0:
             d = (t / discount_interval) / ((t / discount_interval) + 1)
             for I in ISETS:
