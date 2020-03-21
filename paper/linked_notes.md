@@ -115,5 +115,17 @@ Misc Resources
   - https://www.youtube.com/watch?v=2dX0lwaQRX0
   - https://www.youtube.com/watch?v=McV4a6umbAY
   - https://www.youtube.com/watch?v=QgCxCeoW5JI&
-    
+  - https://www.youtube.com/watch?v=Gz026reyVwc
+    - Good history up to 2015 (recommended: ignore unless you understand the above)
+    - Abstraction
+      - integer programming: http://www.cs.cmu.edu/~sandholm/extensive.jacm07.pdf
+      - potential aware
+        - https://www.cs.cmu.edu/~sandholm/gs3.aaai07.pdf
+        - https://www.cs.cmu.edu/~sandholm/expectation-basedVsPotential-Aware.AAAI08.pdf
+      - imperfect recall
+        - https://webdocs.cs.ualberta.ca/~games/poker/publications/sara09.pdf
+        - https://poker.cs.ualberta.ca/publications/AAMAS13-modelling.pdf
+      - most modern algo (as of 2015): https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
+        - implemented here: https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py
+      - later algo though: https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf 
 
