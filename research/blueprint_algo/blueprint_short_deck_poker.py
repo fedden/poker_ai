@@ -148,6 +148,8 @@ class ShortDeckPokerState:
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
         self._history: List[Action] = []
+        self._players_turn = 0
+        self._betting_stage = "private_cards"
 
     def apply_action(self, action: Action) -> ShortDeckPokerState:
         """Create a new state after applying an action."""
@@ -171,7 +173,34 @@ class ShortDeckPokerState:
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state._history = copy.deepcopy(self._history)
+        new_state._history.append(action)
+        new_state._players_turn += 1
         return new_state
+
+    def _increment_game_stage(self):
+        """Once betting has finished, increment the stage of the poker game."""
+        if self._betting_stage == "private_cards":
+            # Progress from private cards to the flop.
+            self._betting_stage = "flop"
+            self._engine.table.dealer.deal_flop(self._table)
+        elif self._betting_stage == "flop":
+            # Progress from flop to turn.
+            self._betting_stage = "turn"
+            self._engine.table.dealer.deal_turn(self._table)
+        elif self._betting_stage == "turn":
+            # Progress from turn to river.
+            self._betting_stage = "river"
+            self._engine.table.dealer.deal_river(self._table)
+        elif self._betting_stage == "river":
+            # Progress to the showdown.
+            self._betting_stage = "showdown"
+        else:
+            raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    @property
+    def legal_actions(self):
+        """Return the actions that are legal for this game state."""
+        pass
 
     @property
     def h(self):
@@ -184,21 +213,21 @@ class ShortDeckPokerState:
         return [player.cards for player in self._table.players]
 
 
-def payout(rs: Tuple[int, int], h: str) -> int:
+def payout(state: ShortDeckPokerState) -> int:
     """
 
     :param rs: realstate, a tuple of two ints, first is card for player one, second player 2
     :param h: the action sequences without the card information
     :return: expected value (at least at that moment in the game)
     """
-    if h == "PBP":
+    if state.h == "PBP":
         return -100
-    elif h == "BP":
+    elif state.h == "BP":
         return 100
-    m = 100 if (rs[0] > rs[1]) else -100
-    if h == "PP":
+    m = 100 if (state.rs[0] > state.rs[1]) else -100
+    if state.h == "PP":
         return m
-    if h in ["BB", "PBB"]:
+    if state.h in ["BB", "PBB"]:
         return m * 2
     assert False
 
