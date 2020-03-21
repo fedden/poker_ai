@@ -150,7 +150,7 @@ class ShortDeckPokerState:
         # Store the actions as they come in here.
         self._history: List[Action] = []
         self._players_turn = 0
-        self._betting_stage = "private_cards"
+        self._betting_stage = "pre_flop"
         self._betting_round = 0
 
     def apply_action(self, action_str: Optional[str], **kwargs) -> ShortDeckPokerState:
@@ -159,7 +159,7 @@ class ShortDeckPokerState:
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state = copy.deepcopy(self)
-        new_state._players_turn += 1
+        new_state._players_turn = (new_state._players_turn + 1) % len(self._table.player)
         if action_str is None:
             # Assert active player has folded already.
             assert not new_state.current_player.is_active, \
@@ -188,9 +188,9 @@ class ShortDeckPokerState:
             # of the game.
             new_state._increment_stage()
         # Now check if the game is terminal.
-        if new_state._betting_stage in {"terminal", "showdown"}:
-            # TODO(fedden): Distribute winnings.
-            pass
+        if new_state._betting_stage in {"terminal", "show_down"}:
+            # Distribute winnings.
+            new_state._poker_engine.compute_winners()
         return new_state
 
     def _increment_stage(self):
@@ -198,7 +198,7 @@ class ShortDeckPokerState:
         # Reset the round of betting to zero.
         self._betting_round = 0
         # Progress the stage of the game.
-        if self._betting_stage == "private_cards":
+        if self._betting_stage == "pre_flop":
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
             self._engine.table.dealer.deal_flop(self._table)
@@ -212,14 +212,14 @@ class ShortDeckPokerState:
             self._engine.table.dealer.deal_river(self._table)
         elif self._betting_stage == "river":
             # Progress to the showdown.
-            self._betting_stage = "showdown"
+            self._betting_stage = "show_down"
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
 
     @property
     def current_player(self) -> ShortDeckPokerPlayer:
         """Returns a reference to player that makes a move for this state."""
-        raise NotImplementedError()
+        return self._table.players[self._players_turn]
 
     @property
     def legal_actions(self) -> List[Action]:

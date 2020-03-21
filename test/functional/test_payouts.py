@@ -45,7 +45,7 @@ def _scenario_helper(
     # raise, and we also know exactly what cards they have because they have
     # been rigged. We should be able to easily calculate and predict who has
     # gained, so check players that have made money agaist `winner_indices`.
-    engine._compute_winners()
+    engine.compute_winners()
     for winner_i in winner_indices:
         assert players[winner_i].n_chips > initial_chips, \
             f'winner {winner_i} did not gain as expected.'

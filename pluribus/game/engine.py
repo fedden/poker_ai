@@ -38,7 +38,7 @@ class PokerEngine:
         """"""
         self.round_setup()
         self._all_dealing_and_betting_rounds()
-        self._compute_winners()
+        self.compute_winners()
         self._round_cleanup()
 
     def round_setup(self):
@@ -58,7 +58,7 @@ class PokerEngine:
         self.table.dealer.deal_river(self.table)
         self._betting_round()
 
-    def _compute_winners(self):
+    def compute_winners(self):
         """Compute winners and payout the chips to respective players."""
         # From the active players on the table, compute the winners.
         ranked_player_groups = self._rank_players_by_best_hand()
