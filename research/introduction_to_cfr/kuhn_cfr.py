@@ -10,7 +10,7 @@ from typing import Dict, List
 import numpy as np
 from tqdm import trange, tqdm
 
-from pluribus.game.card import Card
+from pluribus.poker.card import Card
 
 
 class Player:

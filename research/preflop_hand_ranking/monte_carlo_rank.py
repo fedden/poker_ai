@@ -39,10 +39,10 @@ import click
 import numpy as np
 from tqdm import tqdm, trange
 
-from pluribus.game.card import Card
-from pluribus.game.deck import Deck
-from pluribus.game.evaluation import Evaluator
-from pluribus.game.evaluation import EvaluationCard
+from pluribus.poker.card import Card
+from pluribus.poker.deck import Deck
+from pluribus.poker.evaluation import Evaluator
+from pluribus.poker.evaluation import EvaluationCard
 
 
 class PreflopMatrixEvaluator:
@@ -56,7 +56,7 @@ class PreflopMatrixEvaluator:
 
     def __call__(self, n_players: int) -> np.ndarray:
         """Get new delta matrix containing information about which player won."""
-        # Compute the 
+        # Compute the
         rank_to_hands = self._compute_preflop_rankings(n_players)
         delta_matrix = self._compute_delta_matrix(rank_to_hands)
         return delta_matrix
@@ -68,7 +68,7 @@ class PreflopMatrixEvaluator:
 
     def _deal_cards(self, n_players: int):
         """Deal a hand for each player and a table of cards.
-        
+
         We never pop cards from the deck otherwise we'd have to reconstruct the deck
         each iteration which would add the the computational expense.
         """
@@ -115,8 +115,8 @@ class PreflopMatrixEvaluator:
                 normalised_rank_to_hands[score].append(hand)
             score -= 1
         # Return a dictionary of hands. The keys are int, and relate to how well
-        # the hand(s) did. If the hands drew, they will share the same key. The 
-        # bigger the key, the better the hand. 
+        # the hand(s) did. If the hands drew, they will share the same key. The
+        # bigger the key, the better the hand.
         return dict(normalised_rank_to_hands)
 
     def _compute_delta_matrix(self, rank_to_hands: Dict[int, List[List[Card]]]):
@@ -134,7 +134,7 @@ class PreflopMatrixEvaluator:
 
 
 def delta_matrix_worker(
-    n_ranks: int, 
+    n_ranks: int,
     min_n_players: int,
     max_n_players: int,
     sentinal_queue: queue.Queue,
@@ -154,7 +154,7 @@ def delta_matrix_worker(
         for n_players in range(min_n_players, max_n_players):
             delta_matrix = evaluator(n_players=n_players)
             delta_matrix_queue.put(dict(
-                n_players=n_players, 
+                n_players=n_players,
                 delta_matrix=delta_matrix
             ))
 
@@ -187,9 +187,9 @@ def multithreaded_matrix_summation(
     print_n_steps: int = 10000,
 ):
     """Multithreaded monte carlo pre-flop hand equity calculation.
-    
-    Over `n_threads` threads, rank the pre-flop hands according to which 
-    lead to winning results. Run for a maximum of `n_iterations` iterations, 
+
+    Over `n_threads` threads, rank the pre-flop hands according to which
+    lead to winning results. Run for a maximum of `n_iterations` iterations,
     this should be a big number!
     """
     # How we communicate to our workers.

@@ -3,9 +3,9 @@ from typing import List
 
 import numpy as np
 
-from pluribus.game.player import Player
-from pluribus.game.pot import Pot
-from pluribus.game.state import PokerGameState
+from pluribus.poker.player import Player
+from pluribus.poker.pot import Pot
+from pluribus.poker.state import PokerGameState
 
 logger = logging.getLogger(__name__)
 

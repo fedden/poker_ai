@@ -5,12 +5,12 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import List, TYPE_CHECKING
 
-from pluribus.game.actions import Call, Fold, Raise
-from pluribus.game.state import PokerGameState
+from pluribus.poker.actions import Call, Fold, Raise
+from pluribus.poker.state import PokerGameState
 
 if TYPE_CHECKING:
-    from pluribus.game.cards import Card
-    from pluribus.game.pot import Pot
+    from pluribus.poker.cards import Card
+    from pluribus.poker.pot import Pot
 
 
 logger = logging.getLogger(__name__)

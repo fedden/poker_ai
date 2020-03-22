@@ -73,7 +73,7 @@ from player import ShortDeckPokerPlayer
 from state import ShortDeckPokerState
 
 from pluribus import utils
-from pluribus.game.pot import Pot
+from pluribus.poker.pot import Pot
 
 
 utils.random.seed(42)

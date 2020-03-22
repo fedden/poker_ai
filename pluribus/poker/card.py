@@ -1,6 +1,6 @@
 from typing import List, Set, Union
 
-from pluribus.game.evaluation.eval_card import EvaluationCard
+from pluribus.poker.evaluation.eval_card import EvaluationCard
 
 
 def get_all_suits() -> Set[str]:

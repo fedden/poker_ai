@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections
 import uuid
 
-from pluribus.game.player import Player
+from pluribus.poker.player import Player
 
 
 class Pot:
