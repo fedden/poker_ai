@@ -7,6 +7,21 @@ Important Notes
 ----If you are not that directory the program will fail
 --Run with `python information_abstraction.py`
 --Budget an hour to run with a 10 card deck, you may want to cmd + F "num_simulations" and reduce the defaults to test
+
+This is a naive implementation of https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
+
+Notes on running for deck size 20 on MacBook Pro with 16 GB RAM
+- Creating Combinations
+
+
+Next Steps/Future Enhancements
+- Try rolling out to full short deck (36 cards)
+- Switch to non-naive implementation where vectors are tuples of (index,weight) or use sparse representation
+- Switch to https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf for parallelization of blueprint algo (?)
+-- This will make 52 card game combos tractable as well
+- Split up output objects in order to keep less in memory
+- Hard Code opponent clusters and us OHS instead of EHS: http://www.ifaamas.org/Proceedings/aamas2013/docs/p271.pdf
+- Adjust cluster sizes to ~200 with 52 card game
 """
 import random
 import time
@@ -33,11 +48,11 @@ class ShortDeck(Deck):
 
     """
 
-    def __init__(self, num_cards: int):
+    def __init__(self):
         super().__init__()
 
         self.shuffle()
-        self._cards = self._cards[:num_cards]
+        self._cards = [c for c in self._cards if c.rank_int not in {2, 3, 4, 5, 6, 7, 8, 9}]  # hardcoding removal of 2-9
         self._evals = [c.eval_card for c in self._cards]
         self._evals_to_cards = {i.eval_card: i for i in self._cards}
 
@@ -100,8 +115,8 @@ class InfoSets(ShortDeck):
     # TODO: should this be isomorphic/lossless to reduce the program run time?
     """
 
-    def __init__(self, num_cards):
-        super().__init__(num_cards)
+    def __init__(self):
+        super().__init__()
 
         self.starting_hands = self.get_card_combos(2)
         self.flop = self.create_info_combos(
@@ -137,22 +152,22 @@ class InfoBucketMaker(InfoSets):
     # TODO: change cluster to num_clusters=200 for full deck
     """
 
-    def __init__(self, num_cards):
-        super().__init__(num_cards)
+    def __init__(self):
+        super().__init__()
 
         self._river_ehs = self.get_river_ehs(num_print=1000)
         self._river_centroids, self._river_clusters = self.cluster(
-            num_clusters=15, X=self._river_ehs
+            num_clusters=50, X=self._river_ehs
         )
         self._turn_ehs_distributions = self.get_turn_ehs_distributions(num_print=100)
         self._turn_centroids, self._turn_clusters = self.cluster(
-            num_clusters=15, X=self._turn_ehs_distributions
+            num_clusters=50, X=self._turn_ehs_distributions
         )
         self._flop_potential_aware_distributions = self.get_flop_potential_aware_distributions(
             num_print=100
         )
         self._flop_centroids, self._flop_clusters = self.cluster(
-            num_clusters=15, X=self._flop_potential_aware_distributions
+            num_clusters=50, X=self._flop_potential_aware_distributions
         )
 
     def __call__(self):
@@ -201,7 +216,7 @@ class InfoBucketMaker(InfoSets):
         available_cards: List[int],
         the_board: List[int],
         our_hand: List[int],
-        num_simulations: int = 5,
+        num_simulations: int = 10,
     ) -> np.array:
         """
         # TODO num_simulations should be higher
@@ -300,7 +315,7 @@ class InfoBucketMaker(InfoSets):
         return np.array(turn_ehs_distributions)
 
     def get_flop_potential_aware_distributions(
-        self, num_print: int, num_simulations: int = 5
+        self, num_print: int, num_simulations: int = 10
     ) -> np.ndarray:
         """
 
@@ -461,5 +476,5 @@ class InfoBucketMaker(InfoSets):
 
 
 if __name__ == "__main__":
-    info_bucket = InfoBucketMaker(10)
+    info_bucket = InfoBucketMaker()
     info_bucket()

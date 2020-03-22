@@ -3,9 +3,7 @@ A Place for Next Steps in Short Deck Implementation
 ## Abstraction
 
 #### Information Abstraction
-- potentially look into implementing a different algo..
 - hard code opening hand clusters
-- decide if we need lossless for the short deck game, maybe come back to it if not
 - decide how to store these for lookup in blueprint/real time algo
 - run for short deck
 
@@ -41,4 +39,11 @@ A Place for Next Steps in Short Deck Implementation
   - https://papers.nips.cc/paper/7993-depth-limited-solving-for-imperfect-information-games.pdf <- build off this
   - make theses changes:
     - [optimized vector-based linear cfr?](https://arxiv.org/pdf/1809.04040.pdf)
-    - [only samples chance events?](http://martin.zinkevich.org/publications/ijcai2011_rgbr.pdf)\
+    - [only samples chance events?](http://martin.zinkevich.org/publications/ijcai2011_rgbr.pdf)
+    
+#### TODO: Colin
+- Generate abstraction for 20 cards
+-- Program to turn that into dictionary and store separately
+- Hard code preflop lossless
+- Write next steps in docstring of blueprint algo
+- Consider getting rid of notebooks before merging into develop..
