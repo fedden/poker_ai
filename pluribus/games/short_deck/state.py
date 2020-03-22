@@ -188,4 +188,3 @@ class ShortDeckPokerState:
     def rs(self) -> List[List[Card]]:
         """Returns the players hands."""
         return [player.cards for player in self._table.players]
-
