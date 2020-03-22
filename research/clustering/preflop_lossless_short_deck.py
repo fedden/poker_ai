@@ -69,16 +69,18 @@ if __name__ == "__main__":
     # making sure this is 20 card deck with 2-9 removed
     allowed_ranks = {10, 11, 12, 13, 14}
     found_ranks = set([c.rank_int for c in short_deck._cards])
-    assert(found_ranks == allowed_ranks)
+    assert found_ranks == allowed_ranks
 
     # getting combos and indexing with lossless abstraction
     starting_hands = short_deck.get_card_combos(2)
     preflop_lossless = {}
     for starting_hand in starting_hands:
-        preflop_lossless[tuple(starting_hand)] = make_starting_hand_lossless(starting_hand, short_deck)
+        preflop_lossless[tuple(starting_hand)] = make_starting_hand_lossless(
+            starting_hand, short_deck
+        )
 
     # dumping to preflop_lossless.pkl in data folder
-    location = 'data/preflop_lossless.pkl'
+    location = "data/preflop_lossless.pkl"
     with open(location, "wb") as file:
         pickle.dump(preflop_lossless, file)
     print(f"Dumped Data to {location}")
