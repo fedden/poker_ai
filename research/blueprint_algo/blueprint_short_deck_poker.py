@@ -64,13 +64,13 @@ from __future__ import annotations
 
 import copy
 import random
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from tqdm import trange
 
 from pluribus import utils
-from pluribus.game.actions import Action, Call, Fold, Raise
+from pluribus.game.actions import Action
 from pluribus.game.card import Card
 from pluribus.game.engine import PokerEngine
 from pluribus.game.pot import Pot
@@ -79,25 +79,6 @@ from pluribus.game.table import PokerTable
 
 
 utils.random.seed(42)
-
-
-ISETS = [
-    "1",
-    "2",
-    "3",  # round 1
-    "P1",
-    "P2",
-    "P3",
-    "B1",
-    "B2",
-    "B3",  # round 2
-    "PB1",
-    "PB2",
-    "PB3",  # round 3
-]
-HANDS = [(1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2)]
-
-ACTIONS = ["P", "B"]
 
 
 class ShortDeckPokerPlayer(Player):
@@ -122,7 +103,12 @@ class ShortDeckPokerState:
     action is applied via the `ShortDeckPokerState.new_state` method.
     """
 
-    def __init__(self, players: List[ShortDeckPokerPlayer]):
+    def __init__(
+        self,
+        players: List[ShortDeckPokerPlayer],
+        small_blind: int = 50,
+        big_blind: int = 100,
+    ):
         """Initialise state."""
         # Get a reference of the pot from the first player.
         self._table = PokerTable(players=players, pot=players[0].pot)
@@ -135,8 +121,8 @@ class ShortDeckPokerState:
             for card in self._table.dealer.deck._cards
             if card.rank_int not in {2, 3, 4, 5, 6, 7, 8, 9}
         ]
-        small_blind = 50
-        big_blind = 100
+        self.small_blind = small_blind
+        self.big_blind = big_blind
         self._poker_engine = PokerEngine(
             table=self._table, small_blind=small_blind, big_blind=big_blind
         )
@@ -149,7 +135,7 @@ class ShortDeckPokerState:
         self._history: List[Action] = []
         self._players_turn = 0
         self._betting_stage = "pre_flop"
-        self._betting_round = 0
+        self._reset_betting_round_state()
 
     def apply_action(self, action_str: Optional[str], **kwargs) -> ShortDeckPokerState:
         """Create a new state after applying an action.
@@ -174,9 +160,10 @@ class ShortDeckPokerState:
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state = copy.deepcopy(self)
-        new_state._players_turn = (new_state._players_turn + 1) % len(
-            self._table.player
-        )
+        new_state._players_turn += 1
+        if new_state._players_turn >= len(self._table.player):
+            new_state._players_turn = 0
+            new_state._all_players_have_made_action = True
         if action_str is None:
             # Assert active player has folded already.
             assert (
@@ -190,6 +177,7 @@ class ShortDeckPokerState:
             if "n_chips" not in kwargs:
                 raise ValueError("'n_chips' must be specified when action is raise")
             action = new_state.current_player.raise_to(**kwargs)
+            new_state._n_raises += 1
         else:
             raise ValueError(
                 f"Expected action to be derived from class Action, but found "
@@ -201,7 +189,7 @@ class ShortDeckPokerState:
         if new_state._poker_engine.n_players_with_moves == 0:
             # No players left.
             new_state._betting_stage = "terminal"
-        elif new_state._betting_round > 0 and finished_betting:
+        elif new_state._all_players_have_made_action and finished_betting:
             # We have done atleast one full round of betting, increment stage
             # of the game.
             new_state._increment_stage()
@@ -211,10 +199,15 @@ class ShortDeckPokerState:
             new_state._poker_engine.compute_winners()
         return new_state
 
+    def _reset_betting_round_state(self):
+        """Reset the state related to counting types of actions."""
+        self._all_players_have_made_action = False
+        self._n_raises = 0
+
     def _increment_stage(self):
         """Once betting has finished, increment the stage of the poker game."""
-        # Reset the round of betting to zero.
-        self._betting_round = 0
+        # All players must bet.
+        self._reset_betting_round_state()
         # Progress the stage of the game.
         if self._betting_stage == "pre_flop":
             # Progress from private cards to the flop.
@@ -249,9 +242,23 @@ class ShortDeckPokerState:
         return self._table.players[self._players_turn]
 
     @property
-    def legal_actions(self) -> List[Action]:
+    def legal_actions(self) -> List[Optional[Dict[str, Any]]]:
         """Return the actions that are legal for this game state."""
-        pass
+        actions: List[Optional[Dict[str, Any]]] = []
+        if self.current_player.is_active:
+            if self._betting_stage in {"pre_flop", "flop"}:
+                bet_size = self.small_blind
+            else:
+                bet_size = self.big_blind
+            actions += [
+                dict(action_str="fold"),
+                dict(action_str="call"),
+            ]
+            if self._n_raises < 3:
+                actions += [dict(action_str="raise", n_chips=bet_size)]
+        else:
+            actions += [None]
+        return actions
 
     @property
     def h(self) -> List[Action]:
