@@ -69,10 +69,9 @@ from typing import Dict
 import numpy as np
 from tqdm import trange
 
-from player import ShortDeckPokerPlayer
-from state import ShortDeckPokerState
-
 from pluribus import utils
+from pluribus.games.short_deck.player import ShortDeckPokerPlayer
+from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
