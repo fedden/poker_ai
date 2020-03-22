@@ -1,8 +1,9 @@
 def test_import():
     """Test the imports work"""
     import pluribus
-    from pluribus import ai, game
+    from pluribus import ai, poker
     from pluribus.ai import pluribus
-    from pluribus.game import actions, card, dealer, deck, engine, player
-    from pluribus.game import state, table, evaluation
-    from pluribus.game.evaluation import eval_card, evaluator, lookup
+    from pluribus.games.short_deck import player, state
+    from pluribus.poker import actions, card, dealer, deck, engine, player
+    from pluribus.poker import state, table, evaluation
+    from pluribus.poker.evaluation import eval_card, evaluator, lookup
