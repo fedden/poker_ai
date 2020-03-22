@@ -97,8 +97,6 @@ ISETS = [
 ]
 HANDS = [(1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2)]
 
-# terminal history states
-TERMINAL = ["PP", "PBP", "PBB", "BP", "BB"]
 ACTIONS = ["P", "B"]
 
 
@@ -154,16 +152,36 @@ class ShortDeckPokerState:
         self._betting_round = 0
 
     def apply_action(self, action_str: Optional[str], **kwargs) -> ShortDeckPokerState:
-        """Create a new state after applying an action."""
+        """Create a new state after applying an action.
+
+        Parameters
+        ----------
+        action_str : str or None
+            The description of the action the current player is making. Can be
+            any of {"fold, "call", "raise"}, the latter two only being possible
+            if the agent hasn't folded already.
+        **kwargs : dict of any
+            The key word arguments fed to the players action method, such as
+            `n_chips` if the action is rasing.
+
+        Returns
+        -------
+        new_state : ShortDeckPokerState
+            A poker state instance that represents the game in the next
+            timestep, after the action has been applied.
+        """
         # TODO(fedden): Split this method up it's getting big!
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state = copy.deepcopy(self)
-        new_state._players_turn = (new_state._players_turn + 1) % len(self._table.player)
+        new_state._players_turn = (new_state._players_turn + 1) % len(
+            self._table.player
+        )
         if action_str is None:
             # Assert active player has folded already.
-            assert not new_state.current_player.is_active, \
-                "Active player cannot do nothing!"
+            assert (
+                not new_state.current_player.is_active
+            ), "Active player cannot do nothing!"
         elif action_str == "call":
             action = new_state.current_player.call(players=self._table.players)
         elif action_str == "fold":
@@ -217,6 +235,15 @@ class ShortDeckPokerState:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
 
     @property
+    def is_terminal(self) -> bool:
+        """Returns whether this state is terminal or not.
+
+        The state is terminal once all rounds of betting are complete and we
+        are at the show down stage of the game or if all players have folded.
+        """
+        return self._betting_stage in {"show_down", "terminal"}
+
+    @property
     def current_player(self) -> ShortDeckPokerPlayer:
         """Returns a reference to player that makes a move for this state."""
         return self._table.players[self._players_turn]
@@ -262,7 +289,7 @@ def get_information_set(state: ShortDeckPokerState) -> str:
     :param h: the action sequences without the card information
     :return: I: information set, which contains all h that the p_i cannot distinguish
     """
-    assert state.h not in TERMINAL
+    assert not state.is_terminal
     if state.h == []:
         return str(state.rs[0])
     elif len(state.h) == 1:
@@ -285,7 +312,7 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     ph = 2 if len(state.h) == 1 else 1  # this is always the case no matter what i is
 
     if (
-        state.h in TERMINAL
+        state.is_terminal
     ):  # or if p_i is not in the hand or if betting round is > 0, strategy is only
         return  # updated in betting round 1 for Pluribus, but I am doing all rounds in this example
     # elif h is chance_node:  -- we don't care about chance nodes here, but we will for No Limit
@@ -343,7 +370,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     """
     ph = 2 if len(state.h) == 1 else 1  # this is always the case no matter what i is
 
-    if h in TERMINAL:
+    if state.is_terminal:
         return payout(state) * (1 if i == 1 else -1)
     # elif p_i not in hand:
     #   cfr()
@@ -387,7 +414,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     """
     ph = 2 if len(state.h) == 1 else 1
 
-    if state.h in TERMINAL:
+    if state.is_terminal:
         return payout(state) * (1 if i == 1 else -1)
     # elif p_i not in hand:
     #   cfrp()
