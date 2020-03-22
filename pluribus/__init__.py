@@ -6,4 +6,6 @@ import sys
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 from . import ai
-from . import game
+from . import games
+from . import poker
+from . import utils

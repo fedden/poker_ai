@@ -6,9 +6,8 @@ from typing import Any, Dict, List, Optional
 from pluribus.poker.actions import Action
 from pluribus.poker.card import Card
 from pluribus.poker.engine import PokerEngine
+from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.poker.table import PokerTable
-
-from player import ShortDeckPokerPlayer
 
 
 class ShortDeckPokerState:
