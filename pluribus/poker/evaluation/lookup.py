@@ -1,6 +1,6 @@
 import itertools
 
-from pluribus.game.evaluation.eval_card import EvaluationCard
+from pluribus.poker.evaluation.eval_card import EvaluationCard
 
 
 class LookupTable(object):
