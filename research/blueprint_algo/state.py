@@ -48,7 +48,7 @@ class ShortDeckPokerState:
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
         self._history: List[Action] = []
-        self._players_turn = 0
+        self.player_i = 0
         self._betting_stage = "pre_flop"
         self._reset_betting_round_state()
 
@@ -75,10 +75,6 @@ class ShortDeckPokerState:
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state = copy.deepcopy(self)
-        new_state._players_turn += 1
-        if new_state._players_turn >= len(self._table.player):
-            new_state._players_turn = 0
-            new_state._all_players_have_made_action = True
         if action_str is None:
             # Assert active player has folded already.
             assert (
@@ -100,6 +96,11 @@ class ShortDeckPokerState:
             )
         # Update the new state.
         new_state._history.append(action)
+        # Player has made move, increment the player that is next.
+        new_state.player_i += 1
+        if new_state.player_i >= len(self._table.player):
+            new_state.player_i = 0
+            new_state._all_players_have_made_action = True
         finished_betting = not new_state._poker_engine.more_betting_needed
         if new_state._poker_engine.n_players_with_moves == 0:
             # No players left.
@@ -154,7 +155,7 @@ class ShortDeckPokerState:
     @property
     def current_player(self) -> ShortDeckPokerPlayer:
         """Returns a reference to player that makes a move for this state."""
-        return self._table.players[self._players_turn]
+        return self._table.players[self.player_i]
 
     @property
     def legal_actions(self) -> List[Optional[Dict[str, Any]]]:
@@ -169,7 +170,10 @@ class ShortDeckPokerState:
                 dict(action_str="fold"),
                 dict(action_str="call"),
             ]
-            if self._n_raises < 3:
+            if self._n_raises < 3 or self._poker_engine.n_active_players == 2:
+                # In limit hold'em we can only bet/raise if there have been
+                # less than three raises in this round of betting, or if there
+                # are two players playing.
                 actions += [dict(action_str="raise", n_chips=bet_size)]
         else:
             actions += [None]
