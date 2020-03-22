@@ -22,6 +22,8 @@ Next Steps/Future Enhancements
 - Split up output objects in order to keep less in memory
 - Hard Code opponent clusters and us OHS instead of EHS: http://www.ifaamas.org/Proceedings/aamas2013/docs/p271.pdf
 - Adjust cluster sizes to ~200 with 52 card game
+- If we decide to go with this algo, we might consider the optimization for estimating EMD:
+--https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
 """
 import random
 import time
@@ -122,8 +124,8 @@ class InfoSets(ShortDeck):
         self.flop = self.create_info_combos(
             self.starting_hands, self.get_card_combos(3)
         )
-        self.turn = self.create_info_combos(self.flop, self.get_card_combos(1))
-        self.river = self.create_info_combos(self.turn, self.get_card_combos(1))
+        self.turn = self.create_info_combos(self.starting_hands, self.get_card_combos(4))  # will this work??
+        self.river = self.create_info_combos(self.starting_hands, self.get_card_combos(5))  # will this work??
 
     @staticmethod
     def create_info_combos(start_combos: np.array, publics: np.array) -> np.ndarray:
@@ -194,7 +196,7 @@ class InfoBucketMaker(InfoSets):
         self.plot_river_clusters()
 
     @staticmethod
-    def simulate_get_ehs(game: GameUtility, num_simulations: int = 25) -> List[float]:
+    def simulate_get_ehs(game: GameUtility, num_simulations: int = 10) -> List[float]:
         """
         # TODO: probably want to increase simulations..
         :param game: GameState for help with determining winner and sampling opponent hand
@@ -216,7 +218,7 @@ class InfoBucketMaker(InfoSets):
         available_cards: List[int],
         the_board: List[int],
         our_hand: List[int],
-        num_simulations: int = 10,
+        num_simulations: int = 5,
     ) -> np.array:
         """
         # TODO num_simulations should be higher
@@ -315,7 +317,7 @@ class InfoBucketMaker(InfoSets):
         return np.array(turn_ehs_distributions)
 
     def get_flop_potential_aware_distributions(
-        self, num_print: int, num_simulations: int = 10
+        self, num_print: int, num_simulations: int = 5
     ) -> np.ndarray:
         """
 
