@@ -3,8 +3,8 @@ import pytest
 
 @pytest.mark.parametrize("suit", ["c", "d", "h", "s"])
 def test_evaluator_royal_flush(suit):
-    from pluribus.game.evaluation.eval_card import EvaluationCard
-    from pluribus.game.evaluation.evaluator import Evaluator
+    from pluribus.poker.evaluation.eval_card import EvaluationCard
+    from pluribus.poker.evaluation.evaluator import Evaluator
     board = [
         EvaluationCard.new(f"A{suit}"),
         EvaluationCard.new(f"K{suit}"),
@@ -25,8 +25,8 @@ def test_evaluator_royal_flush(suit):
 
 @pytest.mark.parametrize("suit", ["c", "d", "h", "s"])
 def test_evaluator_straight_flush(suit):
-    from pluribus.game.evaluation.eval_card import EvaluationCard
-    from pluribus.game.evaluation.evaluator import Evaluator
+    from pluribus.poker.evaluation.eval_card import EvaluationCard
+    from pluribus.poker.evaluation.evaluator import Evaluator
     board = [
         EvaluationCard.new(f"9{suit}"),
         EvaluationCard.new(f"K{suit}"),

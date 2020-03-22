@@ -4,10 +4,10 @@
 from typing import List
 
 from pluribus.ai.dummy import RandomPlayer
-from pluribus.game.card import Card
-from pluribus.game.table import PokerTable
-from pluribus.game.engine import PokerEngine
-from pluribus.game.pot import Pot
+from pluribus.poker.card import Card
+from pluribus.poker.table import PokerTable
+from pluribus.poker.engine import PokerEngine
+from pluribus.poker.pot import Pot
 
 
 def _scenario_helper(
