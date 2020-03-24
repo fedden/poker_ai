@@ -2,7 +2,7 @@
 Script to get information abstraction buckets for flop, turn, river
 (the pre-flop information buckets are just the 169 lossless hands)
 
-Important Notes
+Important Run Notes
 --Cd into research/clustering, the program will try to output to data/information_abstraction.py
 ----If you are not that directory the program will fail
 --Run with `python information_abstraction.py`
@@ -11,11 +11,22 @@ Important Notes
 This is a naive implementation of https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
 
 Notes on running for deck size 20 on MacBook Pro with 16 GB RAM
-- Creating Combinations
+- Creating combinations is relatively quick, I decided to do reduced combination space (considering AsKsJs|Qs
+the same as AsKsJs|Qs) - not sure how this will affect equilibrium finding, but should work ok for a "toy" product
+at first
+- FLOP: 155040 combos (20C2 * 18C3), runtime ~6 hrs, dict from flop_lossy.pkl .02GB
+- TURN: 581400 combos (20C2 * 18C4), runtime ~10 hrs, dict from turn_lossy.pkl .005 GB
+- RIVER: 1627920 combos (20C2 * 18C5), runtime ~12 hrs, dict from river_lossy.pkl .08 GB
 
+river ehs, from information_abstraction.pkl: '_flop_potential_aware_distributions': .04GB
+flop potential aware dist, from information_abstraction.pkl: '_turn_ehs_distributions':.06GB
+turn ehs distributions, from information_abstraction.pkl: 'river_ehs': 0.23256
+
+All in for 28 hrs, will need to work on some improvements for clustering 52 card deck..
 
 Next Steps/Future Enhancements
-- Try rolling out to full short deck (36 cards)
+- Try rolling out to full short deck (36 cards) using multi-processing
+- Implement isomorphisms to canonicalize hands (estimated 24x reduction)
 - Switch to non-naive implementation where vectors are tuples of (index,weight) or use sparse representation
 - Switch to https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf for parallelization of blueprint algo (?)
 -- This will make 52 card game combos tractable as well
