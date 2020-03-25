@@ -84,30 +84,7 @@ class GameUtility:
         :return: two cards for the opponent (Card.eval_card)
         """
         return random.sample(self.available_cards, 2)
-
-
-class ShortDeck:
-    """
-    Class for implementing smaller deck
-    """
-
-    def __init__(self):
-        super().__init__()
-
-        self._cards = [
-            Card(rank, suit) for suit in get_all_suits() for rank in range(13, 15)
-        ]
-        self._evals = [c.eval_card for c in self._cards]
-        self._evals_to_cards = {i.eval_card: i for i in self._cards}
-
-    def get_card_combos(self, num_cards: int) -> np.ndarray:
-        """
-
-        :param num_cards: number of cards you want returned
-        :return: combos of cards (Card.eval_card) -> np.array
-        """
-        return np.asarray(list(combinations(self._evals, num_cards)))
-
+    
 
 def create_info_combos(start_combos: np.array, publics: np.array) -> np.ndarray:
     """
