@@ -393,7 +393,7 @@ class InfoBucketMaker(InfoSets):
 
     @staticmethod
     def print_cluster_example(
-            X: np.ndarray, clusters: np.ndarray, cluster_name: str, cluster_id: int = 4
+            X: List[], clusters: np.ndarray, cluster_name: str, cluster_id: int = 4
     ):
         """
 
@@ -403,6 +403,7 @@ class InfoBucketMaker(InfoSets):
         :param cluster_id: id to look at (just an example - can inspect dumped object)
         :return: just prints
         """
+        X = np.array(X)
         print(f"####{cluster_name} Example for Cluster Number {str(cluster_id)}:")
         print(X[clusters == cluster_id])
 
