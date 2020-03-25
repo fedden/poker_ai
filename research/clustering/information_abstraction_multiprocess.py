@@ -171,18 +171,56 @@ class InfoBucketMaker(InfoSets):
     def __init__(self):
         super().__init__()
 
+        overarching_start = time.time()
+        start = time.time()
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            self._river_ehs = list(tqdm(executor.map(self.process_river_ehs, self.river, chunksize=1024), total=len(self.river)))
+            self._river_ehs = list(tqdm(executor.map(self.process_river_ehs, self.river, chunksize=len(self.river)//160), total=len(self.river)))
         self._river_centroids, self._river_clusters = self.cluster(
             num_clusters=50, X=self._river_ehs
         )
+        end = time.time()
+        print(f"Finding River EHS Took {end - start} Seconds")
+
+        start = time.time()
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            self._turn_ehs_distributions = list(tqdm(executor.map(self.process_turn_ehs_distributions, self.turn, chunksize=len(self.turn)//160), total=len(self.turn)))
+        self._turn_centroids, self._turn_clusters = self.cluster(
+            num_clusters=50, X=self._turn_ehs_distributions
+        )
+        end = time.time()
+        print(f"Finding Turn EHS Distributions Took {end - start} Seconds")
+
+        start = time.time()
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            self._flop_potential_aware_distributions = list(tqdm(executor.map(self.process_flop_potential_aware_distributions, self.flop, chunksize=len(self.flop)//160), total=len(self.flop)))
+        self._flop_centroids, self._flop_clusters = self.cluster(
+            num_clusters=50, X=self._flop_potential_aware_distributions
+        )
+        end = time.time()
+        print(f"Finding Flop Potential Aware Distributions Took {end - start} Seconds")
+        overarching_end = time.time()
+
+        print(f"Whole Process Took {overarching_end - overarching_start} Seconds")
 
     def __call__(self):
         # TODO: switch to log
+        self.dump_data(location="data/information_abstraction.pkl")
         self.print_cluster_example(
             X=self._river_ehs,
             clusters=self._river_clusters,
             cluster_name="Expected Hand Strength on River",
+            cluster_id=4,
+        )
+        self.print_cluster_example(
+            X=self._turn_ehs_distributions,
+            clusters=self._turn_clusters,
+            cluster_name="Expected Hand Strength Distribution on Turn",
+            cluster_id=4,
+        )
+        self.print_cluster_example(
+            X=self._turn_ehs_distributions,
+            clusters=self._turn_clusters,
+            cluster_name="Potential Aware Distribution on Flop",
             cluster_id=4,
         )
         self.plot_river_clusters()
@@ -205,6 +243,52 @@ class InfoBucketMaker(InfoSets):
 
         return ehs
 
+    def simulate_get_turn_ehs_distributions(
+        self,
+        available_cards: List[int],
+        the_board: List[int],
+        our_hand: List[int],
+        num_simulations: int = 5,
+    ) -> np.array:
+        """
+        # TODO num_simulations should be higher
+
+        :param available_cards: list of available cards on the turn
+        :param the_board: the board as of the turn
+        :param our_hand: cards our hand (Card.eval_card)
+        :param num_simulations: int of simulations
+        :return: array of counts for each cluster the turn fell into by the river after simulations
+        """
+        turn_ehs_distribution = [0] * len(self._river_centroids)
+
+        # sample river cards and run a simulation
+        for _ in range(num_simulations):
+
+            river_card = random.sample(available_cards, 1)
+            board = list(the_board)  # copy list
+            board = board + river_card
+
+            game = GameUtility(our_hand=our_hand, board=board, cards=self._evals)
+            ehs = self.simulate_get_ehs(game)
+
+            # get EMD for expected hand strength against each river centroid
+            # to which does it belong?
+            for idx, river_centroid in enumerate(self._river_centroids):
+                # TODO: do we need a faster implementation of this?
+                emd = wasserstein_distance(ehs, river_centroid)
+
+                if idx == 0:
+                    min_idx = idx
+                    min_emd = emd
+                else:
+                    if emd < min_emd:
+                        min_idx = idx
+                        min_emd = emd
+
+            # now increment the cluster to which it belongs -
+            turn_ehs_distribution[min_idx] += 1 / num_simulations
+        return turn_ehs_distribution
+
     def process_river_ehs(self, public: List[int]) -> np.ndarray:
         """
 
@@ -217,7 +301,77 @@ class InfoBucketMaker(InfoSets):
 
         # get expected hand strength
         game = GameUtility(our_hand=our_hand, board=board, cards=self._evals)
+
         return self.simulate_get_ehs(game)
+
+    def process_turn_ehs_distributions(self, public: List[int]) -> np.ndarray:
+        """
+
+        :param num_print: frequency at which to print
+        :return: np.ndarray of distribution aware turn distributions
+        """
+        available_cards = [
+            x
+            for x in self._evals
+            if x not in public  # TODO need better implementation of this
+        ]
+
+        # sample river cards and run a simulation
+        turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
+            available_cards, the_board=list(public[2:6]), our_hand=list(public[:2])
+        )
+
+        return turn_ehs_distribution
+
+    def process_flop_potential_aware_distributions(
+        self, public: List[int], num_simulations: int = 5
+    ) -> np.ndarray:
+        """
+
+        :param num_print: frequency at which to print
+        :param num_simulations: number of simulations
+        :return: ndarray of potential aware histograms
+        """
+        available_cards = [
+            x for x in self._evals if x not in public
+        ]  # TODO: find better implementation of this
+
+        potential_aware_distribution_flop = [0] * len(self._turn_centroids)
+        for j in range(num_simulations):
+
+            # randomly generating turn
+            turn_card = random.sample(available_cards, 1)
+
+            our_hand = list(public[:2])
+            board = public[2:5]
+            the_board = np.append(board, turn_card).tolist()
+
+            # getting available cards
+            available_cards_turn = [
+                x for x in available_cards if x != turn_card[0]
+            ]  # TODO: get better implementation of this
+
+            turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
+                available_cards_turn, the_board=the_board, our_hand=our_hand
+            )
+            for idx, turn_centroid in enumerate(self._turn_centroids):
+
+                # earth mover distance
+                emd = wasserstein_distance(turn_ehs_distribution, turn_centroid)
+
+                if idx == 0:
+                    min_idx = idx
+                    min_emd = emd
+                else:
+                    if emd < min_emd:
+                        min_idx = idx
+                        min_emd = emd
+
+            # ok, now increment the cluster to which it belongs -
+            potential_aware_distribution_flop[min_idx] += 1 / num_simulations
+
+            # object for storing flop potential aware expected hand strength distributions
+        return potential_aware_distribution_flop
 
     @staticmethod
     def cluster(num_clusters: int, X: np.array):
@@ -236,6 +390,21 @@ class InfoBucketMaker(InfoSets):
         centroids = km.cluster_centers_
 
         return centroids, y_km
+
+    @staticmethod
+    def print_cluster_example(
+            X: np.ndarray, clusters: np.ndarray, cluster_name: str, cluster_id: int = 4
+    ):
+        """
+
+        :param X
+        :param clusters: cluster centroids
+        :param cluster_name: string to be printed
+        :param cluster_id: id to look at (just an example - can inspect dumped object)
+        :return: just prints
+        """
+        print(f"####{cluster_name} Example for Cluster Number {str(cluster_id)}:")
+        print(X[clusters == cluster_id])
 
     def plot_river_clusters(self):
         """
@@ -292,6 +461,16 @@ class InfoBucketMaker(InfoSets):
         ax.set_zlabel("Loss Rate")
 
         plt.show()
+
+    def dump_data(self, location: str = "data/information_abstraction_2.pkl"):
+        """
+        Should be in research/clustering or it will fail
+        :param location: string for location and file name off the data
+        :return: dumps object
+        """
+        with open(location, "wb") as file:
+            pickle.dump(self.__dict__, file)
+        print(f"Dumped Data to {location}")
 
 
 if __name__ == "__main__":
