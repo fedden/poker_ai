@@ -49,11 +49,12 @@ from sklearn.cluster import KMeans
 from scipy.stats import wasserstein_distance
 from tqdm import tqdm
 
-from pluribus.game.deck import Deck
-from pluribus.game.evaluation import Evaluator
+from pluribus.poker.card import Card
+from pluribus.poker.deck import get_all_suits
+from pluribus.poker.evaluation import Evaluator
 
 
-class ShortDeck(Deck):
+class ShortDeck:
     """
     Extends Deck - A smaller Deck based on the number of cards requested
     --not sure how well it extends beyond 10 atm
@@ -64,8 +65,9 @@ class ShortDeck(Deck):
     def __init__(self):
         super().__init__()
 
-        self.shuffle()
-        self._cards = [c for c in self._cards if c.rank_int not in {2, 3, 4, 5, 6, 7, 8, 9}]  # hardcoding removal of 2-9
+        self._cards = [
+            Card(rank, suit) for suit in get_all_suits() for rank in range(12, 15)
+        ]  # hardcoding removal of 2-9
         self._evals = [c.eval_card for c in self._cards]
         self._evals_to_cards = {i.eval_card: i for i in self._cards}
 
@@ -168,20 +170,35 @@ class InfoBucketMaker(InfoSets):
     def __init__(self):
         super().__init__()
 
+        overarching_start = time.time()
+        start = time.time()
         self._river_ehs = self.get_river_ehs(num_print=1000)
         self._river_centroids, self._river_clusters = self.cluster(
             num_clusters=50, X=self._river_ehs
         )
+        end = time.time()
+        print(f"Finding River EHS Took {end - start} Seconds")
+
+        start = time.time()
         self._turn_ehs_distributions = self.get_turn_ehs_distributions(num_print=100)
         self._turn_centroids, self._turn_clusters = self.cluster(
             num_clusters=50, X=self._turn_ehs_distributions
         )
+        end = time.time()
+        print(f"Finding Turn EHS Distributions Took {end - start} Seconds")
+
+        start = time.time()
         self._flop_potential_aware_distributions = self.get_flop_potential_aware_distributions(
             num_print=100
         )
         self._flop_centroids, self._flop_clusters = self.cluster(
             num_clusters=50, X=self._flop_potential_aware_distributions
         )
+        end = time.time()
+        print(f"Finding Flop Potential Aware Distributions Took {end - start} Seconds")
+        overarching_end = time.time()
+
+        print(f"Whole Process Took {overarching_end - overarching_start} Seconds")
 
     def __call__(self):
         # TODO: switch to log
@@ -477,7 +494,7 @@ class InfoBucketMaker(InfoSets):
 
         plt.show()
 
-    def dump_data(self, location: str = "data/information_abstraction.pkl"):
+    def dump_data(self, location: str = "data/information_abstraction_3.pkl"):
         """
         Should be in research/clustering or it will fail
         :param location: string for location and file name off the data
