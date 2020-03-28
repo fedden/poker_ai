@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any, List, Optional
 
 from pluribus.poker.actions import Action
 from pluribus.poker.card import Card
 from pluribus.poker.engine import PokerEngine
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.poker.table import PokerTable
+
+logger = logging.getLogger(__name__)
 
 
 class ShortDeckPokerState:
@@ -51,7 +54,7 @@ class ShortDeckPokerState:
         self._betting_stage = "pre_flop"
         self._reset_betting_round_state()
 
-    def apply_action(self, action_str: Optional[str], **kwargs) -> ShortDeckPokerState:
+    def apply_action(self, action_str: Optional[str]) -> ShortDeckPokerState:
         """Create a new state after applying an action.
 
         Parameters
@@ -60,9 +63,6 @@ class ShortDeckPokerState:
             The description of the action the current player is making. Can be
             any of {"fold, "call", "raise"}, the latter two only being possible
             if the agent hasn't folded already.
-        **kwargs : dict of any
-            The key word arguments fed to the players action method, such as
-            `n_chips` if the action is rasing.
 
         Returns
         -------
@@ -70,6 +70,11 @@ class ShortDeckPokerState:
             A poker state instance that represents the game in the next
             timestep, after the action has been applied.
         """
+        if action_str not in self.legal_actions:
+            raise ValueError(
+                f"Action '{action_str}' not in legal actions: "
+                f"{self.legal_actions}"
+            )
         # TODO(fedden): Split this method up it's getting big!
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
@@ -81,12 +86,18 @@ class ShortDeckPokerState:
             ), "Active player cannot do nothing!"
         elif action_str == "call":
             action = new_state.current_player.call(players=self._table.players)
+            logger.debug("calling")
         elif action_str == "fold":
             action = new_state.current_player.fold()
         elif action_str == "raise":
-            if "n_chips" not in kwargs:
-                raise ValueError("'n_chips' must be specified when action is raise")
-            action = new_state.current_player.raise_to(**kwargs)
+            bet_n_chips = self.big_blind
+            if self._betting_stage in {"turn", "river"}:
+                bet_n_chips *= 2
+            biggest_bet = max(p.n_bet_chips for p in self._poker_engine.table.players)
+            n_chips_to_call = biggest_bet - self.current_player.n_bet_chips
+            raise_n_chips = bet_n_chips + n_chips_to_call
+            logger.debug(f"betting {raise_n_chips} n chips")
+            action = new_state.current_player.raise_to(n_chips=raise_n_chips)
             new_state._n_raises += 1
         else:
             raise ValueError(
@@ -99,15 +110,14 @@ class ShortDeckPokerState:
         new_state.player_i += 1
         if new_state.player_i >= len(new_state._table.players):
             new_state.player_i = 0
-            new_state._all_players_have_made_action = True
-        finished_betting = not new_state._poker_engine.more_betting_needed
-        if new_state._poker_engine.n_players_with_moves == 0:
+            finished_betting = not new_state._poker_engine.more_betting_needed
+            if finished_betting:
+                # We have done atleast one full round of betting, increment stage
+                # of the game.
+                new_state._increment_stage()
+        if new_state._poker_engine.n_players_with_moves == 1:
             # No players left.
             new_state._betting_stage = "terminal"
-        elif new_state._all_players_have_made_action and finished_betting:
-            # We have done atleast one full round of betting, increment stage
-            # of the game.
-            new_state._increment_stage()
         # Now check if the game is terminal.
         if new_state._betting_stage in {"terminal", "show_down"}:
             # Distribute winnings.
@@ -157,23 +167,16 @@ class ShortDeckPokerState:
         return self._table.players[self.player_i]
 
     @property
-    def legal_actions(self) -> List[Optional[Dict[str, Any]]]:
+    def legal_actions(self) -> List[Optional[str]]:
         """Return the actions that are legal for this game state."""
-        actions: List[Optional[Dict[str, Any]]] = []
+        actions: List[Optional[str]] = []
         if self.current_player.is_active:
-            if self._betting_stage in {"pre_flop", "flop"}:
-                bet_size = self.small_blind
-            else:
-                bet_size = self.big_blind
-            actions += [
-                dict(action_str="fold"),
-                dict(action_str="call"),
-            ]
+            actions += ["fold", "call"]
             if self._n_raises < 3 or self._poker_engine.n_active_players == 2:
                 # In limit hold'em we can only bet/raise if there have been
                 # less than three raises in this round of betting, or if there
                 # are two players playing.
-                actions += [dict(action_str="raise", n_chips=bet_size)]
+                actions += ["raise"]
         else:
             actions += [None]
         return actions
