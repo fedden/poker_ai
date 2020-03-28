@@ -34,19 +34,9 @@ class Player:
         self.n_chips: int = initial_chips
         self.cards: List[Card] = []
         self._is_active = True
-        self._id = int(uuid.uuid4().hex, 16)
+        self.id = int(uuid.uuid4().hex, 16)
         self.pot = pot
         self.order = None
-
-    def __hash__(self):
-        """Make player hashable so we can index the pot like `pot[player]`."""
-        return self._id
-
-    def __eq__(self, other):
-        """Is the player equal to another reference?"""
-        if isinstance(other, Player):
-            return self._id == other._id
-        return False
 
     def __repr__(self):
         """"""

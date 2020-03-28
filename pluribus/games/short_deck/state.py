@@ -97,7 +97,7 @@ class ShortDeckPokerState:
         new_state._history.append(action)
         # Player has made move, increment the player that is next.
         new_state.player_i += 1
-        if new_state.player_i >= len(self._table.player):
+        if new_state.player_i >= len(new_state._table.players):
             new_state.player_i = 0
             new_state._all_players_have_made_action = True
         finished_betting = not new_state._poker_engine.more_betting_needed
@@ -127,15 +127,15 @@ class ShortDeckPokerState:
         if self._betting_stage == "pre_flop":
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
-            self._engine.table.dealer.deal_flop(self._table)
+            self._poker_engine.table.dealer.deal_flop(self._table)
         elif self._betting_stage == "flop":
             # Progress from flop to turn.
             self._betting_stage = "turn"
-            self._engine.table.dealer.deal_turn(self._table)
+            self._poker_engine.table.dealer.deal_turn(self._table)
         elif self._betting_stage == "turn":
             # Progress from turn to river.
             self._betting_stage = "river"
-            self._engine.table.dealer.deal_river(self._table)
+            self._poker_engine.table.dealer.deal_river(self._table)
         elif self._betting_stage == "river":
             # Progress to the showdown.
             self._betting_stage = "show_down"

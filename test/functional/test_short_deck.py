@@ -10,6 +10,7 @@ def test_short_deck():
         ShortDeckPokerPlayer(player_i=player_i, pot=pot, initial_chips=10000)
         for player_i in range(n_players)
     ]
+    import ipdb; ipdb.set_trace()
     state = ShortDeckPokerState(players=players)
     # Call for all players.
     for player_i in range(n_players):
