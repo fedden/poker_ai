@@ -78,25 +78,6 @@ from pluribus.poker.pot import Pot
 utils.random.seed(42)
 
 
-def payout(state: ShortDeckPokerState) -> int:
-    """
-
-    :param rs: realstate, a tuple of two ints, first is card for player one, second player 2
-    :param h: the action sequences without the card information
-    :return: expected value (at least at that moment in the game)
-    """
-    if state.h == "PBP":
-        return -100
-    elif state.h == "BP":
-        return 100
-    m = 100 if (state.rs[0] > state.rs[1]) else -100
-    if state.h == "PP":
-        return m
-    if state.h in ["BB", "PBB"]:
-        return m * 2
-    assert False
-
-
 def get_information_set(state: ShortDeckPokerState) -> str:
     """
     :param rs: realstate, a tuple of two ints, first is card for player one, second player 2
@@ -185,7 +166,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     ph = 2 if len(state.h) == 1 else 1  # this is always the case no matter what i is
 
     if state.is_terminal:
-        return payout(state) * (1 if i == 1 else -1)
+        return state.payout[i] * (1 if i == 1 else -1)
     # elif p_i not in hand:
     #   cfr()
     # TODO: this will be needed for No Limit Hold'Em, but in two player the player is always in the hand
@@ -229,7 +210,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     ph = 2 if len(state.h) == 1 else 1
 
     if state.is_terminal:
-        return payout(state) * (1 if i == 1 else -1)
+        return state.payout[i] * (1 if i == 1 else -1)
     # elif p_i not in hand:
     #   cfrp()
     # TODO: this will be needed for No Limit Hold'Em, but in two player the player is always in the hand

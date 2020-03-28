@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pluribus.poker.actions import Action
 from pluribus.poker.card import Card
@@ -29,6 +29,8 @@ class ShortDeckPokerState:
         """Initialise state."""
         # Get a reference of the pot from the first player.
         self._table = PokerTable(players=players, pot=players[0].pot)
+        # Get a reference of the initial number of chips for the payout.
+        self._initial_n_chips = players[0].n_chips
         # TODO(fedden): There are an awful lot of layers of abstraction here,
         #               this could be much neater, maybe refactor and clean
         #               things up a bit here in the future.
@@ -151,6 +153,14 @@ class ShortDeckPokerState:
             self._betting_stage = "show_down"
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    @property
+    def payout(self) -> Dict[int, int]:
+        """Return player index to payout number of chips dictionary."""
+        n_chips_delta = dict()
+        for player_i, player in enumerate(self._table.players):
+            n_chips_delta[player_i] = player.n_chips - self._initial_n_chips
+        return n_chips_delta
 
     @property
     def is_terminal(self) -> bool:
