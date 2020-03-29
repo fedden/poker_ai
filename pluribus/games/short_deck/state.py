@@ -116,22 +116,37 @@ class ShortDeckPokerState:
         # Update the new state.
         new_state._history.append(action)
         # Player has made move, increment the player that is next.
-        new_state.player_i += 1
-        if new_state.player_i >= len(new_state._table.players):
-            new_state.player_i = 0
-            finished_betting = not new_state._poker_engine.more_betting_needed
-            if finished_betting:
-                # We have done atleast one full round of betting, increment stage
-                # of the game.
-                new_state._increment_stage()
-        if new_state._poker_engine.n_players_with_moves == 1:
-            # No players left.
-            new_state._betting_stage = "terminal"
-        # Now check if the game is terminal.
-        if new_state._betting_stage in {"terminal", "show_down"}:
-            # Distribute winnings.
-            new_state._poker_engine.compute_winners()
+        while True:
+            new_state._move_to_next_player()
+            terminal = self._betting_stage in {"terminal", "show_down"}
+            if new_state.current_player.is_active or terminal:
+                break
         return new_state
+
+    def _move_to_next_player(self):
+        """"""
+        self.player_i += 1
+        if self.player_i >= len(self._table.players):
+            self.player_i = 0
+            finished_betting = not self._poker_engine.more_betting_needed
+            if finished_betting:
+                # We have done atleast one full round of betting, increment
+                # stage of the game.
+                self._increment_stage()
+        if self._poker_engine.n_players_with_moves == 1:
+            # No players left.
+            self._betting_stage = "terminal"
+            if not self._table.community_cards:
+                self._poker_engine.table.dealer.deal_flop(self._table)
+        # Now check if the game is terminal.
+        if self._betting_stage in {"terminal", "show_down"}:
+            # Distribute winnings.
+            try:
+                self._poker_engine.compute_winners()
+            except KeyError:
+                import ipdb
+
+                ipdb.set_trace()
 
     def _load_pickle_files(
         self, pickle_dir: str

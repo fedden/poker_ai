@@ -181,7 +181,10 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
                 list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
             )[0]
         except ValueError:
-            import ipdb; ipdb.set_trace()
+            p = 1 / len(state.legal_actions)
+            probabilities = np.full(len(state.legal_actions), p)
+            a = np.random.choice(state.legal_actions, p=probabilities)
+            sigma[t][Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfr(new_state, i, t)
 
@@ -229,9 +232,15 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     else:
         Iph = state.info_set
         calculate_strategy(regret, sigma, Iph, state)
-        a = np.random.choice(
-            list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
-        )[0]
+        try:
+            a = np.random.choice(
+                list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
+            )[0]
+        except ValueError:
+            p = 1 / len(state.legal_actions)
+            probabilities = np.full(len(state.legal_actions), p)
+            a = np.random.choice(state.legal_actions, p=probabilities)
+            sigma[t][Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfrp(new_state, i, t)
 
