@@ -66,7 +66,7 @@ class ShortDeck:
         super().__init__()
 
         self._cards = [
-            Card(rank, suit) for suit in get_all_suits() for rank in range(12, 15)
+            Card(rank, suit) for suit in get_all_suits() for rank in range(10, 15)
         ]  # hardcoding removal of 2-9
         self._evals = [c.eval_card for c in self._cards]
         self._evals_to_cards = {i.eval_card: i for i in self._cards}

@@ -75,6 +75,7 @@ if __name__ == "__main__":
     starting_hands = short_deck.get_card_combos(2)
     preflop_lossless = {}
     for starting_hand in starting_hands:
+        starting_hand = sorted(starting_hand, reverse=True)
         preflop_lossless[tuple(starting_hand)] = make_starting_hand_lossless(
             starting_hand, short_deck
         )
