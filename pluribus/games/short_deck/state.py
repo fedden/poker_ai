@@ -196,6 +196,8 @@ class ShortDeckPokerState:
         elif self._betting_stage == "river":
             # Progress to the showdown.
             self._betting_stage = "show_down"
+        elif self._betting_stage == "terminal":
+            pass
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
 
