@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 import copy
 import logging
 import os
@@ -138,9 +139,9 @@ class ShortDeckPokerState:
         """Load pickle files into memory."""
         file_names = [
             "preflop_lossless.pkl",
-            "flop_lossy.pkl",
-            "turn_lossy.pkl",
-            "river_lossy.pkl",
+            "flop_lossy_2.pkl",
+            "turn_lossy_2.pkl",
+            "river_lossy_2.pkl",
         ]
         betting_stages = ["pre_flop", "flop", "turn", "river"]
         info_set_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
@@ -186,9 +187,23 @@ class ShortDeckPokerState:
     @property
     def info_set(self) -> str:
         """Get the information set for the current player."""
-        cards = self.current_player.cards + self._table.community_cards
+        cards = sorted(
+            self.current_player.cards,
+            key=operator.attrgetter("eval_card"),
+            reverse=True,
+        )
+        cards += sorted(
+            self._table.community_cards,
+            key=operator.attrgetter("eval_card"),
+            reverse=True,
+        )
         eval_cards = tuple([card.eval_card for card in cards])
-        cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
+        try:
+            cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
+        except KeyError:
+            import ipdb
+
+            ipdb.set_trace()
         action_history = [str(action) for action in self._history]
         return f"cards_cluster={cards_cluster}, history={action_history}"
 

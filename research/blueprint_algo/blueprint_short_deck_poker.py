@@ -63,6 +63,7 @@ we denote by A(Ii) the set A(h) and by P(Ii) the player P(h) for any h ∈ Ii
 from __future__ import annotations
 
 import copy
+import collections
 import random
 from typing import Dict
 
@@ -175,9 +176,12 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     else:
         Iph = state.info_set
         calculate_strategy(regret, sigma, Iph, state)
-        a = np.random.choice(
-            list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
-        )[0]
+        try:
+            a = np.random.choice(
+                list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
+            )[0]
+        except ValueError:
+            import ipdb; ipdb.set_trace()
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfr(new_state, i, t)
 
@@ -245,15 +249,11 @@ def new_game(n_players: int) -> ShortDeckPokerState:
 
 if __name__ == "__main__":
     # init tables
-    regret = {}
-    strategy = {}
-    for I in ISETS:
-        regret[I] = {k: 0 for k in ACTIONS}
-        strategy[I] = {k: 0 for k in ACTIONS}
-
-    sigma = {1: {}}
-    for I in ISETS:
-        sigma[1][I] = {k: 1 / len(ACTIONS) for k in ACTIONS}
+    strategy = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
+    regret = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
+    sigma = collections.defaultdict(
+        lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
+    )
 
     # algorithm constants
     strategy_interval = 100
@@ -280,8 +280,8 @@ if __name__ == "__main__":
                 cfr(state, i, t)
         if t < LCFR_threshold & t % discount_interval == 0:
             d = (t / discount_interval) / ((t / discount_interval) + 1)
-            for I in ISETS:
-                for a in ACTIONS:
+            for I in regret.keys():
+                for a in regret[I].keys():
                     regret[I][a] *= d
                     strategy[I][a] *= d
         del sigma[t]
@@ -289,16 +289,3 @@ if __name__ == "__main__":
     for k, v in strategy.items():
         norm = sum(list(v.values()))
         print("%3s: P:%.4f B:%.4f" % (k, v["P"] / norm, v["B"] / norm))
-        # https://en.wikipedia.org/wiki/Kuhn_poker#Optimal_strategy
-        # generally close, converges to 1s much faster
-        # reducing C should allow for better convergence, but slower..
-
-# code for normalizing strategy
-# normalized_strategy = {}
-# for I in strategy.keys():
-#     d = strategy[I]
-#     factor = 1.0/sum(list(d.values()))
-#     normalized_d = {k: v*factor for k, v in d.items()}
-#     normalized_strategy[I] = normalized_d
-#
-# print(normalized_strategy)
