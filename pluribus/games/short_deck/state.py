@@ -84,7 +84,6 @@ class ShortDeckPokerState:
             raise ValueError(
                 f"Action '{action_str}' not in legal actions: " f"{self.legal_actions}"
             )
-        # TODO(fedden): Split this method up it's getting big!
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
         new_state = copy.deepcopy(self)
@@ -124,7 +123,10 @@ class ShortDeckPokerState:
         return new_state
 
     def _move_to_next_player(self):
-        """"""
+        """Ensure state points to next valid active player.
+
+        Setup game and assocaited game-state for the current turn.
+        """
         self.player_i += 1
         if self.player_i >= len(self._table.players):
             self.player_i = 0
@@ -141,12 +143,7 @@ class ShortDeckPokerState:
         # Now check if the game is terminal.
         if self._betting_stage in {"terminal", "show_down"}:
             # Distribute winnings.
-            try:
-                self._poker_engine.compute_winners()
-            except KeyError:
-                import ipdb
-
-                ipdb.set_trace()
+            self._poker_engine.compute_winners()
 
     def _load_pickle_files(
         self, pickle_dir: str
@@ -215,12 +212,7 @@ class ShortDeckPokerState:
             reverse=True,
         )
         eval_cards = tuple([card.eval_card for card in cards])
-        try:
-            cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
-        except KeyError:
-            import ipdb
-
-            ipdb.set_trace()
+        cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
         action_history = [str(action) for action in self._history]
         return f"cards_cluster={cards_cluster}, history={action_history}"
 
