@@ -26,7 +26,7 @@ class Raise(Action):
         self.amount = amount
 
     def __repr__(self):
-        return f"raise {self.amount}"
+        return f"raise"
 
 
 class AbstractedRaise(Action):

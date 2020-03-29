@@ -183,7 +183,9 @@ class ShortDeckPokerState:
         """Get the information set for the current player."""
         cards = self.current_player.cards + self._table.community_cards
         eval_cards = tuple([card.eval_card for card in cards])
-        return self.info_set_lut[self._betting_stage][eval_cards]
+        cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
+        action_history = [str(action) for action in self._history]
+        return f"cards_cluster={cards_cluster}, history={action_history}"
 
     @property
     def payout(self) -> Dict[int, int]:
