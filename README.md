@@ -44,7 +44,10 @@ Below is a rough structure of the repository.
 ├── paper          # Main source of info and documentation :)
 ├── pluribus       # Main Python library.
 │   ├── ai         # Stub functions for ai algorithms.
-│   └── game       # WIP code for managing a hand of poker.
+│   ├── games      # Implementations of poker games as node based objects that
+│   │              # can be traversed in a depth-first recursive manner.
+│   ├── poker      # WIP general code for managing a hand of poker.
+│   └── utils      # Utility code like seed setting.
 ├── research       # A directory for research/development scripts 
 │                  # to help formulate understanding and ideas.
 ├── scripts        # Scripts to help develop the main library.
@@ -61,9 +64,9 @@ There are two parts to this repository, the code to manage a game of poker, and 
 ```python
 from pluribus import utils
 from pluribus.ai.dummy import RandomPlayer
-from pluribus.game.table import PokerTable
-from pluribus.game.engine import PokerEngine
-from pluribus.game.pot import Pot
+from pluribus.poker.table import PokerTable
+from pluribus.poker.engine import PokerEngine
+from pluribus.poker.pot import Pot
 
 # Seed so things are deterministic.
 utils.random.seed(42)

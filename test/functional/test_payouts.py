@@ -4,10 +4,10 @@
 from typing import List
 
 from pluribus.ai.dummy import RandomPlayer
-from pluribus.game.card import Card
-from pluribus.game.table import PokerTable
-from pluribus.game.engine import PokerEngine
-from pluribus.game.pot import Pot
+from pluribus.poker.card import Card
+from pluribus.poker.table import PokerTable
+from pluribus.poker.engine import PokerEngine
+from pluribus.poker.pot import Pot
 
 
 def _scenario_helper(
@@ -35,7 +35,7 @@ def _scenario_helper(
     ]
     table = PokerTable(players=players, pot=pot)
     engine = PokerEngine(table=table, small_blind=50, big_blind=10)
-    engine._round_setup()
+    engine.round_setup()
     engine._all_dealing_and_betting_rounds()
     # Inject cards here.
     for player, cards in zip(players, player_cards):
@@ -45,7 +45,7 @@ def _scenario_helper(
     # raise, and we also know exactly what cards they have because they have
     # been rigged. We should be able to easily calculate and predict who has
     # gained, so check players that have made money agaist `winner_indices`.
-    engine._compute_winners()
+    engine.compute_winners()
     for winner_i in winner_indices:
         assert players[winner_i].n_chips > initial_chips, \
             f'winner {winner_i} did not gain as expected.'

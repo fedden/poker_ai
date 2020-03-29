@@ -2,11 +2,39 @@
 Script to get information abstraction buckets for flop, turn, river
 (the pre-flop information buckets are just the 169 lossless hands)
 
-Important Notes
+Important Run Notes
 --Cd into research/clustering, the program will try to output to data/information_abstraction.py
 ----If you are not that directory the program will fail
 --Run with `python information_abstraction.py`
 --Budget an hour to run with a 10 card deck, you may want to cmd + F "num_simulations" and reduce the defaults to test
+
+This is a naive implementation of https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
+
+Notes on running for deck size 20 on MacBook Pro with 16 GB RAM
+- Creating combinations is relatively quick, I decided to do reduced combination space (considering AsKsJs|Qs
+the same as AsKsJs|Qs) - not sure how this will affect equilibrium finding, but should work ok for a "toy" product
+at first
+- FLOP: 155040 combos (20C2 * 18C3), runtime ~6 hrs, dict from flop_lossy.pkl .02GB
+- TURN: 581400 combos (20C2 * 18C4), runtime ~10 hrs, dict from turn_lossy.pkl .005 GB
+- RIVER: 1627920 combos (20C2 * 18C5), runtime ~12 hrs, dict from river_lossy.pkl .08 GB
+
+river ehs, from information_abstraction.pkl: '_flop_potential_aware_distributions': .04GB
+flop potential aware dist, from information_abstraction.pkl: '_turn_ehs_distributions':.06GB
+turn ehs distributions, from information_abstraction.pkl: 'river_ehs': 0.23256
+
+All in for 28 hrs, will need to work on some improvements for clustering 52 card deck..
+
+Next Steps/Future Enhancements
+- Try rolling out to full short deck (36 cards) using multi-processing
+- Implement isomorphisms to canonicalize hands (estimated 24x reduction)
+- Switch to non-naive implementation where vectors are tuples of (index,weight) or use sparse representation
+- Switch to https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf for parallelization of blueprint algo (?)
+-- This will make 52 card game combos tractable as well
+- Split up output objects in order to keep less in memory
+- Hard Code opponent clusters and us OHS instead of EHS: http://www.ifaamas.org/Proceedings/aamas2013/docs/p271.pdf
+- Adjust cluster sizes to ~200 with 52 card game
+- If we decide to go with this algo, we might consider the optimization for estimating EMD:
+--https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
 """
 import random
 import time
@@ -21,11 +49,12 @@ from sklearn.cluster import KMeans
 from scipy.stats import wasserstein_distance
 from tqdm import tqdm
 
-from pluribus.game.deck import Deck
-from pluribus.game.evaluation import Evaluator
+from pluribus.poker.card import Card
+from pluribus.poker.deck import get_all_suits
+from pluribus.poker.evaluation import Evaluator
 
 
-class ShortDeck(Deck):
+class ShortDeck:
     """
     Extends Deck - A smaller Deck based on the number of cards requested
     --not sure how well it extends beyond 10 atm
@@ -33,11 +62,12 @@ class ShortDeck(Deck):
 
     """
 
-    def __init__(self, num_cards: int):
+    def __init__(self):
         super().__init__()
 
-        self.shuffle()
-        self._cards = self._cards[:num_cards]
+        self._cards = [
+            Card(rank, suit) for suit in get_all_suits() for rank in range(10, 15)
+        ]  # hardcoding removal of 2-9
         self._evals = [c.eval_card for c in self._cards]
         self._evals_to_cards = {i.eval_card: i for i in self._cards}
 
@@ -100,15 +130,15 @@ class InfoSets(ShortDeck):
     # TODO: should this be isomorphic/lossless to reduce the program run time?
     """
 
-    def __init__(self, num_cards):
-        super().__init__(num_cards)
+    def __init__(self):
+        super().__init__()
 
         self.starting_hands = self.get_card_combos(2)
         self.flop = self.create_info_combos(
             self.starting_hands, self.get_card_combos(3)
         )
-        self.turn = self.create_info_combos(self.flop, self.get_card_combos(1))
-        self.river = self.create_info_combos(self.turn, self.get_card_combos(1))
+        self.turn = self.create_info_combos(self.starting_hands, self.get_card_combos(4))  # will this work??
+        self.river = self.create_info_combos(self.starting_hands, self.get_card_combos(5))  # will this work??
 
     @staticmethod
     def create_info_combos(start_combos: np.array, publics: np.array) -> np.ndarray:
@@ -137,23 +167,38 @@ class InfoBucketMaker(InfoSets):
     # TODO: change cluster to num_clusters=200 for full deck
     """
 
-    def __init__(self, num_cards):
-        super().__init__(num_cards)
+    def __init__(self):
+        super().__init__()
 
+        overarching_start = time.time()
+        start = time.time()
         self._river_ehs = self.get_river_ehs(num_print=1000)
         self._river_centroids, self._river_clusters = self.cluster(
-            num_clusters=15, X=self._river_ehs
+            num_clusters=50, X=self._river_ehs
         )
+        end = time.time()
+        print(f"Finding River EHS Took {end - start} Seconds")
+
+        start = time.time()
         self._turn_ehs_distributions = self.get_turn_ehs_distributions(num_print=100)
         self._turn_centroids, self._turn_clusters = self.cluster(
-            num_clusters=15, X=self._turn_ehs_distributions
+            num_clusters=50, X=self._turn_ehs_distributions
         )
+        end = time.time()
+        print(f"Finding Turn EHS Distributions Took {end - start} Seconds")
+
+        start = time.time()
         self._flop_potential_aware_distributions = self.get_flop_potential_aware_distributions(
             num_print=100
         )
         self._flop_centroids, self._flop_clusters = self.cluster(
-            num_clusters=15, X=self._flop_potential_aware_distributions
+            num_clusters=50, X=self._flop_potential_aware_distributions
         )
+        end = time.time()
+        print(f"Finding Flop Potential Aware Distributions Took {end - start} Seconds")
+        overarching_end = time.time()
+
+        print(f"Whole Process Took {overarching_end - overarching_start} Seconds")
 
     def __call__(self):
         # TODO: switch to log
@@ -179,7 +224,7 @@ class InfoBucketMaker(InfoSets):
         self.plot_river_clusters()
 
     @staticmethod
-    def simulate_get_ehs(game: GameUtility, num_simulations: int = 25) -> List[float]:
+    def simulate_get_ehs(game: GameUtility, num_simulations: int = 10) -> List[float]:
         """
         # TODO: probably want to increase simulations..
         :param game: GameState for help with determining winner and sampling opponent hand
@@ -449,7 +494,7 @@ class InfoBucketMaker(InfoSets):
 
         plt.show()
 
-    def dump_data(self, location: str = "data/information_abstraction.pkl"):
+    def dump_data(self, location: str = "data/information_abstraction_3.pkl"):
         """
         Should be in research/clustering or it will fail
         :param location: string for location and file name off the data
@@ -461,5 +506,5 @@ class InfoBucketMaker(InfoSets):
 
 
 if __name__ == "__main__":
-    info_bucket = InfoBucketMaker(10)
+    info_bucket = InfoBucketMaker()
     info_bucket()

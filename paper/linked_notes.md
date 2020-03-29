@@ -41,17 +41,24 @@ From #2:
         - between 100 and 2000 action sequences???
 - Information Abstraction
   - Blueprint
-    - [lossless information](http://www.cs.cmu.edu/~sandholm/extensive.jacm07.pdf)
+    - a little background:
+      - [lossless information](http://www.cs.cmu.edu/~sandholm/extensive.jacm07.pdf)
+      - [discusses suit isomorphisms](https://www.cs.cmu.edu/~sandholm/gs3.aaai07.pdf)
     - Uses, I believe, 169-200-200-200, KE-KO as depicted [here](http://www.ifaamas.org/Proceedings/aamas2013/docs/p271.pdf)
+    for features
       - This is not stated explicitly, but it makes the most sense
-      -  Inherently this is imperfect recall: [pg.273 here](http://www.ifaamas.org/Proceedings/aamas2013/docs/p271.pdf)
+      -  Inherently the algo above is imperfect recall: [pg.273 here](http://www.ifaamas.org/Proceedings/aamas2013/docs/p271.pdf)
       - OHS is a method described in the same paper that clusters the 169 into 8 clusters based on EHS and then runs simulations
     - Current Implementation: [See Clustering Branch](https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py)
+      - Based on [potential aware](http://www.cs.cmu.edu/afs/cs/Web/People/sandholm/potential-aware_imperfect-recall.aaai14.pdf) 
+      algo
+      - Potentially should be based on: https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf
   - Real Time Search
     - Uses 500 buckets here
     -  Definitely takes into account - [potential aware](http://www.cs.cmu.edu/afs/cs/Web/People/sandholm/potential-aware_imperfect-recall.aaai14.pdf)
       - This is exactly [the algorithm I emulated](https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py)
-    - Additional related material - [48 - potential-aware abstraction](https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf), [EMD](http://www.cs.cmu.edu/~sandholm/gs3.aaai07.pdf)    
+    - Additional related material - [48 - potential-aware abstraction](https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf), [EMD](http://www.cs.cmu.edu/~sandholm/gs3.aaai07.pdf)
+    - Potentially should be based on: https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf    
 - Blueprint Computation Algorithm
   - Uses MCCFR with two important improvements
     - https://papers.nips.cc/paper/3306-regret-minimization-in-games-with-incomplete-information.pdf
@@ -89,7 +96,7 @@ From #2:
       - Here are the strategies (regular blueprint, one biased towards folding, one towards calling, one towards raising)
         - Each of these un-normalized is multiplied by 5 and then normalized to get the biases
       - Pluribus starts searching from the beginning of the round, and the searcher's strategy is held fixed
-      - Pluribus keeps track of all hole card possibilities for its opponents and updatyes beliefs with a simple bayes update
+      - Pluribus keeps track of all hole card possibilities for its opponents and updates beliefs with a simple bayes update
     - If sub game is large or search is early in the game (high in tree): use linear CFR like in blue print strategy
     - Else use optimized vector-based CFR that samples only chance events
       - [optimized vector-based linear cfr?](https://arxiv.org/pdf/1809.04040.pdf)
@@ -98,8 +105,8 @@ From #2:
     - Uses lossless abstraction in current round otherwise uses 500 buckets per round for information situations
     - The action abstraction is reduced wildly, usually no more than 5 betting sizes, if a player chooses a size that 
     is different that the model, then the search starts again from the root and the action is included
-    - Ff two searches, the strategy might change, so freeze the decision points so far in the subgame Pluribus is in
-    - Anytime leaf node is reach all players remaining in hand choose from 4 strategies or a probability distribution over each
+    - If two searches, the strategy might change, so freeze the decision points so far in the subgame Pluribus is in
+    - Anytime leaf node is reached all players remaining in hand choose from 4 strategies or a probability distribution over each
     - See pseudo code [here](https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf)
 
         
@@ -108,5 +115,17 @@ Misc Resources
   - https://www.youtube.com/watch?v=2dX0lwaQRX0
   - https://www.youtube.com/watch?v=McV4a6umbAY
   - https://www.youtube.com/watch?v=QgCxCeoW5JI&
-    
+  - https://www.youtube.com/watch?v=Gz026reyVwc
+    - Good history up to 2015 (recommended: ignore unless you understand the above)
+    - Abstraction
+      - integer programming: http://www.cs.cmu.edu/~sandholm/extensive.jacm07.pdf
+      - potential aware
+        - https://www.cs.cmu.edu/~sandholm/gs3.aaai07.pdf
+        - https://www.cs.cmu.edu/~sandholm/expectation-basedVsPotential-Aware.AAAI08.pdf
+      - imperfect recall
+        - https://webdocs.cs.ualberta.ca/~games/poker/publications/sara09.pdf
+        - https://poker.cs.ualberta.ca/publications/AAMAS13-modelling.pdf
+      - most modern algo (as of 2015): https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
+        - implemented here: https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py
+      - later algo though: https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf 
 
