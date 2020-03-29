@@ -78,22 +78,6 @@ from pluribus.poker.pot import Pot
 utils.random.seed(42)
 
 
-def get_information_set(state: ShortDeckPokerState) -> str:
-    """
-    :param rs: realstate, a tuple of two ints, first is card for player one, second player 2
-    :param h: the action sequences without the card information
-    :return: I: information set, which contains all h that the p_i cannot distinguish
-    """
-    assert not state.is_terminal
-    if state.h == []:
-        return str(state.rs[0])
-    elif len(state.h) == 1:
-        return state.h + str(state.rs[1])
-    else:
-        return "PB" + str(state.rs[0])
-    assert False
-
-
 def update_strategy(state: ShortDeckPokerState, i: int):
     """
 
@@ -114,9 +98,9 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     #   sample action from strategy for h
     #   update_strategy(rs, h + a, i)
     elif ph == i:
-        I = get_information_set(state)
+        I = state.info_set
         # calculate regret
-        calculate_strategy(regret, sigma, I)
+        calculate_strategy(regret, sigma, I, state)
         # choose an action based of sigma
         a = np.random.choice(list(sigma[t][I].keys()), 1, p=list(sigma[t][I].values()))[
             0
@@ -127,7 +111,7 @@ def update_strategy(state: ShortDeckPokerState, i: int):
         new_state: ShortDeckPokerState = state.apply_action(a)
         update_strategy(new_state, i)
     else:
-        for a in ACTIONS:
+        for a in state.legal_actions:
             # not actually updating the strategy for p_i != i, only one i at a time
             new_state: ShortDeckPokerState = state.apply_action(a)
             update_strategy(new_state, i)
@@ -137,6 +121,7 @@ def calculate_strategy(
     regret: Dict[str, Dict[str, float]],
     sigma: Dict[int, Dict[str, Dict[str, float]]],
     I: str,
+    state: ShortDeckPokerState,
 ):
     """
 
@@ -146,11 +131,11 @@ def calculate_strategy(
     :return: doesn't return anything, just updates sigma
     """
     rsum = sum([max(x, 0) for x in regret[I].values()])
-    for a in ACTIONS:
+    for a in state.legal_actions:
         if rsum > 0:
             sigma[t + 1][I][a] = max(regret[I][a], 0) / rsum
         else:
-            sigma[t + 1][I][a] = 1 / len(ACTIONS)
+            sigma[t + 1][I][a] = 1 / len(state.legal_actions)
 
 
 def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
@@ -174,22 +159,22 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
-        I = get_information_set(state)
+        I = state.info_set
         # calculate strategy
-        calculate_strategy(regret, sigma, I)
+        calculate_strategy(regret, sigma, I, state)
         vo = 0.0
         voa = {}
-        for a in ACTIONS:
+        for a in state.legal_actions:
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(new_state, i, t)
             vo += sigma[t][I][a] * voa[a]
-        for a in ACTIONS:
+        for a in state.legal_actions:
             regret[I][a] += voa[a] - vo
             # do not need update the strategy based on regret, strategy does that with sigma
         return vo
     else:
-        Iph = get_information_set(state)
-        calculate_strategy(regret, sigma, Iph)
+        Iph = state.info_set
+        calculate_strategy(regret, sigma, Iph, state)
         a = np.random.choice(
             list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
         )[0]
@@ -218,13 +203,13 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     #   sample action from strategy for h
     #   cfrp()
     elif ph == i:
-        I = get_information_set(state)
+        I = state.info_set
         # calculate strategy
-        calculate_strategy(regret, sigma, I)
+        calculate_strategy(regret, sigma, I, state)
         vo = 0.0
         voa = {}
         explored = {}  # keeps tracked of items that can be skipped
-        for a in ACTIONS:
+        for a in state.legal_actions:
             if regret[I][a] > C:
                 new_state: ShortDeckPokerState = state.apply_action(a)
                 voa[a] = cfrp(new_state, i, t)
@@ -232,14 +217,14 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
                 vo += sigma[t][I][a] * voa[a]
             else:
                 explored[a] = False
-        for a in ACTIONS:
+        for a in state.legal_actions:
             if explored[a]:
                 regret[I][a] += voa[a] - vo
                 # do not need update the strategy based on regret, strategy does that with sigma
         return vo
     else:
-        Iph = get_information_set(state)
-        calculate_strategy(regret, sigma, Iph)
+        Iph = state.info_set
+        calculate_strategy(regret, sigma, Iph, state)
         a = np.random.choice(
             list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
         )[0]
