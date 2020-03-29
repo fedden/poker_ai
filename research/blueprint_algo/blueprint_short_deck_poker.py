@@ -148,7 +148,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
-    ph = 2 if len(state.h) == 1 else 1  # this is always the case no matter what i is
+    ph = state.player_i
 
     if state.is_terminal:
         return state.payout[i] * (1 if i == 1 else -1)
@@ -192,7 +192,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     :param t: iteration
     :return: expected value for node for player i
     """
-    ph = 2 if len(state.h) == 1 else 1
+    ph = state.player_i
 
     if state.is_terminal:
         return state.payout[i] * (1 if i == 1 else -1)
@@ -232,6 +232,17 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         return cfrp(new_state, i, t)
 
 
+def new_game(n_players: int) -> ShortDeckPokerState:
+    """Create a new game of short deck poker."""
+    pot = Pot()
+    players = [
+        ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+        for player_i in range(n_players)
+    ]
+    state = ShortDeckPokerState(players=players)
+    return state
+
+
 if __name__ == "__main__":
     # init tables
     regret = {}
@@ -251,24 +262,13 @@ if __name__ == "__main__":
     prune_threshold = 2000
     C = -20000  # somewhat arbitrary
     n_players = 3
-    initial_chips = 10000
-    pot = Pot()
-    players = [
-        ShortDeckPokerPlayer(player_i=i, initial_chips=initial_chips, pot=pot)
-        for i in range(n_players)
-    ]
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
     for t in trange(1, 20000):
         sigma[t + 1] = copy.deepcopy(sigma[t])
-        for i in [1, 2]:  # fixed position i
-            # TODO(fedden): Do we need to rotate players around the table after
-            #               a game?
+        for i in range(n_players):  # fixed position i
             # Create a new state.
-            state = ShortDeckPokerState(players=players)
-            import ipdb
-
-            ipdb.set_trace()
+            state: ShortDeckPokerState = new_game(n_players)
             if t % strategy_interval == 0:
                 update_strategy(state, i)
             if t > prune_threshold:
