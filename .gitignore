@@ -1,5 +1,6 @@
 tags
 tags/
+*.pkl
 
 # Swap
 [._]*.s[a-v][a-z]
