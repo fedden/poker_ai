@@ -10,7 +10,7 @@ def test_short_deck_1():
         ShortDeckPokerPlayer(player_i=player_i, pot=pot, initial_chips=10000)
         for player_i in range(n_players)
     ]
-    state = ShortDeckPokerState(players=players)
+    state = ShortDeckPokerState(players=players, load_pickle_files=False)
     # Call for all players.
     for player_i in range(n_players):
         assert state.current_player.name == f"player_{player_i}"
@@ -40,7 +40,7 @@ def test_short_deck_2():
         ShortDeckPokerPlayer(player_i=player_i, pot=pot, initial_chips=10000)
         for player_i in range(n_players)
     ]
-    state = ShortDeckPokerState(players=players)
+    state = ShortDeckPokerState(players=players, load_pickle_files=False)
     # Call for all players.
     for player_i in range(n_players):
         assert state.current_player.name == f"player_{player_i}"

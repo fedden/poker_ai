@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, Dict, List, Optional
+import os
+from typing import Dict, List, Optional, Tuple
+
+import dill as pickle
 
 from pluribus.poker.actions import Action
 from pluribus.poker.card import Card
@@ -25,8 +28,12 @@ class ShortDeckPokerState:
         players: List[ShortDeckPokerPlayer],
         small_blind: int = 50,
         big_blind: int = 100,
+        pickle_dir: str = ".",
+        load_pickle_files: bool = True,
     ):
         """Initialise state."""
+        if load_pickle_files:
+            self.info_set_lut = self._load_pickle_files(pickle_dir)
         # Get a reference of the pot from the first player.
         self._table = PokerTable(players=players, pot=players[0].pot)
         # Get a reference of the initial number of chips for the payout.
@@ -74,8 +81,7 @@ class ShortDeckPokerState:
         """
         if action_str not in self.legal_actions:
             raise ValueError(
-                f"Action '{action_str}' not in legal actions: "
-                f"{self.legal_actions}"
+                f"Action '{action_str}' not in legal actions: " f"{self.legal_actions}"
             )
         # TODO(fedden): Split this method up it's getting big!
         # Deep copy the parts of state that are needed that must be immutable
@@ -126,6 +132,24 @@ class ShortDeckPokerState:
             new_state._poker_engine.compute_winners()
         return new_state
 
+    def _load_pickle_files(
+        self, pickle_dir: str
+    ) -> Dict[str, Dict[Tuple[int, ...], str]]:
+        """Load pickle files into memory."""
+        file_names = ["flop_lossy.pkl", "turn_lossy.pkl", "river_lossy.pkl"]
+        betting_stages = ["flop", "turn", "river"]
+        info_set_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
+        for file_name, betting_stage in zip(file_names, betting_stages):
+            file_path = os.path.join(pickle_dir, file_name)
+            if not os.path.isfile(file_path):
+                raise ValueError(
+                    f"File path not found {file_path}. Ensure pickle_dir is "
+                    f"set to directory containing pickle files"
+                )
+            with open(file_path, "rb") as fp:
+                info_set_lut[betting_stage] = pickle.load(fp)
+        return info_set_lut
+
     def _reset_betting_round_state(self):
         """Reset the state related to counting types of actions."""
         self._all_players_have_made_action = False
@@ -153,6 +177,13 @@ class ShortDeckPokerState:
             self._betting_stage = "show_down"
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    @property
+    def info_set(self) -> str:
+        """Get the information set for the current player."""
+        cards = self.current_player.cards + self._table.community_cards
+        eval_cards = tuple([card.eval_card for card in cards])
+        return self.info_set_lut[self._betting_stage][eval_cards]
 
     @property
     def payout(self) -> Dict[int, int]:
