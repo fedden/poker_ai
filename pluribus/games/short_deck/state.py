@@ -136,8 +136,13 @@ class ShortDeckPokerState:
         self, pickle_dir: str
     ) -> Dict[str, Dict[Tuple[int, ...], str]]:
         """Load pickle files into memory."""
-        file_names = ["flop_lossy.pkl", "turn_lossy.pkl", "river_lossy.pkl"]
-        betting_stages = ["flop", "turn", "river"]
+        file_names = [
+            "preflop_lossless.pkl",
+            "flop_lossy.pkl",
+            "turn_lossy.pkl",
+            "river_lossy.pkl",
+        ]
+        betting_stages = ["pre_flop", "flop", "turn", "river"]
         info_set_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
         for file_name, betting_stage in zip(file_names, betting_stages):
             file_path = os.path.join(pickle_dir, file_name)
