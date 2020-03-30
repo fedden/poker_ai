@@ -35,6 +35,8 @@ class ShortDeckPokerState:
         """Initialise state."""
         if load_pickle_files:
             self.info_set_lut = self._load_pickle_files(pickle_dir)
+        else:
+            self.info_set_lut = {}
         # Get a reference of the pot from the first player.
         self._table = PokerTable(players=players, pot=players[0].pot)
         # Get a reference of the initial number of chips for the payout.
@@ -86,7 +88,10 @@ class ShortDeckPokerState:
             )
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
+        lut = self.info_set_lut
+        self.info_set_lut = {}
         new_state = copy.deepcopy(self)
+        new_state.info_set_lut = self.info_set_lut = lut
         if action_str is None:
             # Assert active player has folded already.
             assert (
