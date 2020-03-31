@@ -71,11 +71,7 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     """
     ph = state.player_i  # this is always the case no matter what i is
 
-    print(i, ph)
-
-    print(state._table.players[i]._is_active)
-
-    if state.is_terminal or state._table.players[i]._is_active is False:
+    if state.is_terminal or state.players[i].is_active is False:
         # or if betting round is > 0, strategy is only
         # updated in betting round 1 for Pluribus, but I am doing all rounds in this example
         return
@@ -272,7 +268,7 @@ if __name__ == "__main__":
     n_players = 3
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-    for t in trange(1, 11):
+    for t in trange(1, 2):
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
