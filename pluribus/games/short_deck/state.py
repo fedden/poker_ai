@@ -118,7 +118,7 @@ class ShortDeckPokerState:
                 f"type {type(action)}."
             )
         # Update the new state.
-        new_state._history.append(action)
+        new_state._history.append((self.player_i, self._betting_stage, action))
         # Player has made move, increment the player that is next.
         while True:
             new_state._move_to_next_player()
@@ -219,7 +219,7 @@ class ShortDeckPokerState:
         eval_cards = tuple([card.eval_card for card in cards])
         cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
         action_history = [str(action) for action in self._history]
-        return f"cards_cluster={cards_cluster}, history={action_history}"
+        return f"betting_stage={self._betting_stage}, cards_cluster={cards_cluster}, history={action_history}"
 
     @property
     def payout(self) -> Dict[int, int]:
