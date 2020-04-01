@@ -310,8 +310,8 @@ if __name__ == "__main__":
     )
 
     # algorithm constants
-    strategy_interval = 1  # it's just to test.
-    n_iterations = 5
+    strategy_interval = 200  # it's just to test.
+    n_iterations = 20000
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
