@@ -239,6 +239,11 @@ class ShortDeckPokerState:
         return self._betting_stage in {"show_down", "terminal"}
 
     @property
+    def players(self) -> List[ShortDeckPokerPlayer]:
+        """Returns players in table."""
+        return self._table.players
+
+    @property
     def current_player(self) -> ShortDeckPokerPlayer:
         """Returns a reference to player that makes a move for this state."""
         return self._table.players[self.player_i]
