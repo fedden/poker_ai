@@ -285,6 +285,15 @@ def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPoke
     return state
 
 
+def print_strategy(strategy: Dict[str, Dict[str, int]]):
+    """Print strategy."""
+    for info_set, action_to_probabilities in sorted(strategy.items()):
+        norm = sum(list(action_to_probabilities.values()))
+        print(f"{info_set}")
+        for action, probability in action_to_probabilities.items():
+            print(f"  - {action}: {probability / norm:.2f}")
+
+
 if __name__ == "__main__":
     utils.random.seed(42)
     # TODO(fedden): Note from the supplementary material, the data here will
@@ -302,6 +311,7 @@ if __name__ == "__main__":
 
     # algorithm constants
     strategy_interval = 1  # it's just to test.
+    n_iterations = 5
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
@@ -314,7 +324,7 @@ if __name__ == "__main__":
     ipdb.set_trace()
     logging.info("beginning training")
     info_set_lut = {}
-    for t in trange(1, 20, desc="train iter"):
+    for t in trange(n_iterations, desc="train iter"):
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
@@ -341,9 +351,4 @@ if __name__ == "__main__":
                     regret[I][a] *= d
                     strategy[I][a] *= d
         del sigma[t]
-
-    for info_set, action_to_probabilities in strategy.items():
-        norm = sum(list(action_to_probabilities.values()))
-        print(f"\n{info_set}")
-        for action, probability in action_to_probabilities.items():
-            print(f"  - {action}: {probability}")
+    print_strategy(strategy)
