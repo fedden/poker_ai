@@ -64,6 +64,13 @@ class ShortDeckPokerState:
         self._history: List[Action] = []
         self.player_i = 0
         self._betting_stage = "pre_flop"
+        self._betting_stage_to_round: Dict[str, int] = {
+            "pre_flop": 0,
+            "flop": 1,
+            "turn": 2,
+            "river": 3,
+            "show_down": 4,
+        }
         self._reset_betting_round_state()
 
     def apply_action(self, action_str: Optional[str]) -> ShortDeckPokerState:
@@ -202,6 +209,19 @@ class ShortDeckPokerState:
             pass
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    @property
+    def betting_round(self) -> int:
+        """Algorithm 1 of pluribus supp. material references betting_round."""
+        try:
+            betting_round = self._betting_stage_to_round[self._betting_stage]
+        except KeyError:
+            raise ValueError(
+                f"Attemped to get betting round for stage "
+                f"{self._betting_stage} but was not supported in the lut with "
+                f"keys: {list(self._betting_stage_to_round.keys())}"
+            )
+        return betting_round
 
     @property
     def info_set(self) -> str:
