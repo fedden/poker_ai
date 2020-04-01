@@ -43,10 +43,12 @@ from __future__ import annotations
 
 import copy
 import collections
+import json
 import logging
 import random
 from typing import Any, Dict
 
+import joblib
 import numpy as np
 from tqdm import tqdm, trange
 
@@ -57,6 +59,7 @@ from pluribus.poker.pot import Pot
 
 
 logger = logging.getLogger(__name__)
+log = False
 
 
 # TODO: In general, wondering how important this function is if we are to use
@@ -71,7 +74,6 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
-    tqdm.write(f"update_strategy: player_i: {i}, state: {state}")
     ph = state.player_i  # this is always the case no matter what i is
 
     player_not_in_hand = not state.players[i].is_active
@@ -129,7 +131,6 @@ def calculate_strategy(
     :param state: the game state
     :return: doesn't return anything, just updates sigma
     """
-    tqdm.write(f"calculate_strategy: state: {state}")
     rsum = sum([max(x, 0) for x in regret[I].values()])
     for a in state.legal_actions:
         if rsum > 0:
@@ -147,7 +148,6 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
-    tqdm.write(f"cfr: player_i: {i}, state: {state}")
     ph = state.player_i
 
     if state.is_terminal:
@@ -209,7 +209,6 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     :param t: iteration
     :return: expected value for node for player i
     """
-    tqdm.write(f"cfrp: player_i: {i}, state: {state}")
     ph = state.player_i
 
     if state.is_terminal:
@@ -289,9 +288,14 @@ def print_strategy(strategy: Dict[str, Dict[str, int]]):
     """Print strategy."""
     for info_set, action_to_probabilities in sorted(strategy.items()):
         norm = sum(list(action_to_probabilities.values()))
-        print(f"{info_set}")
+        tqdm.write(f"{info_set}")
         for action, probability in action_to_probabilities.items():
-            print(f"  - {action}: {probability / norm:.2f}")
+            tqdm.write(f"  - {action}: {probability / norm:.2f}")
+
+
+def to_dict(**kwargs) -> Dict[str, Any]:
+    """Hacky method to convert weird collections dicts to regular dicts."""
+    return json.loads(json.dumps(copy.deepcopy(kwargs)))
 
 
 if __name__ == "__main__":
@@ -308,23 +312,20 @@ if __name__ == "__main__":
     sigma = collections.defaultdict(
         lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     )
-
     # algorithm constants
-    strategy_interval = 200  # it's just to test.
+    strategy_interval = 100  # it's just to test.
     n_iterations = 20000
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
     C = -20000  # somewhat arbitrary
     n_players = 3
+    print_iteration = 100
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-    import ipdb
-
-    ipdb.set_trace()
     logging.info("beginning training")
     info_set_lut = {}
-    for t in trange(n_iterations, desc="train iter"):
+    for t in trange(1, n_iterations + 1, desc="train iter"):
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
@@ -351,4 +352,9 @@ if __name__ == "__main__":
                     regret[I][a] *= d
                     strategy[I][a] *= d
         del sigma[t]
+        if t % print_iteration == 0:
+            print_strategy(strategy)
+
+    to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
+    joblib.dump(to_persist, "strategy.gz", compress="gzip")
     print_strategy(strategy)
