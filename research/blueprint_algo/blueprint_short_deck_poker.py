@@ -326,9 +326,8 @@ if __name__ == "__main__":
                     strategy[I][a] *= d
         del sigma[t]
 
-    import ipdb
-    ipdb.set_trace()
-
-    for k, v in strategy.items():
-        norm = sum(list(v.values()))
-        print("%3s: P:%.4f B:%.4f" % (k, v["P"] / norm, v["B"] / norm))
+    for info_set, action_to_probabilities in strategy.items():
+        norm = sum(list(action_to_probabilities.values()))
+        print(f"\n{info_set}")
+        for action, probability in action_to_probabilities.items():
+            print(f"  - {action}: {probability}")
