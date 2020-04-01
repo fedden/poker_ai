@@ -147,19 +147,26 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
 
     if state.is_terminal:
         return state.payout[i] * (1 if i == 1 else -1)
+    # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
+    #               instructs the following lines of logic, but state class
+    #               will already skip to the next in-hand player.
     # elif p_i not in hand:
     #   cfr()
-    # TODO: Does this need to be added or does the game logic account for this?
+    # NOTE(fedden): According to Algorithm 1 in the supplementary material,
+    #               we would add in the following bit of logic. However we
+    #               already have the game logic embedded in the state class,
+    #               and this accounts for the chance samplings. In other words,
+    #               it makes sure that chance actions such as dealing cards
+    #               happen at the appropriate times.
     # elif h is chance_node:
     #   sample action from strategy for h
     #   cfr()
-    # TODO: Does the game logic appropriately account for chance samplings? In other words, make sure that
-    #  chance actions (ie; dealing cards) are done the appropriate amount of times.
     elif ph == i:
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
-        # TODO: Does updating sigma here (as opposed to after regret) miss out on any updates?
+        # TODO: Does updating sigma here (as opposed to after regret) miss out
+        #       on any updates?
         #  If so, is there any benefit to having it up here?
         vo = 0.0
         voa = {}
@@ -169,7 +176,8 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
             vo += sigma[t][I][a] * voa[a]
         for a in state.legal_actions:
             regret[I][a] += voa[a] - vo
-            # do not need update the strategy based on regret, strategy does that with sigma
+            # do not need update the strategy based on regret, strategy does
+            # that with sigma
         return vo
     else:
         Iph = state.info_set
@@ -200,20 +208,27 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
 
     if state.is_terminal:
         return state.payout[i] * (1 if i == 1 else -1)
+    # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
+    #               instructs the following lines of logic, but state class
+    #               will already skip to the next in-hand player.
     # elif p_i not in hand:
-    #   cfrp()
-    # TODO: Does this need to be added or does the game logic account for this?
-    # elif h is chance_node:  -- we don't care about chance nodes here, but we will for No Limit
+    #   cfr()
+    # NOTE(fedden): According to Algorithm 1 in the supplementary material,
+    #               we would add in the following bit of logic. However we
+    #               already have the game logic embedded in the state class,
+    #               and this accounts for the chance samplings. In other words,
+    #               it makes sure that chance actions such as dealing cards
+    #               happen at the appropriate times.
+    # elif h is chance_node:
     #   sample action from strategy for h
-    #   cfrp()
-    # TODO: Does the game logic appropriately account for chance samplings? In other words, make sure that
-    #  chance actions (ie; dealing cards) are done the appropriate amount of times.
+    #   cfr()
     elif ph == i:
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
-        # TODO: Does updating sigma here (as opposed to after regret) miss out on any updates?
-        #  If so, is there any benefit to having it up here?
+        # TODO: Does updating sigma here (as opposed to after regret) miss out
+        #       on any updates? If so, is there any benefit to having it up
+        #       here?
         vo = 0.0
         voa = {}
         explored = {}  # keeps tracked of items that can be skipped
@@ -228,7 +243,8 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         for a in state.legal_actions:
             if explored[a]:
                 regret[I][a] += voa[a] - vo
-                # do not need update the strategy based on regret, strategy does that with sigma
+                # do not need update the strategy based on regret, strategy
+                # does that with sigma
         return vo
     else:
         Iph = state.info_set
