@@ -43,11 +43,12 @@ from __future__ import annotations
 
 import copy
 import collections
+import logging
 import random
-from typing import Dict
+from typing import Any, Dict
 
 import numpy as np
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from pluribus import utils
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
@@ -55,7 +56,7 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
-utils.random.seed(42)
+logger = logging.getLogger(__name__)
 
 
 # TODO: In general, wondering how important this function is if we are to use
@@ -70,6 +71,7 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
+    tqdm.write(f"update_strategy: player_i: {i}, state: {state}")
     ph = state.player_i  # this is always the case no matter what i is
 
     player_not_in_hand = not state.players[i].is_active
@@ -98,6 +100,7 @@ def update_strategy(state: ShortDeckPokerState, i: int):
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
             sigma[t][I] = {action: p for action in state.legal_actions}
+        # Increment the action counter.
         strategy[I][a] += 1
         # so strategy is counts based on sigma, this takes into account the
         # reach probability so there is no need to pass around that pi guy..
@@ -126,6 +129,7 @@ def calculate_strategy(
     :param state: the game state
     :return: doesn't return anything, just updates sigma
     """
+    tqdm.write(f"calculate_strategy: state: {state}")
     rsum = sum([max(x, 0) for x in regret[I].values()])
     for a in state.legal_actions:
         if rsum > 0:
@@ -143,6 +147,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
+    tqdm.write(f"cfr: player_i: {i}, state: {state}")
     ph = state.player_i
 
     if state.is_terminal:
@@ -166,8 +171,8 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
-        #       on any updates?
-        #  If so, is there any benefit to having it up here?
+        #       on any updates? If so, is there any benefit to having it up
+        #       here?
         vo = 0.0
         voa = {}
         for a in state.legal_actions:
@@ -204,6 +209,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     :param t: iteration
     :return: expected value for node for player i
     """
+    tqdm.write(f"cfrp: player_i: {i}, state: {state}")
     ph = state.player_i
 
     if state.is_terminal:
@@ -262,18 +268,25 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         return cfrp(new_state, i, t)
 
 
-def new_game(n_players: int) -> ShortDeckPokerState:
+def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPokerState:
     """Create a new game of short deck poker."""
     pot = Pot()
     players = [
         ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
         for player_i in range(n_players)
     ]
-    state = ShortDeckPokerState(players=players)
+    if info_set_lut:
+        # Don't reload massive files, it takes ages.
+        state = ShortDeckPokerState(players=players, load_pickle_files=False)
+        state.info_set_lut = info_set_lut
+    else:
+        # Load massive files.
+        state = ShortDeckPokerState(players=players)
     return state
 
 
 if __name__ == "__main__":
+    utils.random.seed(42)
     # TODO(fedden): Note from the supplementary material, the data here will
     #               need to be lower precision: "To save memory, regrets were
     #               stored using 4-byte integers rather than 8-byte doubles.
@@ -296,14 +309,17 @@ if __name__ == "__main__":
     n_players = 3
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-    for t in trange(1, 2):
-        sigma[t + 1] = copy.deepcopy(sigma[t])
-        import ipdb
+    import ipdb
 
-        ipdb.set_trace()
+    ipdb.set_trace()
+    logging.info("beginning training")
+    info_set_lut = {}
+    for t in trange(1, 20, desc="train iter"):
+        sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
-            state: ShortDeckPokerState = new_game(n_players)
+            state: ShortDeckPokerState = new_game(n_players, info_set_lut)
+            info_set_lut = state.info_set_lut
             if t % strategy_interval == 0:
                 update_strategy(state, i)
             if t > prune_threshold:

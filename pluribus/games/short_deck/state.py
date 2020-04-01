@@ -61,7 +61,7 @@ class ShortDeckPokerState:
         # Deal private cards to players.
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
-        self._history: List[Action] = []
+        self._history: List[str] = []
         self.player_i = 0
         self._betting_stage = "pre_flop"
         self._betting_stage_to_round: Dict[str, int] = {
@@ -72,6 +72,10 @@ class ShortDeckPokerState:
             "show_down": 4,
         }
         self._reset_betting_round_state()
+
+    def __repr__(self):
+        """Return a helpful description of object in strings and debugger."""
+        return f"<ShortDeckPokerState player_i={self.player_i} betting_stage={self._betting_stage}>"
 
     def apply_action(self, action_str: Optional[str]) -> ShortDeckPokerState:
         """Create a new state after applying an action.
@@ -125,13 +129,20 @@ class ShortDeckPokerState:
                 f"type {type(action)}."
             )
         # Update the new state.
-        new_state._history.append(action)
+        new_state._history.append(str(action))
         # Player has made move, increment the player that is next.
         while True:
             new_state._move_to_next_player()
             terminal = self._betting_stage in {"terminal", "show_down"}
             if new_state.current_player.is_active or terminal:
                 break
+            else:
+                # The current player isn't active, and we are not terminal.
+                # We'll move to the next player in the next iteration of this
+                # while loop, but append a null action to the history to
+                # signify the notation h · 0 in algorithm 1 of the
+                # supplementary material of the Pluribus paper.
+                new_state._history.append("skip")
         return new_state
 
     def _move_to_next_player(self):
