@@ -58,8 +58,9 @@ from pluribus.poker.pot import Pot
 utils.random.seed(42)
 
 
-# TODO: In general, wondering how important this function is if we are to use the blueprint algo for more than the
-#  preflop round? Would using just sigma allow for a more complete rendering of strategies for infosets?
+# TODO: In general, wondering how important this function is if we are to use
+# the blueprint algo for more than the preflop round? Would using just sigma
+# allow for a more complete rendering of strategies for infosets?
 def update_strategy(state: ShortDeckPokerState, i: int):
     """
 
@@ -73,16 +74,16 @@ def update_strategy(state: ShortDeckPokerState, i: int):
 
     player_not_in_hand = not state.players[i].is_active
     if state.is_terminal or player_not_in_hand or state.betting_round > 0:
-        # or if betting round is > 0, strategy is only
-        # updated in betting round 1 for Pluribus, but I am doing all rounds in
-        # this example
         return
+    # NOTE(fedden): According to Algorithm 1 in the supplementary material,
+    #               we would add in the following bit of logic. However we
+    #               already have the game logic embedded in the state class,
+    #               and this accounts for the chance samplings. In other words,
+    #               it makes sure that chance actions such as dealing cards
+    #               happen at the appropriate times.
     # elif h is chance_node:
     #   sample action from strategy for h
     #   update_strategy(rs, h + a, i)
-    # TODO: Does the game logic appropriately account for chance samplings? In
-    # other words, make sure that chance actions (ie; dealing cards) are done
-    # the appropriate amount of times.
     elif ph == i:
         I = state.info_set
         # calculate regret
@@ -98,13 +99,15 @@ def update_strategy(state: ShortDeckPokerState, i: int):
             a = np.random.choice(state.legal_actions, p=probabilities)
             sigma[t][I] = {action: p for action in state.legal_actions}
         strategy[I][a] += 1
-        # so strategy is counts based on sigma, this takes into account the reach probability
-        # so there is no need to pass around that pi guy..
+        # so strategy is counts based on sigma, this takes into account the
+        # reach probability so there is no need to pass around that pi guy..
         new_state: ShortDeckPokerState = state.apply_action(a)
         update_strategy(new_state, i)
     else:
+        # Traverse each action.
         for a in state.legal_actions:
-            # not actually updating the strategy for p_i != i, only one i at a time
+            # not actually updating the strategy for p_i != i, only one i at a
+            # time
             new_state: ShortDeckPokerState = state.apply_action(a)
             update_strategy(new_state, i)
 
