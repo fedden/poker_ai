@@ -71,15 +71,18 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     """
     ph = state.player_i  # this is always the case no matter what i is
 
-    if state.is_terminal or state.players[i].is_active is False:
+    player_not_in_hand = not state.players[i].is_active
+    if state.is_terminal or player_not_in_hand or state.betting_round > 0:
         # or if betting round is > 0, strategy is only
-        # updated in betting round 1 for Pluribus, but I am doing all rounds in this example
+        # updated in betting round 1 for Pluribus, but I am doing all rounds in
+        # this example
         return
     # elif h is chance_node:
     #   sample action from strategy for h
     #   update_strategy(rs, h + a, i)
-    # TODO: Does the game logic appropriately account for chance samplings? In other words, make sure that
-    #  chance actions (ie; dealing cards) are done the appropriate amount of times.
+    # TODO: Does the game logic appropriately account for chance samplings? In
+    # other words, make sure that chance actions (ie; dealing cards) are done
+    # the appropriate amount of times.
     elif ph == i:
         I = state.info_set
         # calculate regret
