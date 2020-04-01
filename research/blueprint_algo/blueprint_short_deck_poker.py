@@ -274,7 +274,13 @@ def new_game(n_players: int) -> ShortDeckPokerState:
 
 
 if __name__ == "__main__":
-    # init tables
+    # TODO(fedden): Note from the supplementary material, the data here will
+    #               need to be lower precision: "To save memory, regrets were
+    #               stored using 4-byte integers rather than 8-byte doubles.
+    #               There was also a ﬂoor on regret at -310,000,000 for every
+    #               action. This made it easier to unprune actions that were
+    #               initially pruned but later improved. This also prevented
+    #               integer overﬂows".
     strategy = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
     regret = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
     sigma = collections.defaultdict(
@@ -292,6 +298,9 @@ if __name__ == "__main__":
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
     for t in trange(1, 2):
         sigma[t + 1] = copy.deepcopy(sigma[t])
+        import ipdb
+
+        ipdb.set_trace()
         for i in range(n_players):  # fixed position i
             # Create a new state.
             state: ShortDeckPokerState = new_game(n_players)
