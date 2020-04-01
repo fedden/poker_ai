@@ -305,6 +305,11 @@ if __name__ == "__main__":
             else:
                 cfr(state, i, t)
         if t < LCFR_threshold & t % discount_interval == 0:
+            # TODO(fedden): Is discount_interval actually set/managed in
+            #               minutes here? In Algorithm 1 this should be managed
+            #               in minutes using perhaps the time module, but here
+            #               it appears to be being managed by the iterations
+            #               count.
             d = (t / discount_interval) / ((t / discount_interval) + 1)
             for I in regret.keys():
                 for a in regret[I].keys():
