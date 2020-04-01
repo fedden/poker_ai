@@ -9,7 +9,7 @@ from pluribus.poker.actions import Call, Fold, Raise
 from pluribus.poker.state import PokerGameState
 
 if TYPE_CHECKING:
-    from pluribus.poker.cards import Card
+    from pluribus.poker.card import Card
     from pluribus.poker.pot import Pot
 
 
