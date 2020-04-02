@@ -355,10 +355,14 @@ if __name__ == "__main__":
                 for a in regret[I].keys():
                     regret[I][a] *= d
                     strategy[I][a] *= d
-        if (t > update_threshold) & (t % dump_iteration == 0):  # Only start updating after 800 minutes in Pluribus
-            # This is for the post-preflop betting rounds. It seems they dump the current strategy
-            # (sigma) 32 times throughout training and then take an average. This allows for estimation of
-            # expected value in leaf nodes later on using modified versions of the blueprint strategy
+        if (t > update_threshold) & (t % dump_iteration == 0):
+            # Only start updating after 800 minutes in Pluribus
+            # This is for the post-preflop betting rounds. It seems they
+            # dump the current strategy (sigma) 32 times throughout
+            # training and then take an average. This allows for estimation of
+            # (sigma) 32 times throughout training and then take an average.
+            # This allows for estimation of expected value in
+            # leaf nodes later on using modified versions of the blueprint strategy
             to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
             joblib.dump(to_persist, f"strategy_{t}.gz", compress="gzip")
         del sigma[t]
