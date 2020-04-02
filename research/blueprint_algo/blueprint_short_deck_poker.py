@@ -313,17 +313,17 @@ if __name__ == "__main__":
         lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     )
     # algorithm constants
-    strategy_interval = 100  # it's just to test.
-    n_iterations = 20000
+    strategy_interval = 10  # it's just to test.
+    n_iterations = 200
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
     C = -20000  # somewhat arbitrary
     n_players = 3
-    print_iteration = 100
-    dump_iteration = 100
-    min_update = 200  # 800 minutes in Pluribus
-    
+    print_iteration = 10
+    dump_iteration = 10
+    update_threshold = 50  # 800 minutes in Pluribus
+
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
     logging.info("beginning training")
@@ -334,7 +334,8 @@ if __name__ == "__main__":
             # Create a new state.
             state: ShortDeckPokerState = new_game(n_players, info_set_lut)
             info_set_lut = state.info_set_lut
-            if t > min_update & t % strategy_interval == 0:  # Only start updating after 800 minutes in Pluribus
+            if (t > update_threshold) & (t % strategy_interval == 0):
+                # Only start updating after 800 minutes in Pluribus
                 update_strategy(state, i)
             if t > prune_threshold:
                 if random.uniform(0, 1) < 0.05:
@@ -354,7 +355,7 @@ if __name__ == "__main__":
                 for a in regret[I].keys():
                     regret[I][a] *= d
                     strategy[I][a] *= d
-        if t > min_update & t % dump_iteration == 0:  # Only start updating after 800 minutes in Pluribus
+        if (t > update_threshold) & (t % dump_iteration == 0):  # Only start updating after 800 minutes in Pluribus
             # This is for the post-preflop betting rounds. It seems they dump the current strategy
             # (sigma) 32 times throughout training and then take an average. This allows for estimation of
             # expected value in leaf nodes later on using modified versions of the blueprint strategy
