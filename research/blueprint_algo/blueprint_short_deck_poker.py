@@ -358,9 +358,8 @@ if __name__ == "__main__":
         if (t > update_threshold) & (t % dump_iteration == 0):
             # Only start updating after 800 minutes in Pluribus
             # This is for the post-preflop betting rounds. It seems they
-            # dump the current strategy (sigma) 32 times throughout
-            # training and then take an average. This allows for estimation of
-            # (sigma) 32 times throughout training and then take an average.
+            # dump the current strategy (sigma) throughout
+            # training and then take an average.
             # This allows for estimation of expected value in
             # leaf nodes later on using modified versions of the blueprint strategy
             to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
