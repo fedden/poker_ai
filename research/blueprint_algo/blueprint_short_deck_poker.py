@@ -321,6 +321,9 @@ if __name__ == "__main__":
     C = -20000  # somewhat arbitrary
     n_players = 3
     print_iteration = 100
+    dump_iteration = 100
+    min_update = 200  # 800 minutes in Pluribus
+    
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
     logging.info("beginning training")
@@ -331,7 +334,7 @@ if __name__ == "__main__":
             # Create a new state.
             state: ShortDeckPokerState = new_game(n_players, info_set_lut)
             info_set_lut = state.info_set_lut
-            if t % strategy_interval == 0:
+            if t > min_update & t % strategy_interval == 0:  # Only start updating after 800 minutes in Pluribus
                 update_strategy(state, i)
             if t > prune_threshold:
                 if random.uniform(0, 1) < 0.05:
@@ -351,6 +354,12 @@ if __name__ == "__main__":
                 for a in regret[I].keys():
                     regret[I][a] *= d
                     strategy[I][a] *= d
+        if t > min_update & t % dump_iteration == 0:  # Only start updating after 800 minutes in Pluribus
+            # This is for the post-preflop betting rounds. It seems they dump the current strategy
+            # (sigma) 32 times throughout training and then take an average. This allows for estimation of
+            # expected value in leaf nodes later on using modified versions of the blueprint strategy
+            to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
+            joblib.dump(to_persist, f"strategy_{t}.gz", compress="gzip")
         del sigma[t]
         if t % print_iteration == 0:
             print_strategy(strategy)
