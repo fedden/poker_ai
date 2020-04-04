@@ -1,7 +1,6 @@
-import random
 import requests
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template
 
 app = Flask(__name__, static_folder="./dist/static", template_folder="./dist")
 
