@@ -41,6 +41,7 @@ pytest
 Below is a rough structure of the repository. 
 
 ```
+├── applications   # Larger applications like the state visualiser sever.
 ├── paper          # Main source of info and documentation :)
 ├── pluribus       # Main Python library.
 │   ├── ai         # Stub functions for ai algorithms.
@@ -59,7 +60,30 @@ Below is a rough structure of the repository.
 
 ## Code Examples
 
-There are two parts to this repository, the code to manage a game of poker, and the code to train an AI algorithm to play the game of poker. The reason the poker engine is being implemented is because it will likely be useful to have a well-integrated poker environment available during the development of the AI algorithm, incase there are tweaks that must be made to accomadate things like the history of state or the replay of a scenario during Monte Carlo Counterfactual Regret Minimisation. The following code is how one might program a round of poker that is deterministic using the engine. This engine is now the first pass that will be used support self play.
+Here are some assorted examples of things that are being built in this repo.
+
+### State based poker traversal
+
+To perform MCCFR, the core algorithm of pluribus, we need a class that encodes all of the poker rules, that we can apply an action to which then creates a new game state.
+
+```python
+pot = Pot()
+players = [
+    ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+    for player_i in range(n_players)
+]
+state = ShortDeckPokerState(players=players)
+for action in state.legal_actions:
+    new_state: ShortDeckPokerState = state.apply_action(action)
+```
+
+### Playing a game of poker
+
+There are two parts to this repository, the code to manage a game of poker, and the code to train an AI algorithm to play the game of poker. A low level thing to first to is to implement a poker engine class that can manage a game of poker.
+
+The reason the poker engine is implemented is because it is useful to have a well-integrated poker environment available during the development of the AI algorithm, incase there are tweaks that must be made to accomadate things like the history of state or the replay of a scenario during Monte Carlo Counterfactual Regret Minimisation. 
+
+The following code is how one might program a round of poker that is deterministic using the engine. This engine is now the first pass that will be used support self play.
 
 ```python
 from pluribus import utils
@@ -98,7 +122,14 @@ engine = PokerEngine(
 engine.play_one_round()
 ```
 
-The Pluribus AI algorithm is the next thing to implement so more coming on that as soon as possible...
+### Visualisation code
+
+We are also working on code to visualise a given instance of the `ShortDeckPokerState`, which looks like this:
+<p align="center">
+  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
+</p>
+
+It is so we can visualise the AI as it plays, and also debug particular situations visually. The idea is it'll be a live server like TensorBoard, so you'll just push your current state, and you can see what the agents are doing. 
 
 ## Roadmap
 
