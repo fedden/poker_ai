@@ -2,6 +2,11 @@
 
 This code is to visualise a given instance of the `ShortDeckPokerState`.
 
+It looks like this:
+<p align="center">
+  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
+</p>
+
 ### How to run
 
 First build the frontend, this will be served a static files by the `run.py` script.
