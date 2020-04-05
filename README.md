@@ -148,13 +148,13 @@ _Implement a multiplayer working heads up no limit poker game engine to support 
 ### 2. AI iteration.
 _Iterate on the AI algorithms and the integration into the poker engine._
 - [ ] Integrate the AI strategy to support self-play in the multiplayer poker game engine.
-- [ ] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
-- [ ] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
+- [x] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
+- [x] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
 - [ ] Add the real-time search for better strategies during the game.
 
 ### 3. Game engine iteration.
 _Strengthen the game engine with more tests and allow users to see live visualisation of game state._
-- [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
+- [x] Start work on a visualisation server to allow a game state to be displayed. 
 - [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
 - [ ] Work through the coverage, adding more tests, can never have enough.
 
