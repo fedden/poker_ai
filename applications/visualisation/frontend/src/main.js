@@ -4,24 +4,21 @@ import router from './router'
 
 Vue.config.productionTip = false
 
-/* eslint-disable no-new */
-// new Vue({
-//   el: '#app',
-//   router,
-//   render: h => h(App)
-// })
-
-Vue.component('card', {
-  template: `<div class='card' :class='['figures-' + card.f, 'values-' + card.v]'>
-        <h1>{{card.v}}</h1>
-        <div class='figures' :class='card.f'></div>
-        <h1>{{card.v}}</h1>
-    </div>`,
-  props: ['card'],
-})
-
 new Vue({
-  el: '.vue-container',
+  el: '#app',
+  router,
+  render: function (createElement) {
+    return createElement(App, {
+      props: {
+        player_playing: this.player_playing,
+        players: this.players,
+        figures: this.figures,
+        values: this.values,
+        cards: this.cards,
+        five_cards: this.five_cards,
+      },
+    })
+  },
   data: {
     player_playing: 0,
     players: [
