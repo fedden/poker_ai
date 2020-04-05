@@ -1,6 +1,7 @@
 tags
 tags/
 *.pkl
+*.gz
 
 ### WEB STUFF
 
