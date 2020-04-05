@@ -129,7 +129,7 @@ We are also working on code to visualise a given instance of the `ShortDeckPoker
   <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
 </p>
 
-It is so we can visualise the AI as it plays, and also debug particular situations visually. The idea is it'll be a live server like TensorBoard, so you'll just push your current state, and you can see what the agents are doing. 
+It is so we can visualise the AI as it plays, and also debug particular situations visually. The idea is it'll be a live server like TensorBoard, so you'll just push your current state, and you can see what the agents are doing. [The frontend code is based on this codepen.](https://codepen.io/Rovak/pen/ExYeQar)
 
 ## Roadmap
 
