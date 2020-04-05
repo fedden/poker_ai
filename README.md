@@ -122,7 +122,7 @@ engine = PokerEngine(
 engine.play_one_round()
 ```
 
-## Visualisation Code
+### Visualisation code
 
 We are also working on code to visualise a given instance of the `ShortDeckPokerState`, which looks like this:
 <p align="center">
