@@ -1,6 +1,6 @@
 ## Visualisation Code
 
-This code is to visualise a given instance of the `ShortDeckPokerState`.
+This code is to visualise a given instance of the `ShortDeckPokerState`. [The frontend code is based on this codepen.](https://codepen.io/Rovak/pen/ExYeQar)
 
 It looks like this:
 <p align="center">
