@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import App from './App'
+import axios from 'axios'
 import router from './router'
 
 Vue.config.productionTip = false
@@ -19,36 +20,28 @@ new Vue({
       },
     })
   },
+  methods: {
+    getState() {
+      const path = 'http://localhost:5000/api/state'
+      axios
+        .get(path)
+        .then((response) => {
+          this.player_playing = response.data.player_playing
+          this.players = response.data.players
+          this.five_cards = response.five_cards
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    },
+  },
+  created() {
+    this.getState()
+  },
   data: {
     player_playing: 0,
-    players: [
-      { name: 'rivy33', bank: 100, onTable: 77, hasCards: false },
-      {
-        name: 'kattar',
-        color: 'cyan',
-        bank: 400,
-        onTable: 300,
-        hasCards: true,
-      },
-      {
-        name: 'mikelaire',
-        color: 'lightcoral',
-        bank: 100,
-        onTable: 20,
-        hasCards: false,
-      },
-      {
-        name: 'tomtom',
-        color: 'crimson',
-        bank: 100,
-        onTable: 20,
-        hasCards: false,
-      },
-      { name: 'nana', color: '#444', bank: 100, onTable: 20, hasCards: false },
-      // {name:'ionion', color: 'forestgreen', bank: 100, onTable: 20, hasCards: false},
-      // {name:'link6996', color: 'goldenrod', bank: 100, onTable: 20, hasCards: false},
-      // {name:'gossboganon', color: 'gold', bank: 100, onTable: 20, hasCards: false}
-    ],
+    players: [],
+    five_cards: [],
     figures: ['P', 'H', 'C', 'D'],
     values: ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'],
   },
@@ -64,14 +57,6 @@ new Vue({
         }
       }
       return all
-    },
-    five_cards() {
-      let fives = []
-      for (let i = 0; i < 5; i++) {
-        let rand_id = parseInt(Math.random() * this.cards.length)
-        fives.push(this.cards[rand_id])
-      }
-      return fives
     },
   },
 })
