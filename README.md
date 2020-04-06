@@ -4,7 +4,7 @@
 | develop         | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=develop)](https://travis-ci.org/fedden/pluribus-poker-AI) |
 | maintainability | [![Maintainability](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/maintainability)](https://codeclimate.com/github/fedden/pluribus-poker-AI/maintainability) |
 | coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/pluribus-poker-AI/test_coverage) |
-| license         | [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) |
+| license         | [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) |
 
 # 🤖 Pluribus Poker AI
 
@@ -41,10 +41,14 @@ pytest
 Below is a rough structure of the repository. 
 
 ```
+├── applications   # Larger applications like the state visualiser sever.
 ├── paper          # Main source of info and documentation :)
 ├── pluribus       # Main Python library.
 │   ├── ai         # Stub functions for ai algorithms.
-│   └── game       # WIP code for managing a hand of poker.
+│   ├── games      # Implementations of poker games as node based objects that
+│   │              # can be traversed in a depth-first recursive manner.
+│   ├── poker      # WIP general code for managing a hand of poker.
+│   └── utils      # Utility code like seed setting.
 ├── research       # A directory for research/development scripts 
 │                  # to help formulate understanding and ideas.
 ├── scripts        # Scripts to help develop the main library.
@@ -56,14 +60,37 @@ Below is a rough structure of the repository.
 
 ## Code Examples
 
-There are two parts to this repository, the code to manage a game of poker, and the code to train an AI algorithm to play the game of poker. The reason the poker engine is being implemented is because it will likely be useful to have a well-integrated poker environment available during the development of the AI algorithm, incase there are tweaks that must be made to accomadate things like the history of state or the replay of a scenario during Monte Carlo Counterfactual Regret Minimisation. The following code is how one might program a round of poker that is deterministic using the engine. This engine is now the first pass that will be used support self play.
+Here are some assorted examples of things that are being built in this repo.
+
+### State based poker traversal
+
+To perform MCCFR, the core algorithm of pluribus, we need a class that encodes all of the poker rules, that we can apply an action to which then creates a new game state.
+
+```python
+pot = Pot()
+players = [
+    ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+    for player_i in range(n_players)
+]
+state = ShortDeckPokerState(players=players)
+for action in state.legal_actions:
+    new_state: ShortDeckPokerState = state.apply_action(action)
+```
+
+### Playing a game of poker
+
+There are two parts to this repository, the code to manage a game of poker, and the code to train an AI algorithm to play the game of poker. A low level thing to first to is to implement a poker engine class that can manage a game of poker.
+
+The reason the poker engine is implemented is because it is useful to have a well-integrated poker environment available during the development of the AI algorithm, incase there are tweaks that must be made to accomadate things like the history of state or the replay of a scenario during Monte Carlo Counterfactual Regret Minimisation. 
+
+The following code is how one might program a round of poker that is deterministic using the engine. This engine is now the first pass that will be used support self play.
 
 ```python
 from pluribus import utils
 from pluribus.ai.dummy import RandomPlayer
-from pluribus.game.table import PokerTable
-from pluribus.game.engine import PokerEngine
-from pluribus.game.pot import Pot
+from pluribus.poker.table import PokerTable
+from pluribus.poker.engine import PokerEngine
+from pluribus.poker.pot import Pot
 
 # Seed so things are deterministic.
 utils.random.seed(42)
@@ -95,7 +122,14 @@ engine = PokerEngine(
 engine.play_one_round()
 ```
 
-The Pluribus AI algorithm is the next thing to implement so more coming on that as soon as possible...
+### Visualisation code
+
+We are also working on code to visualise a given instance of the `ShortDeckPokerState`, which looks like this:
+<p align="center">
+  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
+</p>
+
+It is so we can visualise the AI as it plays, and also debug particular situations visually. The idea is it'll be a live server like TensorBoard, so you'll just push your current state, and you can see what the agents are doing. [The frontend code is based on this codepen.](https://codepen.io/Rovak/pen/ExYeQar)
 
 ## Roadmap
 
@@ -114,13 +148,13 @@ _Implement a multiplayer working heads up no limit poker game engine to support 
 ### 2. AI iteration.
 _Iterate on the AI algorithms and the integration into the poker engine._
 - [ ] Integrate the AI strategy to support self-play in the multiplayer poker game engine.
-- [ ] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
-- [ ] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
+- [x] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
+- [x] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
 - [ ] Add the real-time search for better strategies during the game.
 
 ### 3. Game engine iteration.
 _Strengthen the game engine with more tests and allow users to see live visualisation of game state._
-- [ ] Add a simple visualisation to allow a game to be visualised as it progresses. 
+- [x] Start work on a visualisation server to allow a game state to be displayed. 
 - [ ] Triple check that the rules are implemented in the poker engine as described in the supplimentary material.
 - [ ] Work through the coverage, adding more tests, can never have enough.
 
@@ -130,7 +164,15 @@ _Strengthen the game engine with more tests and allow users to see live visualis
 
 ## Contributing
 
-This is an open effort and help, criticisms and ideas are all welcome. Feel free to start a discussion on the github issues or to reach out to me at leonfedden at gmail dot com. 
+This is an open effort and help, criticisms and ideas are all welcome. 
+
+First of all, please check out the [CONTRIBUTING](/CONTRIBUTING.md) guide.
+
+Feel free to start a discussion on the github issues or to reach out to me at leonfedden at gmail dot com. 
+
+## License
+
+The code is provided under the copy-left GPL licence. If you need it under a more permissive license then please contact me at leonfedden at gmail dot com.
 
 ## Useful links and acknowledgements
 
@@ -152,20 +194,8 @@ Big shout out to the authors of the following repositories! Here are some MIT li
 Useful tools that contributed to the making of the poker engine:
 * [Poker hand winner calculator that came in handy for building tests for the engine.](https://www.pokerlistings.com/which-hand-wins-calculator)
 
-On abstraction:
-* Pluribus uses abstraction to reduce possibilities and eliminates some decision points
-    * for example, bet sizes - there are only 14
-        * [Pseudo-Harmonic Mapping](https://www.ijcai.org/Proceedings/13/Papers/028.pdf)
-    
-MCCFR:
-* Pluribus uses Monte Carlo CFR
-    * [Just an Overview of MCCFR, not the particular variant that is used in Pluribus](https://papers.nips.cc/paper/3306-regret-minimization-in-games-with-incomplete-information.pdf)
-* Pluribus uses linear CFR for first iterations (400?) in self play:
-    * [Discounted Regret Minimization; Also by Original Authors](https://arxiv.org/pdf/1809.04040.pdf)
-    * if subgame large or beginning of the game, then use linear MCCFR
-* then updates to a variation that only samples the rest of the tree
-    * [Talks About Sampled Form of Regret-Based Pruning in Libratus](https://www.cs.cmu.edu/~noamb/papers/17-IJCAI-Libratus.pdf)
-    * [Goes On to Explain for Extensive Games](https://papers.nips.cc/paper/3713-monte-carlo-sampling-for-regret-minimization-in-extensive-games.pdf)
+Linked Notes 
+* [Based off the supplemental materials](https://github.com/fedden/pluribus-poker-AI/blob/develop/paper/linked_notes.md)
 
 MISC:
 * Some [original author papers](https://www.cs.cmu.edu/~noamb/research.html)
