@@ -4,7 +4,7 @@
 | develop         | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=develop)](https://travis-ci.org/fedden/pluribus-poker-AI) |
 | maintainability | [![Maintainability](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/maintainability)](https://codeclimate.com/github/fedden/pluribus-poker-AI/maintainability) |
 | coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/pluribus-poker-AI/test_coverage) |
-| license         | [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) |
+| license         | [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) |
 
 # 🤖 Pluribus Poker AI
 
@@ -169,6 +169,10 @@ This is an open effort and help, criticisms and ideas are all welcome.
 First of all, please check out the [CONTRIBUTING](/CONTRIBUTING.md) guide.
 
 Feel free to start a discussion on the github issues or to reach out to me at leonfedden at gmail dot com. 
+
+## License
+
+The code is provided under the copy-left GPL licence. If you need it under a more permissive license then please contact me at leonfedden at gmail dot com.
 
 ## Useful links and acknowledgements
 
