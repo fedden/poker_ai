@@ -15,7 +15,7 @@ def test_short_deck_1():
     ]
     state = ShortDeckPokerState(players=players, load_pickle_files=False)
     # Call for all players.
-    player_i_order = [1, 2, 0]
+    player_i_order = [2, 0, 1]
     for i in range(n_players):
         assert state.current_player.name == f"player_{player_i_order[i]}"
         assert len(state.legal_actions) == 3
@@ -45,7 +45,7 @@ def test_short_deck_2():
         for player_i in range(n_players)
     ]
     state = ShortDeckPokerState(players=players, load_pickle_files=False)
-    player_i_order = [1, 2, 0]
+    player_i_order = [2, 0, 1]
     # Call for all players.
     for i in range(n_players):
         assert state.current_player.name == f"player_{player_i_order[i]}"
@@ -116,7 +116,7 @@ def test_short_deck_3(n_players: int):
     state = ShortDeckPokerState(players=players, load_pickle_files=False)
     order = list(range(n_players))
     player_i_order = {
-        "pre_flop": order[-2:] + order[:-2],
+        "pre_flop": order[2:] + order[:2],
         "flop": order,
         "turn": order,
         "river": order,
