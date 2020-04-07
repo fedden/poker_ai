@@ -114,11 +114,11 @@ class ShortDeckPokerState:
         elif action_str == "fold":
             action = new_state.current_player.fold()
         elif action_str == "raise":
-            bet_n_chips = self.big_blind
+            bet_n_chips = new_state.big_blind
             if self._betting_stage in {"turn", "river"}:
                 bet_n_chips *= 2
-            biggest_bet = max(p.n_bet_chips for p in self._poker_engine.table.players)
-            n_chips_to_call = biggest_bet - self.current_player.n_bet_chips
+            biggest_bet = max(p.n_bet_chips for p in new_state.players)
+            n_chips_to_call = biggest_bet - new_state.current_player.n_bet_chips
             raise_n_chips = bet_n_chips + n_chips_to_call
             logger.debug(f"betting {raise_n_chips} n chips")
             action = new_state.current_player.raise_to(n_chips=raise_n_chips)
@@ -151,7 +151,7 @@ class ShortDeckPokerState:
         Setup game and assocaited game-state for the current turn.
         """
         self.player_i += 1
-        if self.player_i >= len(self._table.players):
+        if self.player_i >= len(self.players):
             self.player_i = 0
             finished_betting = not self._poker_engine.more_betting_needed
             if finished_betting:
