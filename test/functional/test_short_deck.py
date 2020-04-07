@@ -132,6 +132,9 @@ def test_short_deck_3(n_players: int):
         assert (
             state.current_player.name == f"player_{target_player_i}"
         ), f"{state.current_player.name} != player_{target_player_i}"
+        assert (
+            state.player_i == target_player_i
+        ), f"{state.player_i} != {target_player_i}"
         # All players call to keep things simple.
         state = state.apply_action("call")
         order_i += 1
