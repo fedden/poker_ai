@@ -151,6 +151,9 @@ def update_strategy(rs: Tuple[int, int], h: str, i: int):
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
+    print("UPDATE FUNCTION")
+    import ipdb
+    ipdb.set_trace()
     ph = 2 if len(h) == 1 else 1  # this is always the case no matter what i is
 
     if (
@@ -208,6 +211,9 @@ def cfr(rs: Tuple[int, int], h: str, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
+    print("CFR")
+    import ipdb
+    ipdb.set_trace()
     ph = 2 if len(h) == 1 else 1  # this is always the case no matter what i is
 
     if h in TERMINAL:
@@ -250,6 +256,9 @@ def cfrp(rs: Tuple[int, int], h: str, i: int, t: int):
     :param t: iteration
     :return: expected value for node for player i
     """
+    print("CFRP")
+    import ipdb
+    ipdb.set_trace()
     ph = 2 if len(h) == 1 else 1
 
     if h in TERMINAL:
