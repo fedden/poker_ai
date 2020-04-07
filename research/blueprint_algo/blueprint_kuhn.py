@@ -1,63 +1,46 @@
 """
-I think this is right??? This is tough!
+DEBUGGING TRIALS/NOTES
 
-call python blueprint_kuhn.py in the blueprint_algo directory
+-Is blueprint kuhn blueprint mockup incorrect in any way?
+--Firstly, I wanted to check if the logic of the blueprint MCCFR algo, as applied to the kuhn
+poker game, had any inaccuracies. After stepping through the logic, I do not believe this is
+the case. The algorithm runs as expected, first going to the depths of the tree. It samples actions
+for the player that is NOT ph based on the regrets up to that point. It searches each action
+if i == ph. Once it finds the expected value of a node, it compares this to the value
+actually generated and updates regret accordingly. In the following seed (not currently set),
+you can see that when t == 11, if you step through the CFR function, you will see an example of player 2
+folding the best hand to a bet (a mistake) and the regret jumps to a positive regret for
+I == '1' for player 1. This accounts for the algorithm's optimizations, as the sampling for player 2
+will allow for occasions where player 2 samples actions that do not work in their favor
+(which is the nature of imperfect information games). In this example, player 2 allowed player 1 to
+bluff, and added positive regret for betting with the the worst hand. The players approach a
+nash equilibrium in this way.
 
-The following code is an attempt at mocking up the pseudo code for the blue print algorithm found in Pluribus. 
--- That pseudo code can be found here, pg. 16: 
----- https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf 
+-Should action samplings done from iteration t+1?
+--There are some cases where player two could immediately benefit from an updated strategy
+within the same iteration where player 1 had played the same infoset when they were p_i.
+However, I believe this would bias results as play would (though perhaps VERY slightly) favor player 2
 
-Additionally, this code has been applied to Kuhn poker and left in a functional style that mimics code that has been 
-pushed to the feature/add-kuhn-poker branch. That code was inspired by the two links below, I believe, pg 12:
--- http://modelai.gettysburg.edu/2013/cfr/cfr.pdf
--- https://github.com/geohot/ai-notebooks/blob/8bdd5ca2d9560f978ea79bb9d0cb8d5acf3dee4b/cfr_kuhn_poker.ipynb
+-Other learnings/Next Steps
+--Next I will step through the three player game to check the game logic/updating of
+regret/sigma
+--Now it makes sense to me why we need to dump sigma every x iterations. The reason being,
+sigma (really regret might be the more important value as sigma isn't always updated) changes drastically
+from time to time. In the case mentioned above, sigma went from being normally p: 1, B: 0 for I = '1'
+to then being P: .5, B: .5.
+--To this effect, if you run the script as it currently exists, you will generate a plot
+of the amount of time a particular move has a sigma value of 1. The behavior is interesting.
+I first noticed it because I felt like there was a disproportionate amount of certain probabilities
+in the sigma object after completing 20000 iterations. Although
+it seems to have a consistent proportion of time that sigma is == 1 for this infoset and action,
+the amount of time sigma spends at a value less than one happens in spurts, whose durations become longer
+(but happen less frequently) over time. This is not a complete analysis of the behavior, but it
+does illustrate the importance of properly setting the parameters before running.
+--Further, if I remember correctly, for three player poker, we are looking at about 70 action
+sequences (is that right??) for each of the 190 (after lossless compression) hands. We must choose
+an appropriate proportion of updates/iters such that the probability of visiting each infoset in the
+preflop round is good enough to produce a decent strategy.
 
-The following code-style choice was made in order to make converting the findings to an OOP style easier and more consistent by
-working from a familiar style (meaning, similar variable names, etc.. to the notebook link above), 
-while not introducing (more) bugs in a pre-mature conversion to work in our Pluribus framework.
-
-The differences between the following code and the notebook above includes: 
--- Addition of linear CFR
--- Addition of negative regret pruning
--- A method of estimating reach that is based on counting occurrences rather than carrying around PI for each player 
-    (PI is the probability of reaching an h)
--- Only updating the strategy every x iterations
--- Based on these changes the algo converges to stratigies for actions, when at nash equilibrium, is at 100% much quicker
-    than the previous algorithm, seemingly
-
-The following would still need to be done:
--- Stop using global variables where possible - a lot of potential for subtle bugs
--- Convert to OOP and use the Pluribus game engine
--- Use minutes instead of iterations for the prune_threshold and discount interval
--- Introduce the chance sampling within the algorithm (Kuhn poker can allow for chance to occur before CFR is called,
-    where as, No Limit Hold'Em would have chance events that could be reached)
--- Ensure that the algorithm is correct and can be used for No Limit Hold'Em poker
--- Only apply this to the first betting round for Pluribus' blue print strategy
--- Only apply pruning to non-terminal nodes and non-last round of betting as described in the supplementary materials:
----- https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf (pg.14 - 15)
--- Only store the actions as you go (not all will be reached in the blue print strategy creation)
-
-Next Steps:
--- Apply this to a short deck no limit hhold em game in conjuction with the clustering algorithm I mocked up found here:
----- https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py
--- Mock up the search algorithm found in the supllemental materials
-
-A note on the blue print strategy: I think there can be some confusion (at least for me) on the blue print strategy.
-My current understanding is that the each player (p_i) in the set of players (P) occupies a FIXED position in game play. I_i represents a
-set of infosets partitioned from I (set of infosets) that is partitioned to which i (player) it belongs. That player is
-defined by what order they go in. You can think of that player as being the expert of their position. They all contribute to the
-same blue print strategy (sigma) and normalized blue print startegy (phi). The term sigma_i refers to the strategy that is
-contributed to by player i based on the I_i, or infosets that they are responsible for in their position. In any case,
-only one strategy profile is updated.
-
-That's my understanding anyway. Here is a good link to that effect (this is referenced from the Pluribus paper with regard to 
-MCCFR), pg 2, bullet 5 (THIS IS MUCH CLEARER IN THE ACTUAL PAPER IN LINK BELOW):
-" For each player i ∈ N a partition Ii of {h ∈ H : P(h) = i} with the property that
-A(h) = A(h') whenever h and h' are in the same member of the partition. For Ii ∈ Ii** 
-we denote by A(Ii) the set A(h) and by P(Ii) the player P(h) for any h ∈ Ii
-. Ii**(is the information partition of player i; a set Ii ∈ Ii** is an information set of player i."
-**(this one is the set of all infosets for partition i)
--- https://papers.nips.cc/paper/3306-regret-minimization-in-games-with-incomplete-information.pdf
 
 """
 import copy
@@ -66,6 +49,7 @@ from typing import Tuple, Dict
 
 import numpy as np
 from tqdm import trange
+import matplotlib.pyplot as plt
 
 
 HANDS = [(1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2)]
@@ -151,9 +135,9 @@ def update_strategy(rs: Tuple[int, int], h: str, i: int):
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
-    print("UPDATE FUNCTION")
-    import ipdb
-    ipdb.set_trace()
+    # print("UPDATE FUNCTION")
+    # import ipdb
+    # ipdb.set_trace()
     ph = 2 if len(h) == 1 else 1  # this is always the case no matter what i is
 
     if (
@@ -171,6 +155,9 @@ def update_strategy(rs: Tuple[int, int], h: str, i: int):
         a = np.random.choice(list(sigma[t][I].keys()), 1, p=list(sigma[t][I].values()))[
             0
         ]
+        # if a == 'B' and I == '1':
+        #     import ipdb
+        #     ipdb.set_trace()
         strategy[I][a] += 1
         # so strategy is counts based on sigma, this takes into account the reach probability
         # so there is no need to pass around that pi guy..
@@ -211,9 +198,10 @@ def cfr(rs: Tuple[int, int], h: str, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
-    print("CFR")
-    import ipdb
-    ipdb.set_trace()
+    # if i == 1 and rs[0] == 1 and h == "":
+    #     print("CFR")
+    #     import ipdb
+    #     ipdb.set_trace()
     ph = 2 if len(h) == 1 else 1  # this is always the case no matter what i is
 
     if h in TERMINAL:
@@ -256,9 +244,10 @@ def cfrp(rs: Tuple[int, int], h: str, i: int, t: int):
     :param t: iteration
     :return: expected value for node for player i
     """
-    print("CFRP")
-    import ipdb
-    ipdb.set_trace()
+    # if t == 13:
+    #     print("CFRP")
+    #     import ipdb
+    #     ipdb.set_trace()
     ph = 2 if len(h) == 1 else 1
 
     if h in TERMINAL:
@@ -298,6 +287,8 @@ def cfrp(rs: Tuple[int, int], h: str, i: int, t: int):
 
 
 if __name__ == "__main__":
+    #np.random.seed(20)
+
     # init tables
     regret = {}
     strategy = {}
@@ -310,19 +301,24 @@ if __name__ == "__main__":
         sigma[1][I] = {k: 1 / len(ACTIONS) for k in ACTIONS}
 
     # algorithm constants
-    strategy_interval = 100
+    strategy_interval = 50
     LCFR_threshold = 4000
-    discount_interval = 100
+    discount_interval = 4000
     prune_threshold = 2000
     C = -20000  # somewhat arbitrary
 
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-    for t in trange(1, 20000):
+    #count = 0
+    counts = []
+    for t in trange(1, 80000):
+        counts.append(sigma[t]['1']['P'])  # as an example of a value that hangs out at 1
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in [1, 2]:  # fixed position i
             h = ""
-            rs = random.choice(HANDS)
+            rs_idx = np.random.choice(len(HANDS), 1)[0]
+            rs = HANDS[rs_idx]
+            print(rs)
             if t % strategy_interval == 0:
                 update_strategy(rs, h, i)
             if t > prune_threshold:
@@ -340,19 +336,16 @@ if __name__ == "__main__":
                     strategy[I][a] *= d
         del sigma[t]
 
+    counts = np.array(counts)
+    print("proportion of time value was 1: ", len(np.where(counts==1)[0])/t)
+    plt.plot(range(0, len(counts)), counts)
+    plt.show()
+
+    import ipdb
+    ipdb.set_trace()
     for k, v in strategy.items():
         norm = sum(list(v.values()))
         print("%3s: P:%.4f B:%.4f" % (k, v["P"] / norm, v["B"] / norm))
         # https://en.wikipedia.org/wiki/Kuhn_poker#Optimal_strategy
         # generally close, converges to 1s much faster
         # reducing C should allow for better convergence, but slower..
-
-# code for normalizing strategy
-# normalized_strategy = {}
-# for I in strategy.keys():
-#     d = strategy[I]
-#     factor = 1.0/sum(list(d.values()))
-#     normalized_d = {k: v*factor for k, v in d.items()}
-#     normalized_strategy[I] = normalized_d
-#
-# print(normalized_strategy)
