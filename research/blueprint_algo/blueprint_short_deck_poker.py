@@ -44,7 +44,6 @@ from __future__ import annotations
 import copy
 import collections
 import json
-import logging
 import random
 from typing import Any, Dict
 
@@ -58,7 +57,6 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
-logger = logging.getLogger(__name__)
 log = False
 
 
@@ -334,7 +332,7 @@ if __name__ == "__main__":
             # Create a new state.
             state: ShortDeckPokerState = new_game(n_players, info_set_lut)
             info_set_lut = state.info_set_lut
-            if (t > update_threshold) & (t % strategy_interval == 0):
+            if t > update_threshold and t % strategy_interval == 0:
                 # Only start updating after 800 minutes in Pluribus
                 update_strategy(state, i)
             if t > prune_threshold:
