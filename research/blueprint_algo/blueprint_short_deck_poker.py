@@ -43,11 +43,13 @@ from __future__ import annotations
 
 import copy
 import collections
+import json
 import random
-from typing import Dict
+from typing import Any, Dict
 
+import joblib
 import numpy as np
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from pluribus import utils
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
@@ -55,11 +57,12 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
-utils.random.seed(42)
+log = False
 
 
-# TODO: In general, wondering how important this function is if we are to use the blueprint algo for more than the
-#  preflop round? Would using just sigma allow for a more complete rendering of strategies for infosets?
+# TODO: In general, wondering how important this function is if we are to use
+# the blueprint algo for more than the preflop round? Would using just sigma
+# allow for a more complete rendering of strategies for infosets?
 def update_strategy(state: ShortDeckPokerState, i: int):
     """
 
@@ -71,15 +74,18 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     """
     ph = state.player_i  # this is always the case no matter what i is
 
-    if state.is_terminal or state.players[i].is_active is False:
-        # or if betting round is > 0, strategy is only
-        # updated in betting round 1 for Pluribus, but I am doing all rounds in this example
+    player_not_in_hand = not state.players[i].is_active
+    if state.is_terminal or player_not_in_hand or state.betting_round > 0:
         return
+    # NOTE(fedden): According to Algorithm 1 in the supplementary material,
+    #               we would add in the following bit of logic. However we
+    #               already have the game logic embedded in the state class,
+    #               and this accounts for the chance samplings. In other words,
+    #               it makes sure that chance actions such as dealing cards
+    #               happen at the appropriate times.
     # elif h is chance_node:
     #   sample action from strategy for h
     #   update_strategy(rs, h + a, i)
-    # TODO: Does the game logic appropriately account for chance samplings? In other words, make sure that
-    #  chance actions (ie; dealing cards) are done the appropriate amount of times.
     elif ph == i:
         I = state.info_set
         # calculate regret
@@ -94,14 +100,17 @@ def update_strategy(state: ShortDeckPokerState, i: int):
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
             sigma[t][I] = {action: p for action in state.legal_actions}
+        # Increment the action counter.
         strategy[I][a] += 1
-        # so strategy is counts based on sigma, this takes into account the reach probability
-        # so there is no need to pass around that pi guy..
+        # so strategy is counts based on sigma, this takes into account the
+        # reach probability so there is no need to pass around that pi guy..
         new_state: ShortDeckPokerState = state.apply_action(a)
         update_strategy(new_state, i)
     else:
+        # Traverse each action.
         for a in state.legal_actions:
-            # not actually updating the strategy for p_i != i, only one i at a time
+            # not actually updating the strategy for p_i != i, only one i at a
+            # time
             new_state: ShortDeckPokerState = state.apply_action(a)
             update_strategy(new_state, i)
 
@@ -141,20 +150,27 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
 
     if state.is_terminal:
         return state.payout[i] * (1 if i == 1 else -1)
+    # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
+    #               instructs the following lines of logic, but state class
+    #               will already skip to the next in-hand player.
     # elif p_i not in hand:
     #   cfr()
-    # TODO: Does this need to be added or does the game logic account for this?
+    # NOTE(fedden): According to Algorithm 1 in the supplementary material,
+    #               we would add in the following bit of logic. However we
+    #               already have the game logic embedded in the state class,
+    #               and this accounts for the chance samplings. In other words,
+    #               it makes sure that chance actions such as dealing cards
+    #               happen at the appropriate times.
     # elif h is chance_node:
     #   sample action from strategy for h
     #   cfr()
-    # TODO: Does the game logic appropriately account for chance samplings? In other words, make sure that
-    #  chance actions (ie; dealing cards) are done the appropriate amount of times.
     elif ph == i:
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
-        # TODO: Does updating sigma here (as opposed to after regret) miss out on any updates?
-        #  If so, is there any benefit to having it up here?
+        # TODO: Does updating sigma here (as opposed to after regret) miss out
+        #       on any updates? If so, is there any benefit to having it up
+        #       here?
         vo = 0.0
         voa = {}
         for a in state.legal_actions:
@@ -163,7 +179,8 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
             vo += sigma[t][I][a] * voa[a]
         for a in state.legal_actions:
             regret[I][a] += voa[a] - vo
-            # do not need update the strategy based on regret, strategy does that with sigma
+            # do not need update the strategy based on regret, strategy does
+            # that with sigma
         return vo
     else:
         Iph = state.info_set
@@ -194,20 +211,27 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
 
     if state.is_terminal:
         return state.payout[i] * (1 if i == 1 else -1)
+    # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
+    #               instructs the following lines of logic, but state class
+    #               will already skip to the next in-hand player.
     # elif p_i not in hand:
-    #   cfrp()
-    # TODO: Does this need to be added or does the game logic account for this?
-    # elif h is chance_node:  -- we don't care about chance nodes here, but we will for No Limit
+    #   cfr()
+    # NOTE(fedden): According to Algorithm 1 in the supplementary material,
+    #               we would add in the following bit of logic. However we
+    #               already have the game logic embedded in the state class,
+    #               and this accounts for the chance samplings. In other words,
+    #               it makes sure that chance actions such as dealing cards
+    #               happen at the appropriate times.
+    # elif h is chance_node:
     #   sample action from strategy for h
-    #   cfrp()
-    # TODO: Does the game logic appropriately account for chance samplings? In other words, make sure that
-    #  chance actions (ie; dealing cards) are done the appropriate amount of times.
+    #   cfr()
     elif ph == i:
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
-        # TODO: Does updating sigma here (as opposed to after regret) miss out on any updates?
-        #  If so, is there any benefit to having it up here?
+        # TODO: Does updating sigma here (as opposed to after regret) miss out
+        #       on any updates? If so, is there any benefit to having it up
+        #       here?
         vo = 0.0
         voa = {}
         explored = {}  # keeps tracked of items that can be skipped
@@ -222,7 +246,8 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         for a in state.legal_actions:
             if explored[a]:
                 regret[I][a] += voa[a] - vo
-                # do not need update the strategy based on regret, strategy does that with sigma
+                # do not need update the strategy based on regret, strategy
+                # does that with sigma
         return vo
     else:
         Iph = state.info_set
@@ -240,40 +265,75 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         return cfrp(new_state, i, t)
 
 
-def new_game(n_players: int) -> ShortDeckPokerState:
+def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPokerState:
     """Create a new game of short deck poker."""
     pot = Pot()
     players = [
         ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
         for player_i in range(n_players)
     ]
-    state = ShortDeckPokerState(players=players)
+    if info_set_lut:
+        # Don't reload massive files, it takes ages.
+        state = ShortDeckPokerState(players=players, load_pickle_files=False)
+        state.info_set_lut = info_set_lut
+    else:
+        # Load massive files.
+        state = ShortDeckPokerState(players=players)
     return state
 
 
+def print_strategy(strategy: Dict[str, Dict[str, int]]):
+    """Print strategy."""
+    for info_set, action_to_probabilities in sorted(strategy.items()):
+        norm = sum(list(action_to_probabilities.values()))
+        tqdm.write(f"{info_set}")
+        for action, probability in action_to_probabilities.items():
+            tqdm.write(f"  - {action}: {probability / norm:.2f}")
+
+
+def to_dict(**kwargs) -> Dict[str, Any]:
+    """Hacky method to convert weird collections dicts to regular dicts."""
+    return json.loads(json.dumps(copy.deepcopy(kwargs)))
+
+
 if __name__ == "__main__":
-    # init tables
+    utils.random.seed(42)
+    # TODO(fedden): Note from the supplementary material, the data here will
+    #               need to be lower precision: "To save memory, regrets were
+    #               stored using 4-byte integers rather than 8-byte doubles.
+    #               There was also a ﬂoor on regret at -310,000,000 for every
+    #               action. This made it easier to unprune actions that were
+    #               initially pruned but later improved. This also prevented
+    #               integer overﬂows".
     strategy = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
     regret = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
     sigma = collections.defaultdict(
         lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     )
-
     # algorithm constants
-    strategy_interval = 1  # it's just to test.
+    strategy_interval = 10  # it's just to test.
+    n_iterations = 200
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
     C = -20000  # somewhat arbitrary
     n_players = 3
+    print_iteration = 10
+    dump_iteration = 10
+    update_threshold = 50  # 800 minutes in Pluribus
+
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-    for t in trange(1, 2):
+    logging.info("beginning training")
+    info_set_lut = {}
+    for t in trange(1, n_iterations + 1, desc="train iter"):
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
-            state: ShortDeckPokerState = new_game(n_players)
-            if t % strategy_interval == 0:
+            state: ShortDeckPokerState = new_game(n_players, info_set_lut)
+            info_set_lut = state.info_set_lut
+            if t > update_threshold and t % strategy_interval == 0:
+                # Only start updating after 800 minutes in Pluribus
                 update_strategy(state, i)
             if t > prune_threshold:
                 if random.uniform(0, 1) < 0.05:
@@ -283,16 +343,29 @@ if __name__ == "__main__":
             else:
                 cfr(state, i, t)
         if t < LCFR_threshold & t % discount_interval == 0:
+            # TODO(fedden): Is discount_interval actually set/managed in
+            #               minutes here? In Algorithm 1 this should be managed
+            #               in minutes using perhaps the time module, but here
+            #               it appears to be being managed by the iterations
+            #               count.
             d = (t / discount_interval) / ((t / discount_interval) + 1)
             for I in regret.keys():
                 for a in regret[I].keys():
                     regret[I][a] *= d
                     strategy[I][a] *= d
+        if (t > update_threshold) & (t % dump_iteration == 0):
+            # Only start updating after 800 minutes in Pluribus
+            # This is for the post-preflop betting rounds. It seems they
+            # dump the current strategy (sigma) throughout
+            # training and then take an average.
+            # This allows for estimation of expected value in
+            # leaf nodes later on using modified versions of the blueprint strategy
+            to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
+            joblib.dump(to_persist, f"strategy_{t}.gz", compress="gzip")
         del sigma[t]
+        if t % print_iteration == 0:
+            print_strategy(strategy)
 
-    import ipdb
-    ipdb.set_trace()
-
-    for k, v in strategy.items():
-        norm = sum(list(v.values()))
-        print("%3s: P:%.4f B:%.4f" % (k, v["P"] / norm, v["B"] / norm))
+    to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
+    joblib.dump(to_persist, "strategy.gz", compress="gzip")
+    print_strategy(strategy)

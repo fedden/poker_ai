@@ -4,7 +4,7 @@ import operator
 import copy
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import dill as pickle
 
@@ -33,6 +33,12 @@ class ShortDeckPokerState:
         load_pickle_files: bool = True,
     ):
         """Initialise state."""
+        n_players = len(players)
+        if n_players <= 1:
+            raise ValueError(
+                f"At least 2 players must be provided but only {n_players} "
+                f"were provided."
+            )
         if load_pickle_files:
             self.info_set_lut = self._load_pickle_files(pickle_dir)
         else:
@@ -61,10 +67,32 @@ class ShortDeckPokerState:
         # Deal private cards to players.
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
-        self._history: List[Action] = []
-        self.player_i = 0
+        self._history: List[str] = []
+        self._player_i_index = 0
         self._betting_stage = "pre_flop"
+        self._betting_stage_to_round: Dict[str, int] = {
+            "pre_flop": 0,
+            "flop": 1,
+            "turn": 2,
+            "river": 3,
+            "show_down": 4,
+        }
+        # Rotate the big and small blind to the final positions for the pre
+        # flop round only.
+        player_i_order: List[int] = [p_i for p_i in range(n_players)]
+        self._player_i_lut: Dict[str, List[int]] = {
+            "pre_flop": player_i_order[-2:] + player_i_order[:-2],
+            "flop": player_i_order,
+            "turn": player_i_order,
+            "river": player_i_order,
+            "show_down": player_i_order,
+            "terminal": player_i_order,
+        }
         self._reset_betting_round_state()
+
+    def __repr__(self):
+        """Return a helpful description of object in strings and debugger."""
+        return f"<ShortDeckPokerState player_i={self.player_i} betting_stage={self._betting_stage}>"
 
     def apply_action(self, action_str: Optional[str]) -> ShortDeckPokerState:
         """Create a new state after applying an action.
@@ -98,16 +126,16 @@ class ShortDeckPokerState:
                 not new_state.current_player.is_active
             ), "Active player cannot do nothing!"
         elif action_str == "call":
-            action = new_state.current_player.call(players=self._table.players)
+            action = new_state.current_player.call(players=new_state.players)
             logger.debug("calling")
         elif action_str == "fold":
             action = new_state.current_player.fold()
         elif action_str == "raise":
-            bet_n_chips = self.big_blind
+            bet_n_chips = new_state.big_blind
             if self._betting_stage in {"turn", "river"}:
                 bet_n_chips *= 2
-            biggest_bet = max(p.n_bet_chips for p in self._poker_engine.table.players)
-            n_chips_to_call = biggest_bet - self.current_player.n_bet_chips
+            biggest_bet = max(p.n_bet_chips for p in new_state.players)
+            n_chips_to_call = biggest_bet - new_state.current_player.n_bet_chips
             raise_n_chips = bet_n_chips + n_chips_to_call
             logger.debug(f"betting {raise_n_chips} n chips")
             action = new_state.current_player.raise_to(n_chips=raise_n_chips)
@@ -118,13 +146,20 @@ class ShortDeckPokerState:
                 f"type {type(action)}."
             )
         # Update the new state.
-        new_state._history.append(action)
+        new_state._history.append(str(action))
         # Player has made move, increment the player that is next.
         while True:
             new_state._move_to_next_player()
             terminal = self._betting_stage in {"terminal", "show_down"}
             if new_state.current_player.is_active or terminal:
                 break
+            else:
+                # The current player isn't active, and we are not terminal.
+                # We'll move to the next player in the next iteration of this
+                # while loop, but append a null action to the history to
+                # signify the notation h · 0 in algorithm 1 of the
+                # supplementary material of the Pluribus paper.
+                new_state._history.append("skip")
         return new_state
 
     def _move_to_next_player(self):
@@ -132,9 +167,9 @@ class ShortDeckPokerState:
 
         Setup game and assocaited game-state for the current turn.
         """
-        self.player_i += 1
-        if self.player_i >= len(self._table.players):
-            self.player_i = 0
+        self._player_i_index += 1
+        if self._player_i_index >= len(self.players):
+            self._player_i_index = 0
             finished_betting = not self._poker_engine.more_betting_needed
             if finished_betting:
                 # We have done atleast one full round of betting, increment
@@ -204,6 +239,29 @@ class ShortDeckPokerState:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
 
     @property
+    def player_i(self) -> int:
+        """Get the index of the players turn it is."""
+        return self._player_i_lut[self._betting_stage][self._player_i_index]
+
+    @player_i.setter
+    def player_i(self, _: Any):
+        """Raise an error if player_i is set."""
+        raise ValueError(f"The player_i property should not be set.")
+
+    @property
+    def betting_round(self) -> int:
+        """Algorithm 1 of pluribus supp. material references betting_round."""
+        try:
+            betting_round = self._betting_stage_to_round[self._betting_stage]
+        except KeyError:
+            raise ValueError(
+                f"Attemped to get betting round for stage "
+                f"{self._betting_stage} but was not supported in the lut with "
+                f"keys: {list(self._betting_stage_to_round.keys())}"
+            )
+        return betting_round
+
+    @property
     def info_set(self) -> str:
         """Get the information set for the current player."""
         cards = sorted(
@@ -225,7 +283,7 @@ class ShortDeckPokerState:
     def payout(self) -> Dict[int, int]:
         """Return player index to payout number of chips dictionary."""
         n_chips_delta = dict()
-        for player_i, player in enumerate(self._table.players):
+        for player_i, player in enumerate(self.players):
             n_chips_delta[player_i] = player.n_chips - self._initial_n_chips
         return n_chips_delta
 
@@ -262,13 +320,3 @@ class ShortDeckPokerState:
         else:
             actions += [None]
         return actions
-
-    @property
-    def h(self) -> List[Action]:
-        """Returns the history."""
-        return self._history
-
-    @property
-    def rs(self) -> List[List[Card]]:
-        """Returns the players hands."""
-        return [player.cards for player in self._table.players]
