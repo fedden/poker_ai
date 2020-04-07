@@ -81,7 +81,7 @@ class ShortDeckPokerState:
         # flop round only.
         player_i_order: List[int] = [p_i for p_i in range(n_players)]
         self._player_i_lut: Dict[str, List[int]] = {
-            "pre_flop": player_i_order[-2:] + player_i_order[:-2],
+            "pre_flop": player_i_order[2:] + player_i_order[:2],
             "flop": player_i_order,
             "turn": player_i_order,
             "river": player_i_order,
