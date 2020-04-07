@@ -12,8 +12,9 @@ def test_short_deck_1():
     ]
     state = ShortDeckPokerState(players=players, load_pickle_files=False)
     # Call for all players.
-    for player_i in range(n_players):
-        assert state.current_player.name == f"player_{player_i}"
+    player_i_order = [2, 3, 1]
+    for i in range(n_players):
+        assert state.current_player.name == f"player_{player_i_order[i]}"
         assert len(state.legal_actions) == 3
         assert state._betting_stage == "pre_flop"
         state = state.apply_action(action_str="call")
@@ -41,9 +42,10 @@ def test_short_deck_2():
         for player_i in range(n_players)
     ]
     state = ShortDeckPokerState(players=players, load_pickle_files=False)
+    player_i_order = [2, 3, 1]
     # Call for all players.
-    for player_i in range(n_players):
-        assert state.current_player.name == f"player_{player_i}"
+    for i in range(n_players):
+        assert state.current_player.name == f"player_{player_i_order[i]}"
         assert len(state.legal_actions) == 3
         assert state._betting_stage == "pre_flop"
         state = state.apply_action(action_str="call")
