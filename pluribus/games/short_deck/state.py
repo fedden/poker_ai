@@ -77,14 +77,17 @@ class ShortDeckPokerState:
             "river": 3,
             "show_down": 4,
         }
-        self._player_i_lut: Dict[str, List[int]] = {
-            betting_stage: [p_i for p_i in range(n_players)]
-            for betting_stage in self._betting_stage_to_round.keys()
-        }
-        pre_flop = self._player_i_lut["pre_flop"]
         # Rotate the big and small blind to the final positions for the pre
         # flop round only.
-        self._player_i_lut["pre_flop"] = pre_flop[-2:] + pre_flop[:-2]
+        player_i_order: List[int] = [p_i for p_i in range(n_players)]
+        self._player_i_lut: Dict[str, List[int]] = {
+            "pre_flop": player_i_order[-2:] + player_i_order[:-2],
+            "flop": player_i_order,
+            "turn": player_i_order,
+            "river": player_i_order,
+            "show_down": player_i_order,
+            "terminal": player_i_order,
+        }
         self._reset_betting_round_state()
 
     def __repr__(self):
