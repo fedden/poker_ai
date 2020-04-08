@@ -1,43 +1,16 @@
 """
-call python blueprint_short_deck_poker.py in the research/blueprint_algo directory
+Notes:
+    When state.player_i == i, and i folds, game play continues. I don't think this is necessarily wrong, but
+    want to think about it more because the players continue to play after this, even though the other players aren't
+    updating regrets. However, they are still calculating strategy, which is helpful, as sigma is only updated when we
+    stumble upon a particular infoset, so IF the regret exists already, this is helpful, as now sigma is updated,
+    which makes the average strategy for post flop rounds (averaged from the strategy dump every x iterations) better,
+    theoretically.
 
-The following code is an attempt at mocking up the pseudo code for the blueprint algorithm found in Pluribus.
--- That pseudo code can be found here, pg. 16:
----- https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-
-Additionally, this blueprint mockup has previously been applied to Kuhn poker.
--- https://github.com/fedden/pluribus-poker-AI/blob/develop/research/blueprint_algo/blueprint_kuhn.py
-
-This code was left in a functional style that mimics code that has been pushed to the feature/add-kuhn-poker branch.
-That code was originally inspired by the two links below, I believe, pg 12:
--- http://modelai.gettysburg.edu/2013/cfr/cfr.pdf
--- https://github.com/geohot/ai-notebooks/blob/8bdd5ca2d9560f978ea79bb9d0cb8d5acf3dee4b/cfr_kuhn_poker.ipynb
-
-The code-style choice was made in order to make converting the findings to an OOP style easier and more
-consistent by working from a familiar style (meaning, similar variable names, etc.. to the notebook link above),
-while not introducing (more) bugs in a pre-mature conversion to work in our Pluribus framework.
-
-The differences between the following code and blueprint_kuhn.py:
--- Applied blueprint mockup to Limit Holdem with three players with 20 card deck
----- This choice of a contrived short deck game
----- is in order to apply game logic that introduces similar complexities as No Limit but on a much smaller game tree
--- Now only storing actions in strategy/sigma/regret as we "discover" the infoset
--- Incorporates card combination clustering from the following files:
----- https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py
----- https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction_multiprocess.py
-
-The following would still need to be done:
--- Debug (search through TODOs)
--- Decide if the blueprint algo needs to be altered to be used for rounds past the first round (Pluribus only uses the
-blueprint for the preflop round)
----- We plan to use the blueprint algo for all rounds in order to have some intelligence without needing to search
----- This will allow for us to host the bot cheaply (although will sacrifice some itelligence)
--- Decide if chance sampling needs to be treated differently than it's currently being implemented
--- Adjust game logic if needed
--- Stop using global variables where possible - a lot of potential for subtle bugs
--- Use minutes instead of iterations for the prune_threshold and discount interval
--- Only apply pruning to non-terminal nodes and non-last round of betting as described in the supplementary materials:
----- https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf (pg.14 - 15)
+    For my own edification. Rules are same as No Limit, except that small bet and big bet are 2x small blind and
+    big blind, respectively. The first two rounds can only use the small bet and the last two rounds can only use
+    big bets. There seem to be some different rules over the number of raises in each round with the majority
+    of sources saying one bet with three raises (total 4 "raises"). I left off at iteration one, after "skip"
 """
 from __future__ import annotations
 
@@ -46,6 +19,7 @@ import collections
 import json
 import random
 from typing import Any, Dict
+import logging
 
 import joblib
 import numpy as np
@@ -63,6 +37,8 @@ log = False
 # TODO: In general, wondering how important this function is if we are to use
 # the blueprint algo for more than the preflop round? Would using just sigma
 # allow for a more complete rendering of strategies for infosets?
+# From Future Colin: No, sigma updates wildly
+# (see https://github.com/fedden/pluribus-poker-AI/blob/feature/WIP-debug-test-blueprint/research/blueprint_algo/blueprint_kuhn.py)
 def update_strategy(state: ShortDeckPokerState, i: int):
     """
 
@@ -72,10 +48,10 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
-    ph = state.player_i  # this is always the case no matter what i is
+    ph = state.player_i
 
     player_not_in_hand = not state.players[i].is_active
-    if state.is_terminal or player_not_in_hand or state.betting_round > 0:
+    if state.is_terminal or player_not_in_hand or state.betting_round > 0:  # looks good
         return
     # NOTE(fedden): According to Algorithm 1 in the supplementary material,
     #               we would add in the following bit of logic. However we
@@ -96,7 +72,7 @@ def update_strategy(state: ShortDeckPokerState, i: int):
                 list(sigma[t][I].keys()), 1, p=list(sigma[t][I].values())
             )[0]
         except ValueError:
-            p = 1 / len(state.legal_actions)
+            p = 1 / len(state.legal_actions) # should be good
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
             sigma[t][I] = {action: p for action in state.legal_actions}
@@ -146,10 +122,15 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
+    print("CFR")
+    import ipdb
+    ipdb.set_trace()
     ph = state.player_i
 
     if state.is_terminal:
         return state.payout[i] * (1 if i == 1 else -1)
+        # TODO: I think this might need to be different,
+        #  but I have not gotten there yet
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -210,7 +191,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     ph = state.player_i
 
     if state.is_terminal:
-        return state.payout[i] * (1 if i == 1 else -1)
+        return state.payout[i] * (1 if i == 1 else -1)  # TODO need to check this
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -262,7 +243,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
             a = np.random.choice(state.legal_actions, p=probabilities)
             sigma[t][Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
-        return cfrp(new_state, i, t)
+        return cfrp(new_state, i, t)  
 
 
 def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPokerState:
@@ -273,7 +254,7 @@ def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPoke
         for player_i in range(n_players)
     ]
     if info_set_lut:
-        # Don't reload massive files, it takes ages.
+        # Don't reload massive files, it takes ages. EONS
         state = ShortDeckPokerState(players=players, load_pickle_files=False)
         state.info_set_lut = info_set_lut
     else:
@@ -311,14 +292,14 @@ if __name__ == "__main__":
         lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     )
     # algorithm constants
-    strategy_interval = 10  # it's just to test.
-    n_iterations = 200
+    strategy_interval = 2  # it's just to test.
+    n_iterations = 10
     LCFR_threshold = 80
-    discount_interval = 10
-    prune_threshold = 40
+    discount_interval = 1000
+    prune_threshold = 4000
     C = -20000  # somewhat arbitrary
     n_players = 3
-    print_iteration = 10
+    print_iteration = 1
     dump_iteration = 10
     update_threshold = 50  # 800 minutes in Pluribus
 
