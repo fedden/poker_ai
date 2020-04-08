@@ -96,7 +96,7 @@ def update_strategy(state: ShortDeckPokerState, i: int, t: int):
     elif ph == i:
         I = state.info_set
         # calculate regret
-        calculate_strategy(regret, sigma, I, state)
+        calculate_strategy(regret, sigma, I, state, t)
         # choose an action based of sigma
         try:
             a = np.random.choice(
@@ -127,6 +127,7 @@ def calculate_strategy(
     sigma: Dict[int, Dict[str, Dict[str, float]]],
     I: str,
     state: ShortDeckPokerState,
+    t: int,
 ):
     """
 
@@ -174,7 +175,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     elif ph == i:
         I = state.info_set
         # calculate strategy
-        calculate_strategy(regret, sigma, I, state)
+        calculate_strategy(regret, sigma, I, state, t)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
@@ -191,7 +192,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         return vo
     else:
         Iph = state.info_set
-        calculate_strategy(regret, sigma, Iph, state)
+        calculate_strategy(regret, sigma, Iph, state, t)
         try:
             a = np.random.choice(
                 list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
@@ -205,7 +206,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         return cfr(new_state, i, t)
 
 
-def cfrp(state: ShortDeckPokerState, i: int, t: int):
+def cfrp(state: ShortDeckPokerState, i: int, t: int, c: int):
     """
     pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
 
@@ -235,7 +236,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     elif ph == i:
         I = state.info_set
         # calculate strategy
-        calculate_strategy(regret, sigma, I, state)
+        calculate_strategy(regret, sigma, I, state, t)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
@@ -243,9 +244,9 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         voa = {}
         explored = {}  # keeps tracked of items that can be skipped
         for a in state.legal_actions:
-            if regret[I][a] > C:
+            if regret[I][a] > c:
                 new_state: ShortDeckPokerState = state.apply_action(a)
-                voa[a] = cfrp(new_state, i, t)
+                voa[a] = cfrp(new_state, i, t, c)
                 explored[a] = True
                 vo += sigma[t][I][a] * voa[a]
             else:
@@ -258,7 +259,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         return vo
     else:
         Iph = state.info_set
-        calculate_strategy(regret, sigma, Iph, state)
+        calculate_strategy(regret, sigma, Iph, state, t)
         try:
             a = np.random.choice(
                 list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
@@ -269,7 +270,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
             a = np.random.choice(state.legal_actions, p=probabilities)
             sigma[t][Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
-        return cfrp(new_state, i, t)
+        return cfrp(new_state, i, t, c)
 
 
 def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPokerState:
@@ -319,7 +320,7 @@ def _create_dir() -> Path:
 @click.option("--lcfr_threshold", default=80, help=".")
 @click.option("--discount_interval", default=10, help=".")
 @click.option("--prune_threshold", default=40, help=".")
-@click.option("--C", default=-20000, help=".")
+@click.option("--c", default=-20000, help=".")
 @click.option("--n_players", default=3, help=".")
 @click.option("--print_iteration", default=10, help=".")
 @click.option("--dump_iteration", default=10, help=".")
@@ -330,7 +331,7 @@ def train(
     lcfr_threshold: int,
     discount_interval: int,
     prune_threshold: int,
-    C: int,
+    c: int,
     n_players: int,
     print_iteration: int,
     dump_iteration: int,
@@ -338,9 +339,7 @@ def train(
 ):
     """Train agent."""
     # Get the values passed to this method, save this.
-    config: Dict[str, int] = {
-        arg: locals()[arg] for arg in inspect.getargspec(train).args
-    }
+    config: Dict[str, int] = {**locals()}
     save_path: Path = _create_dir()
     with open(save_path / "config.yaml", "w") as steam:
         yaml.dump(config, steam)
@@ -373,7 +372,7 @@ def train(
                 if random.uniform(0, 1) < 0.05:
                     cfr(state, i, t)
                 else:
-                    cfrp(state, i, t)
+                    cfrp(state, i, t, c)
             else:
                 cfr(state, i, t)
         if t < lcfr_threshold & t % discount_interval == 0:
