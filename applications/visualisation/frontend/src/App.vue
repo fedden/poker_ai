@@ -1,51 +1,17 @@
 <template>
 <div class="vue-container">
     <div class="table">
-        <div class="card-place">
-            <card v-for="(card, index) in five_cards" :key="index" :card="card"></card>
-        </div>
+        <CommunityCards :five_cards=five_cards></CommunityCards>
         <div class="players">
-            <div v-for="(value, index) in players"
-                  class="player" 
-                  :class="['player-' + (index + 1), {'playing': player_playing === index}]">
-                <div class="bank">
-                    <div class="bank-value">{{ value.bank - value.onTable }}</div>
-                    <div class="jetons v-10" v-if="(value.bank - value.onTable) / 10 >= 1"></div>
-                    <div class="jetons v-5" v-if="(value.bank - value.onTable) / 2 >= 1"></div>
-                    <div class="jetons v-1" v-if="(value.bank - value.onTable) >= 1"></div>
-                </div>
-                <div class="avatar" :style="{backgroundColor: value.color || 'dodgerblue'}"></div>
-                <div class="name">{{value.name}}</div>
-                <div class="mise">
-                    <div class="mise-value">
-                        {{ value.onTable }}
-                    </div>
-                    <div class="jeton-10">    
-                        <div class="jetons v-10" v-for="(n, i) in ((value.onTable - (value.onTable % 10)) / 10)" :style="{top: (-2 + i) + 'px'}" v-if="value.onTable / 10 >= 1"></div>
-                    </div>
-                    <div class="jeton-5">
-                        <div class="jetons v-5" v-for="(n, i) in (((value.onTable % 10) - ((value.onTable % 10) % 2)) / 2)" :style="{top: (-2 + i) + 'px'}" v-if="value.onTable % 10 && value.onTable % 10 >= 2"></div>
-                    </div>
-                    <div class="jeton-1">
-                        <div class="jetons v-1" v-if="value.onTable % 10 && value.onTable % 2"></div>
-                    </div>
-                </div>
-            </div>
+            <Player :key=index v-for="(value, index) in players" :player=value :player_playing=player_playing :index=index></Player>
         </div>
     </div>
 </div>
 </template>
 
 <script>
-import Vue from 'vue'
-Vue.component('card', {
-  template: `<div class="card" :class="['figures-' + card.f, 'values-' + card.v]">
-        <h1>{{card.v}}</h1>
-        <div class="figures" :class="card.f"></div>
-        <h1>{{card.v}}</h1>
-    </div>`,
-  props: ['card']
-})
+import CommunityCards from './components/CommunityCards'
+import Player from './components/Player'
 
 export default {
   name: 'App',
@@ -56,7 +22,11 @@ export default {
     'values',
     'cards',
     'five_cards',
-  ]
+  ],
+  components: {
+    CommunityCards,
+    Player
+  }
 }
 </script>
 
