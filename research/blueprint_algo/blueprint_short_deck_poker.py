@@ -44,6 +44,7 @@ from __future__ import annotations
 import copy
 import collections
 import datetime
+import inspect
 import json
 import random
 from pathlib import Path
@@ -52,6 +53,7 @@ from typing import Any, Dict
 import click
 import joblib
 import numpy as np
+import yaml
 from tqdm import tqdm, trange
 
 from pluribus import utils
@@ -335,6 +337,13 @@ def train(
     update_threshold: int,
 ):
     """Train agent."""
+    # Get the values passed to this method, save this.
+    config: Dict[str, int] = {
+        arg: locals()[arg] for arg in inspect.getargspec(train).args
+    }
+    save_path: Path = _create_dir()
+    with open(save_path / "config.yaml", "w") as steam:
+        yaml.dump(config, steam)
     utils.random.seed(42)
     # TODO(fedden): Note from the supplementary material, the data here will
     #               need to be lower precision: "To save memory, regrets were
@@ -350,7 +359,6 @@ def train(
     )
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-    save_path: Path = _create_dir()
     info_set_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
         sigma[t + 1] = copy.deepcopy(sigma[t])
