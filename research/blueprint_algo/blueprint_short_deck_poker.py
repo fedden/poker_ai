@@ -43,8 +43,10 @@ from __future__ import annotations
 
 import copy
 import collections
+import datetime
 import json
 import random
+from pathlib import Path
 from typing import Any, Dict
 
 import click
@@ -299,6 +301,16 @@ def to_dict(**kwargs) -> Dict[str, Any]:
     return json.loads(json.dumps(copy.deepcopy(kwargs)))
 
 
+def _create_dir() -> Path:
+    """Create and get a unique dir path to save to using a timestamp."""
+    time = str(datetime.datetime.now())
+    for char in ":- .":
+        time = time.replace(char, "_")
+    path: Path = Path(f"./results_{time}")
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 @click.command()
 @click.option("--strategy_interval", default=10, help=".")
 @click.option("--n_iterations", default=20000, help=".")
@@ -338,6 +350,7 @@ def train(
     )
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
+    save_path: Path = _create_dir()
     info_set_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
         sigma[t + 1] = copy.deepcopy(sigma[t])
@@ -367,20 +380,19 @@ def train(
                     regret[I][a] *= d
                     strategy[I][a] *= d
         if (t > update_threshold) & (t % dump_iteration == 0):
-            # Only start updating after 800 minutes in Pluribus
-            # This is for the post-preflop betting rounds. It seems they
-            # dump the current strategy (sigma) throughout
-            # training and then take an average.
-            # This allows for estimation of expected value in
-            # leaf nodes later on using modified versions of the blueprint strategy
+            # Only start updating after 800 minutes in Pluribus. This is for
+            # the post-preflop betting rounds. It seems they dump the current
+            # strategy (sigma) throughout training and then take an average.
+            # This allows for estimation of expected value in leaf nodes later
+            # on using modified versions of the blueprint strategy
             to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
-            joblib.dump(to_persist, f"strategy_{t}.gz", compress="gzip")
+            joblib.dump(to_persist, save_path / f"strategy_{t}.gz", compress="gzip")
         del sigma[t]
         if t % print_iteration == 0:
             print_strategy(strategy)
 
     to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
-    joblib.dump(to_persist, "strategy.gz", compress="gzip")
+    joblib.dump(to_persist, save_path / "strategy.gz", compress="gzip")
     print_strategy(strategy)
 
 
