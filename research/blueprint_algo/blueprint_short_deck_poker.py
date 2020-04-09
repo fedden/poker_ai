@@ -210,7 +210,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         I = state.info_set
         # calculate strategy
         try:
-            logging.debug(f"About to Calculate Strategy, Regret Exists: {regret[Iph]}")
+            logging.debug(f"About to Calculate Strategy, Regret Exists: {regret[I]}")
         except UnboundLocalError:
             logging.debug(f"About to Calculate Strategy, Regret does not exist")
         calculate_strategy(regret, sigma, I, state)
@@ -246,7 +246,6 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         return vo
     else:
         Iph = state.info_set
-        print(Iph)
         try:
             logging.debug(f"About to Calculate Strategy, Regret Exists: {regret[Iph]}")
         except UnboundLocalError:
