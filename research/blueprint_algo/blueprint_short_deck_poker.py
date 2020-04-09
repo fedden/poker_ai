@@ -187,7 +187,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     ph = state.player_i
 
     if state.is_terminal:
-        assert state.player_at_node is not None or state.player_i
+        #assert state.player_at_node is not None or state.player_i
         return state.payout[i] * (1 if i == state.player_at_node else -1) # todo I added this
         # TODO: I think this might need to be different,
         #  but I have not gotten there yet
@@ -206,7 +206,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
-        state.set_player_at_node(ph)  # TODO I added this
+        # state.set_player_at_node(ph)  # TODO I added this
         I = state.info_set
         # calculate strategy
         try:
