@@ -187,10 +187,10 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     ph = state.player_i
 
     if state.is_terminal:
-        #assert state.player_at_node is not None or state.player_i
-        return state.payout[i] * (1 if i == 1 else -1) # todo I added this
+        assert state.player_at_node is not None
+        #return state.payout[i] * (1 if i == 1 else -1) # todo I added this
 
-        #return state.payout[i] * (1 if i == state.player_at_node else -1) # todo I added this
+        return state.payout[i] * (1 if i == state.player_at_node else -1) # todo I added this
         # TODO: I think this might need to be different,
         #  but I have not gotten there yet
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
