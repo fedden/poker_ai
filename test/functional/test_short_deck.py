@@ -138,3 +138,30 @@ def test_short_deck_3(n_players: int):
         # All players call to keep things simple.
         state = state.apply_action("call")
         order_i += 1
+
+
+@pytest.mark.parametrize("n_players", [2, 3, 4, 5, 6])
+@pytest.mark.parametrize("small_blind", [50, 200])
+@pytest.mark.parametrize("big_blind", [100, 1000])
+def test_pre_flop_pot(n_players: int, small_blind: int, big_blind: int):
+    """Test preflop the state is set up for player 2 to start betting."""
+    from pluribus.games.short_deck.player import ShortDeckPokerPlayer
+    from pluribus.games.short_deck.state import ShortDeckPokerState
+    from pluribus.poker.pot import Pot
+
+    pot = Pot()
+    players = [
+        ShortDeckPokerPlayer(player_i=player_i, pot=pot, initial_chips=10000)
+        for player_i in range(n_players)
+    ]
+    state = ShortDeckPokerState(players=players, load_pickle_files=False)
+    n_bet_chips = sum(p.n_bet_chips for p in state.players)
+    target = small_blind + big_blind
+    assert state.player_i == 0 if n_players == 2 else 2
+    assert state._betting_stage == "pre_flop"
+    assert (
+        n_bet_chips == target
+    ), f"small and big blind have not bet! {n_bet_chips} == {target}"
+    assert (
+        n_bet_chips == pot.total
+    ), f"small and big blind have are not in pot! {n_bet_chips} == {pot.total}"
