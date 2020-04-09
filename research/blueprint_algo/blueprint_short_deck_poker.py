@@ -403,7 +403,6 @@ if __name__ == "__main__":
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
-            print(i)
             state: ShortDeckPokerState = new_game(n_players, info_set_lut)
             info_set_lut = state.info_set_lut
             if t > update_threshold and t % strategy_interval == 0:
