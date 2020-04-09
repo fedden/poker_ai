@@ -14,6 +14,8 @@ This repository will contain a best effort, open source implementation of the ke
   <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/poker.jpg">
 </p>
 
+_Made with love from the developers [Leon](https://www.leonfedden.co.uk) and [Colin](http://www.colinmanko.com/)._
+
 ## Pre-requisites
 
 This repository assumes Python 3.7 or newer is used.

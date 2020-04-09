@@ -43,13 +43,17 @@ from __future__ import annotations
 
 import copy
 import collections
+import datetime
 import json
 import random
+from pathlib import Path
 from typing import Any, Dict
 import logging
 
+import click
 import joblib
 import numpy as np
+import yaml
 from tqdm import tqdm, trange
 
 from pluribus import utils
@@ -58,13 +62,32 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
-log = False
+class Agent:
+    # TODO(fedden): Note from the supplementary material, the data here will
+    #               need to be lower precision: "To save memory, regrets were
+    #               stored using 4-byte integers rather than 8-byte doubles.
+    #               There was also a ﬂoor on regret at -310,000,000 for every
+    #               action. This made it easier to unprune actions that were
+    #               initially pruned but later improved. This also prevented
+    #               integer overﬂows".
+    def __init__(self):
+        self.strategy = collections.defaultdict(
+            lambda: collections.defaultdict(lambda: 0)
+        )
+        self.regret = collections.defaultdict(
+            lambda: collections.defaultdict(lambda: 0)
+        )
+        self.sigma = collections.defaultdict(
+            lambda: collections.defaultdict(
+                lambda: collections.defaultdict(lambda: 1 / 3)
+            )
+        )
 
 
 # TODO: In general, wondering how important this function is if we are to use
 # the blueprint algo for more than the preflop round? Would using just sigma
 # allow for a more complete rendering of strategies for infosets?
-def update_strategy(state: ShortDeckPokerState, i: int):
+def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
     """
 
     :param state: the game state
@@ -86,34 +109,34 @@ def update_strategy(state: ShortDeckPokerState, i: int):
     #               happen at the appropriate times.
     # elif h is chance_node:
     #   sample action from strategy for h
-    #   update_strategy(rs, h + a, i)
+    #   update_strategy(rs, h + a, i, t)
     elif ph == i:
         I = state.info_set
         # calculate regret
-        calculate_strategy(regret, sigma, I, state)
+        calculate_strategy(agent.regret, agent.sigma, I, state, t)
         # choose an action based of sigma
         try:
             a = np.random.choice(
-                list(sigma[t][I].keys()), 1, p=list(sigma[t][I].values())
+                list(agent.sigma[t][I].keys()), 1, p=list(agent.sigma[t][I].values())
             )[0]
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            sigma[t][I] = {action: p for action in state.legal_actions}
+            agent.sigma[t][I] = {action: p for action in state.legal_actions}
         # Increment the action counter.
-        strategy[I][a] += 1
+        agent.strategy[I][a] += 1
         # so strategy is counts based on sigma, this takes into account the
         # reach probability so there is no need to pass around that pi guy..
         new_state: ShortDeckPokerState = state.apply_action(a)
-        update_strategy(new_state, i)
+        update_strategy(agent, new_state, i, t)
     else:
         # Traverse each action.
         for a in state.legal_actions:
             # not actually updating the strategy for p_i != i, only one i at a
             # time
             new_state: ShortDeckPokerState = state.apply_action(a)
-            update_strategy(new_state, i)
+            update_strategy(agent, new_state, i, t)
 
 
 def calculate_strategy(
@@ -121,6 +144,7 @@ def calculate_strategy(
     sigma: Dict[int, Dict[str, Dict[str, float]]],
     I: str,
     state: ShortDeckPokerState,
+    t: int,
 ):
     """
 
@@ -138,7 +162,7 @@ def calculate_strategy(
             sigma[t + 1][I][a] = 1 / len(state.legal_actions)
 
 
-def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
+def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     """
     regular cfr algo
 
@@ -168,7 +192,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     elif ph == i:
         I = state.info_set
         # calculate strategy
-        calculate_strategy(regret, sigma, I, state)
+        calculate_strategy(agent.regret, agent.sigma, I, state, t)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
@@ -176,30 +200,32 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         voa = {}
         for a in state.legal_actions:
             new_state: ShortDeckPokerState = state.apply_action(a)
-            voa[a] = cfr(new_state, i, t)
-            vo += sigma[t][I][a] * voa[a]
+            voa[a] = cfr(agent, new_state, i, t)
+            vo += agent.sigma[t][I][a] * voa[a]
         for a in state.legal_actions:
-            regret[I][a] += voa[a] - vo
+            agent.regret[I][a] += voa[a] - vo
             # do not need update the strategy based on regret, strategy does
             # that with sigma
         return vo
     else:
         Iph = state.info_set
-        calculate_strategy(regret, sigma, Iph, state)
+        calculate_strategy(agent.regret, agent.sigma, Iph, state, t)
         try:
             a = np.random.choice(
-                list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
+                list(agent.sigma[t][Iph].keys()),
+                1,
+                p=list(agent.sigma[t][Iph].values()),
             )[0]
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            sigma[t][Iph] = {action: p for action in state.legal_actions}
+            agent.sigma[t][Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
-        return cfr(new_state, i, t)
+        return cfr(agent, new_state, i, t)
 
 
-def cfrp(state: ShortDeckPokerState, i: int, t: int):
+def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
     """
     pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
 
@@ -229,7 +255,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     elif ph == i:
         I = state.info_set
         # calculate strategy
-        calculate_strategy(regret, sigma, I, state)
+        calculate_strategy(agent.regret, agent.sigma, I, state, t)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
@@ -237,33 +263,35 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
         voa = {}
         explored = {}  # keeps tracked of items that can be skipped
         for a in state.legal_actions:
-            if regret[I][a] > C:
+            if agent.regret[I][a] > c:
                 new_state: ShortDeckPokerState = state.apply_action(a)
-                voa[a] = cfrp(new_state, i, t)
+                voa[a] = cfrp(agent, new_state, i, t, c)
                 explored[a] = True
-                vo += sigma[t][I][a] * voa[a]
+                vo += agent.sigma[t][I][a] * voa[a]
             else:
                 explored[a] = False
         for a in state.legal_actions:
             if explored[a]:
-                regret[I][a] += voa[a] - vo
+                agent.regret[I][a] += voa[a] - vo
                 # do not need update the strategy based on regret, strategy
                 # does that with sigma
         return vo
     else:
         Iph = state.info_set
-        calculate_strategy(regret, sigma, Iph, state)
+        calculate_strategy(agent.regret, agent.sigma, Iph, state, t)
         try:
             a = np.random.choice(
-                list(sigma[t][Iph].keys()), 1, p=list(sigma[t][Iph].values())
+                list(agent.sigma[t][Iph].keys()),
+                1,
+                p=list(agent.sigma[t][Iph].values()),
             )[0]
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            sigma[t][Iph] = {action: p for action in state.legal_actions}
+            agent.sigma[t][Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
-        return cfrp(new_state, i, t)
+        return cfrp(agent, new_state, i, t, c)
 
 
 def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPokerState:
@@ -297,76 +325,97 @@ def to_dict(**kwargs) -> Dict[str, Any]:
     return json.loads(json.dumps(copy.deepcopy(kwargs)))
 
 
-if __name__ == "__main__":
-    utils.random.seed(42)
-    # TODO(fedden): Note from the supplementary material, the data here will
-    #               need to be lower precision: "To save memory, regrets were
-    #               stored using 4-byte integers rather than 8-byte doubles.
-    #               There was also a ﬂoor on regret at -310,000,000 for every
-    #               action. This made it easier to unprune actions that were
-    #               initially pruned but later improved. This also prevented
-    #               integer overﬂows".
-    strategy = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
-    regret = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
-    sigma = collections.defaultdict(
-        lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
-    )
-    # algorithm constants
-    strategy_interval = 10 # it's just to test.
-    n_iterations = 200
-    LCFR_threshold = 80
-    discount_interval = 10
-    prune_threshold = 40
-    C = -20000  # somewhat arbitrary
-    n_players = 3
-    print_iteration = 10
-    dump_iteration = 10
-    update_threshold = 50  # 800 minutes in Pluribus
+def _create_dir() -> Path:
+    """Create and get a unique dir path to save to using a timestamp."""
+    time = str(datetime.datetime.now())
+    for char in ":- .":
+        time = time.replace(char, "_")
+    path: Path = Path(f"./results_{time}")
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
+
+@click.command()
+@click.option("--strategy_interval", default=10, help=".")
+@click.option("--n_iterations", default=20000, help=".")
+@click.option("--lcfr_threshold", default=80, help=".")
+@click.option("--discount_interval", default=10, help=".")
+@click.option("--prune_threshold", default=40, help=".")
+@click.option("--c", default=-20000, help=".")
+@click.option("--n_players", default=3, help=".")
+@click.option("--print_iteration", default=10, help=".")
+@click.option("--dump_iteration", default=10, help=".")
+@click.option("--update_threshold", default=50, help=".")
+def train(
+    strategy_interval: int,
+    n_iterations: int,
+    lcfr_threshold: int,
+    discount_interval: int,
+    prune_threshold: int,
+    c: int,
+    n_players: int,
+    print_iteration: int,
+    dump_iteration: int,
+    update_threshold: int,
+):
+    """Train agent."""
+    # Get the values passed to this method, save this.
+    config: Dict[str, int] = {**locals()}
+    save_path: Path = _create_dir()
+    with open(save_path / "config.yaml", "w") as steam:
+        yaml.dump(config, steam)
+    utils.random.seed(42)
+    agent = Agent()
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
-    logging.info("beginning training")
     info_set_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
-        sigma[t + 1] = copy.deepcopy(sigma[t])
+        agent.sigma[t + 1] = copy.deepcopy(agent.sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
             state: ShortDeckPokerState = new_game(n_players, info_set_lut)
             info_set_lut = state.info_set_lut
             if t > update_threshold and t % strategy_interval == 0:
                 # Only start updating after 800 minutes in Pluribus
-                update_strategy(state, i)
+                update_strategy(agent, state, i, t)
             if t > prune_threshold:
                 if random.uniform(0, 1) < 0.05:
-                    cfr(state, i, t)
+                    cfr(agent, state, i, t)
                 else:
-                    cfrp(state, i, t)
+                    cfrp(agent, state, i, t, c)
             else:
-                cfr(state, i, t)
-        if t < LCFR_threshold & t % discount_interval == 0:
+                cfr(agent, state, i, t)
+        if t < lcfr_threshold & t % discount_interval == 0:
             # TODO(fedden): Is discount_interval actually set/managed in
             #               minutes here? In Algorithm 1 this should be managed
             #               in minutes using perhaps the time module, but here
             #               it appears to be being managed by the iterations
             #               count.
             d = (t / discount_interval) / ((t / discount_interval) + 1)
-            for I in regret.keys():
-                for a in regret[I].keys():
-                    regret[I][a] *= d
-                    strategy[I][a] *= d
+            for I in agent.regret.keys():
+                for a in agent.regret[I].keys():
+                    agent.regret[I][a] *= d
+                    agent.strategy[I][a] *= d
         if (t > update_threshold) & (t % dump_iteration == 0):
-            # Only start updating after 800 minutes in Pluribus
-            # This is for the post-preflop betting rounds. It seems they
-            # dump the current strategy (sigma) throughout
-            # training and then take an average.
-            # This allows for estimation of expected value in
-            # leaf nodes later on using modified versions of the blueprint strategy
-            to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
-            joblib.dump(to_persist, f"strategy_{t}.gz", compress="gzip")
-        del sigma[t]
+            # Only start updating after 800 minutes in Pluribus. This is for
+            # the post-preflop betting rounds. It seems they dump the current
+            # strategy (sigma) throughout training and then take an average.
+            # This allows for estimation of expected value in leaf nodes later
+            # on using modified versions of the blueprint strategy
+            to_persist = to_dict(
+                strategy=agent.strategy, regret=agent.regret, sigma=agent.sigma
+            )
+            joblib.dump(to_persist, save_path / f"strategy_{t}.gz", compress="gzip")
+        del agent.sigma[t]
         if t % print_iteration == 0:
-            print_strategy(strategy)
+            print_strategy(agent.strategy)
 
-    to_persist = to_dict(strategy=strategy, regret=regret, sigma=sigma)
-    joblib.dump(to_persist, "strategy.gz", compress="gzip")
-    print_strategy(strategy)
+    to_persist = to_dict(
+        strategy=agent.strategy, regret=agent.regret, sigma=agent.sigma
+    )
+    joblib.dump(to_persist, save_path / "strategy.gz", compress="gzip")
+    print_strategy(agent.strategy)
+
+
+if __name__ == "__main__":
+    train()
