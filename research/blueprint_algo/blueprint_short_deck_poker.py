@@ -60,7 +60,7 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
-#log = False
+log = False
 
 
 # TODO: In general, wondering how important this function is if we are to use
@@ -150,6 +150,9 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     :return: expected value for node for player i
     """
     ph = state.player_i
+    if t == 2:
+        logging.debug(f'Infoset: {state.info_set}')
+        logging.debug(f'History: {state._history}')
 
     if state.is_terminal:
         try:
