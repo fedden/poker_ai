@@ -93,7 +93,7 @@ def update_strategy(state: ShortDeckPokerState, i: int):
         I = state.info_set
         # calculate regret
         try:
-            logging.debug(f"About to Calculate Strategy, Regret Exists: {regret[Iph]}")
+            logging.debug(f"About to Calculate Strategy, Regret Exists: {regret[I]}")
         except UnboundLocalError:
             logging.debug(f"About to Calculate Strategy, Regret does not exist")
         calculate_strategy(regret, sigma, I, state)
@@ -187,7 +187,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     ph = state.player_i
 
     if state.is_terminal:
-        assert state.player_at_node is not None
+        assert state.player_at_node is not None or state.player_i
         return state.payout[i] * (1 if i == state.player_at_node else -1) # todo I added this
         # TODO: I think this might need to be different,
         #  but I have not gotten there yet
@@ -206,6 +206,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
+        state.set_player_at_node(ph)  # TODO I added this
         I = state.info_set
         # calculate strategy
         try:
@@ -221,7 +222,6 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         vo = 0.0
         voa = {}
         for a in state.legal_actions:
-            state.set_player_at_node(ph) # TODO I added this
             logging.debug(f"ACTION TRAVERSED FOR REGRET:  ph {state.player_i} {a}")
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(new_state, i, t)
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     n_players = 3
     print_iteration = 1
     dump_iteration = 10
-    update_threshold = 50  # 800 minutes in Pluribus
+    update_threshold = 0  # just to test
 
     # algorithm presented here, pg.16:
     # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
