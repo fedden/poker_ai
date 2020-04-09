@@ -88,6 +88,7 @@ class ShortDeckPokerState:
             "show_down": player_i_order,
             "terminal": player_i_order,
         }
+        self._player_at_node = None
         self._reset_betting_round_state()
 
     def __repr__(self):
@@ -161,6 +162,14 @@ class ShortDeckPokerState:
                 # supplementary material of the Pluribus paper.
                 new_state._history.append("skip")
         return new_state
+
+    def set_player_at_node(self, ph):
+        """
+
+        :param ph: player at node h
+        :return:
+        """
+        self._player_at_node = ph
 
     def _move_to_next_player(self):
         """Ensure state points to next valid active player.
@@ -300,6 +309,11 @@ class ShortDeckPokerState:
     def players(self) -> List[ShortDeckPokerPlayer]:
         """Returns players in table."""
         return self._table.players
+
+    @property
+    def player_at_node(self) -> ShortDeckPokerPlayer:
+        """Returns a reference to player that is updating regret."""
+        return self._player_at_node
 
     @property
     def current_player(self) -> ShortDeckPokerPlayer:

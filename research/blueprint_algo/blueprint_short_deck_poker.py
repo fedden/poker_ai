@@ -46,6 +46,9 @@ import collections
 import json
 import random
 from typing import Any, Dict
+import logging
+logging.basicConfig(filename='output3.txt', level=logging.DEBUG)
+
 
 import joblib
 import numpy as np
@@ -57,7 +60,7 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
-log = False
+#log = False
 
 
 # TODO: In general, wondering how important this function is if we are to use
@@ -149,7 +152,8 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     ph = state.player_i
 
     if state.is_terminal:
-        return state.payout[i] * (1 if i == 1 else -1)
+        assert state.player_at_node is not None
+        return state.payout[i] * (1 if i == state.player_at_node else -1)
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -165,6 +169,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
+        state.set_player_at_node(ph)
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
@@ -176,6 +181,7 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         for a in state.legal_actions:
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(new_state, i, t)
+            logging.debug(f"Got EV for {a}: {voa[a]}")
             vo += sigma[t][I][a] * voa[a]
         for a in state.legal_actions:
             regret[I][a] += voa[a] - vo
@@ -210,7 +216,8 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     ph = state.player_i
 
     if state.is_terminal:
-        return state.payout[i] * (1 if i == 1 else -1)
+        assert state.player_at_node is not None
+        return state.payout[i] * (1 if i == state.player_at_node else -1)
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -226,6 +233,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
+        state.set_player_at_node(ph)
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
@@ -311,8 +319,8 @@ if __name__ == "__main__":
         lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     )
     # algorithm constants
-    strategy_interval = 10  # it's just to test.
-    n_iterations = 200
+    strategy_interval = 2 #10  # it's just to test.
+    n_iterations = 2 #200
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
