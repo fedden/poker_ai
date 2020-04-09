@@ -154,7 +154,12 @@ def test_pre_flop_pot(n_players: int, small_blind: int, big_blind: int):
         ShortDeckPokerPlayer(player_i=player_i, pot=pot, initial_chips=10000)
         for player_i in range(n_players)
     ]
-    state = ShortDeckPokerState(players=players, load_pickle_files=False)
+    state = ShortDeckPokerState(
+        players=players,
+        load_pickle_files=False,
+        small_blind=small_blind,
+        big_blind=big_blind,
+    )
     n_bet_chips = sum(p.n_bet_chips for p in state.players)
     target = small_blind + big_blind
     assert state.player_i == 0 if n_players == 2 else 2
