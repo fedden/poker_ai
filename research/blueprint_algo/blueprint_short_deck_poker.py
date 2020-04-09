@@ -47,8 +47,6 @@ import json
 import random
 from typing import Any, Dict
 import logging
-logging.basicConfig(filename='output3.txt', level=logging.DEBUG)
-
 
 import joblib
 import numpy as np
@@ -179,7 +177,6 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
         for a in state.legal_actions:
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(new_state, i, t)
-            logging.debug(f"Got EV for {a}: {voa[a]}")
             vo += sigma[t][I][a] * voa[a]
         for a in state.legal_actions:
             regret[I][a] += voa[a] - vo
@@ -315,8 +312,8 @@ if __name__ == "__main__":
         lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     )
     # algorithm constants
-    strategy_interval = 10 #10  # it's just to test.
-    n_iterations = 20 #200
+    strategy_interval = 10 # it's just to test.
+    n_iterations = 200
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
@@ -331,7 +328,6 @@ if __name__ == "__main__":
     logging.info("beginning training")
     info_set_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
-        print(t)
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
