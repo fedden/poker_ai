@@ -150,17 +150,9 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     :return: expected value for node for player i
     """
     ph = state.player_i
-    if t == 2:
-        logging.debug(f'Infoset: {state.info_set}')
-        logging.debug(f'History: {state._history}')
 
     if state.is_terminal:
-        try:
-            assert state.player_at_node is not None
-        except:
-            import ipdb
-            ipdb.set_trace()
-        return state.payout[i] * (1 if i == state.player_at_node else -1)
+        return state.payout[i]
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -176,7 +168,6 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
-        state.set_player_at_node(ph)
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
@@ -223,8 +214,7 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     ph = state.player_i
 
     if state.is_terminal:
-        assert state.player_at_node is not None
-        return state.payout[i] * (1 if i == state.player_at_node else -1)
+        return state.payout[i]
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -240,7 +230,6 @@ def cfrp(state: ShortDeckPokerState, i: int, t: int):
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
-        state.set_player_at_node(ph)
         I = state.info_set
         # calculate strategy
         calculate_strategy(regret, sigma, I, state)
