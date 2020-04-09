@@ -310,13 +310,17 @@ class ShortDeckPokerState:
     def legal_actions(self) -> List[Optional[str]]:
         """Return the actions that are legal for this game state."""
         actions: List[Optional[str]] = []
+        biggest_bet = max(p.n_bet_chips for p in self.players)
+        n_chips_to_call = biggest_bet - self.current_player.n_bet_chips
         if self.current_player.is_active:
-            actions += ["fold", "call"]
+            actions += ["call"]
             if self._n_raises < 3 or self._poker_engine.n_active_players == 2:
                 # In limit hold'em we can only bet/raise if there have been
                 # less than three raises in this round of betting, or if there
                 # are two players playing.
                 actions += ["raise"]
+            if n_chips_to_call != 0:
+                actions += ["fold"]
         else:
             actions += [None]
         return actions
