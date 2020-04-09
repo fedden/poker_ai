@@ -1,0 +1,82 @@
+DEBUG:root:CFR
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:Iteration: 1
+DEBUG:root:Player Set to Update Regret: 0
+DEBUG:root:P(h): 2
+DEBUG:root:P(h) Updating Regret? False
+DEBUG:root:Betting Round terminal
+DEBUG:root:Community Cards [<Card card=[ace of diamonds ♦]>, <Card card=[jack of clubs ♣]>, <Card card=[jack of spades ♠]>]
+DEBUG:root:Betting Action Correct?: [<Player name="player_0" n_chips=09950 n_bet_chips=00000 folded=1>, <Player name="player_1" n_chips=09700 n_bet_chips=00000 folded=1>, <Player name="player_2" n_chips=10350 n_bet_chips=00000 folded=0>]
+DEBUG:root:########
+DEBUG:root:Regret: defaultdict(<function <lambda> at 0x1103be510>, {'cards_cluster=18, history=[]': defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103488c8>, {}), "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be950>, {}), "cards_cluster=23, history=['call', 'fold']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bea60>, {}), "cards_cluster=18, history=['call', 'fold', 'raise']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103beb70>, {}), "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bec80>, {}), "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bed90>, {})})
+DEBUG:root:########
+DEBUG:root:Sigma: defaultdict(<function <lambda> at 0x1103be598>, {1: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be840>, {'cards_cluster=18, history=[]': {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=23, history=['call', 'fold']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=18, history=['call', 'fold', 'raise']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}}), 2: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be840>, {'cards_cluster=18, history=[]': defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103be8c8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103be9d8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=23, history=['call', 'fold']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103beae8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=18, history=['call', 'fold', 'raise']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bebf8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bed08>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103beea0>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333})})})
+DEBUG:root:########
+DEBUG:root:Strategy: defaultdict(<function <lambda> at 0x1103be488>, {})
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:Got EV for fold: -50
+DEBUG:root:ACTION TRAVERSED FOR REGRET:  ph 0 call
+DEBUG:pluribus.games.short_deck.state:calling
+DEBUG:root:CFR
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:Iteration: 1
+DEBUG:root:Player Set to Update Regret: 0
+DEBUG:root:P(h): 1
+DEBUG:root:P(h) Updating Regret? False
+DEBUG:root:Betting Round pre_flop
+DEBUG:root:Community Cards []
+DEBUG:root:I(h): cards_cluster=23, history=['call', 'call']
+DEBUG:root:Betting Action Correct?: [<Player name="player_0" n_chips=09900 n_bet_chips=00100 folded=0>, <Player name="player_1" n_chips=09900 n_bet_chips=00100 folded=0>, <Player name="player_2" n_chips=09900 n_bet_chips=00100 folded=0>]
+DEBUG:root:########
+DEBUG:root:Regret: defaultdict(<function <lambda> at 0x1103be510>, {'cards_cluster=18, history=[]': defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103488c8>, {}), "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be950>, {}), "cards_cluster=23, history=['call', 'fold']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bea60>, {}), "cards_cluster=18, history=['call', 'fold', 'raise']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103beb70>, {}), "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bec80>, {}), "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bed90>, {})})
+DEBUG:root:########
+DEBUG:root:Sigma: defaultdict(<function <lambda> at 0x1103be598>, {1: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be840>, {'cards_cluster=18, history=[]': {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=23, history=['call', 'fold']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=18, history=['call', 'fold', 'raise']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bef28>, {'fold': 0.3333333333333333})}), 2: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be840>, {'cards_cluster=18, history=[]': defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103be8c8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103be9d8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=23, history=['call', 'fold']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103beae8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=18, history=['call', 'fold', 'raise']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bebf8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bed08>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103beea0>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333})})})
+DEBUG:root:########
+DEBUG:root:Strategy: defaultdict(<function <lambda> at 0x1103be488>, {})
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:About to Calculate Strategy, Regret Exists: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1118f1048>, {})
+DEBUG:root:Calculated Strategy for cards_cluster=23, history=['call', 'call']: defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1118f10d0>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333})
+DEBUG:root:ACTION SAMPLED: ph 1 fold
+DEBUG:root:CFR
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:Iteration: 1
+DEBUG:root:Player Set to Update Regret: 0
+DEBUG:root:P(h): 0
+DEBUG:root:P(h) Updating Regret? True
+DEBUG:root:Betting Round flop
+DEBUG:root:Community Cards [<Card card=[ace of diamonds ♦]>, <Card card=[jack of clubs ♣]>, <Card card=[jack of spades ♠]>]
+DEBUG:root:I(h): cards_cluster=0, history=['call', 'call', 'fold']
+DEBUG:root:Betting Action Correct?: [<Player name="player_0" n_chips=09900 n_bet_chips=00100 folded=0>, <Player name="player_1" n_chips=09900 n_bet_chips=00100 folded=1>, <Player name="player_2" n_chips=09900 n_bet_chips=00100 folded=0>]
+DEBUG:root:########
+DEBUG:root:Regret: defaultdict(<function <lambda> at 0x1103be510>, {'cards_cluster=18, history=[]': defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103488c8>, {}), "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be950>, {}), "cards_cluster=23, history=['call', 'fold']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bea60>, {}), "cards_cluster=18, history=['call', 'fold', 'raise']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103beb70>, {}), "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bec80>, {}), "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103bed90>, {}), "cards_cluster=23, history=['call', 'call']": defaultdict(<function <lambda>.<locals>.<lambda> at 0x1118f1048>, {})})
+DEBUG:root:########
+DEBUG:root:Sigma: defaultdict(<function <lambda> at 0x1103be598>, {1: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be840>, {'cards_cluster=18, history=[]': {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=23, history=['call', 'fold']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=18, history=['call', 'fold', 'raise']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}, "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bef28>, {'fold': 0.3333333333333333}), "cards_cluster=23, history=['call', 'call']": {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}}), 2: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1103be840>, {'cards_cluster=18, history=[]': defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103be8c8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=21, history=['call']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103be9d8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=23, history=['call', 'fold']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103beae8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=18, history=['call', 'fold', 'raise']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bebf8>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=23, history=['call', 'fold', 'raise', 'raise', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103bed08>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=22, history=['call', 'fold', 'raise', 'raise', 'skip', 'call', 'skip']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1103beea0>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333}), "cards_cluster=23, history=['call', 'call']": defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1118f10d0>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333})})})
+DEBUG:root:########
+DEBUG:root:Strategy: defaultdict(<function <lambda> at 0x1103be488>, {})
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:########
+DEBUG:root:About to Calculate Strategy, Regret Exists: defaultdict(<function <lambda>.<locals>.<lambda> at 0x1118f1158>, {})
+DEBUG:root:Calculated Strategy for cards_cluster=0, history=['call', 'call', 'fold']: defaultdict(<function <lambda>.<locals>.<lambda>.<locals>.<lambda> at 0x1118f11e0>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333})
+DEBUG:root:ACTION TRAVERSED FOR REGRET:  ph 0 fold
+DEBUG:pluribus.poker.engine:f"Rank #2492 <Player name="player_2" n_chips=09900 n_bet_chips=00100 folded=0> two pair
+DEBUG:pluribus.poker.engine:Winnings computation complete. Players:
+DEBUG:pluribus.poker.engine:<Player name="player_0" n_chips=09900 n_bet_chips=00000 folded=1>
+DEBUG:pluribus.poker.engine:<Player name="player_1" n_chips=09900 n_bet_chips=00000 folded=1>
+DEBUG:pluribus.poker.engine:<Player name="player_2" n_chips=10200 n_bet_chips=00000 folded=0>
+DEBUG:pluribus.poker.engine:f"Rank #2492 <Player name="player_2" n_chips=10200 n_bet_chips=00000 folded=0> two pair
+DEBUG:pluribus.poker.engine:Winnings computation complete. Players:
+DEBUG:pluribus.poker.engine:<Player name="player_0" n_chips=09900 n_bet_chips=00000 folded=1>
+DEBUG:pluribus.poker.engine:<Player name="player_1" n_chips=09900 n_bet_chips=00000 folded=1>
+DEBUG:pluribus.poker.engine:<Player name="player_2" n_chips=10200 n_bet_chips=00000 folded=0>
+
