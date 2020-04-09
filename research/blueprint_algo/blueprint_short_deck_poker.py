@@ -48,6 +48,7 @@ import json
 import random
 from pathlib import Path
 from typing import Any, Dict
+import logging
 
 import click
 import joblib
@@ -173,7 +174,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     ph = state.player_i
 
     if state.is_terminal:
-        return state.payout[i] * (1 if i == 1 else -1)
+        return state.payout[i]
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -236,7 +237,7 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
     ph = state.player_i
 
     if state.is_terminal:
-        return state.payout[i] * (1 if i == 1 else -1)
+        return state.payout[i]
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
