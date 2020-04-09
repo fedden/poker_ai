@@ -152,7 +152,11 @@ def cfr(state: ShortDeckPokerState, i: int, t: int) -> float:
     ph = state.player_i
 
     if state.is_terminal:
-        assert state.player_at_node is not None
+        try:
+            assert state.player_at_node is not None
+        except:
+            import ipdb
+            ipdb.set_trace()
         return state.payout[i] * (1 if i == state.player_at_node else -1)
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
@@ -319,8 +323,8 @@ if __name__ == "__main__":
         lambda: collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     )
     # algorithm constants
-    strategy_interval = 2 #10  # it's just to test.
-    n_iterations = 2 #200
+    strategy_interval = 10 #10  # it's just to test.
+    n_iterations = 20 #200
     LCFR_threshold = 80
     discount_interval = 10
     prune_threshold = 40
@@ -335,6 +339,7 @@ if __name__ == "__main__":
     logging.info("beginning training")
     info_set_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
+        print(t)
         sigma[t + 1] = copy.deepcopy(sigma[t])
         for i in range(n_players):  # fixed position i
             # Create a new state.
