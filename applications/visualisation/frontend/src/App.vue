@@ -7,7 +7,8 @@
         <div class="players">
             <div v-for="(value, index) in players"
                   class="player" 
-                  :class="['player-' + (index + 1), {'playing': player_playing === index}]">
+                  :class="['player-' + (index + 1), {'playing': player_playing === index}]"
+                  :key="index">
                 <div class="bank">
                     <div class="bank-value">{{ value.bank - value.onTable }}</div>
                     <div class="jetons v-10" v-if="(value.bank - value.onTable) / 10 >= 1"></div>
@@ -20,14 +21,14 @@
                     <div class="mise-value">
                         {{ value.onTable }}
                     </div>
-                    <div class="jeton-10">    
-                        <div class="jetons v-10" v-for="(n, i) in ((value.onTable - (value.onTable % 10)) / 10)" :style="{top: (-2 + i) + 'px'}" v-if="value.onTable / 10 >= 1"></div>
+                    <div class="jeton-10" v-if="value.onTable / 10 >= 1">
+                        <div class="jetons v-10" :key=i v-for="(n, i) in ((value.onTable - (value.onTable % 10)) / 10)" :style="{top: (-2 + 5 * i) + 'px'}"></div>
                     </div>
-                    <div class="jeton-5">
-                        <div class="jetons v-5" v-for="(n, i) in (((value.onTable % 10) - ((value.onTable % 10) % 2)) / 2)" :style="{top: (-2 + i) + 'px'}" v-if="value.onTable % 10 && value.onTable % 10 >= 2"></div>
+                    <div class="jeton-5" v-if="value.onTable % 10 && value.onTable % 10 >= 2">
+                        <div class="jetons v-5" :key=i v-for="(n, i) in (((value.onTable % 10) - ((value.onTable % 10) % 2)) / 2)" :style="{top: (-2 + 5 * i) + 'px'}"></div>
                     </div>
-                    <div class="jeton-1">
-                        <div class="jetons v-1" v-if="value.onTable % 10 && value.onTable % 2"></div>
+                    <div class="jeton-1" v-if="value.onTable % 10 && value.onTable % 2">
+                        <div class="jetons v-1"></div>
                     </div>
                 </div>
             </div>
