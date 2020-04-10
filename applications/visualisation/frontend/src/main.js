@@ -28,7 +28,7 @@ new Vue({
         .then((response) => {
           this.player_playing = response.data.player_playing
           this.players = response.data.players
-          this.five_cards = response.five_cards
+          this.five_cards = response.data.five_cards
         })
         .catch((error) => {
           console.log(error)
