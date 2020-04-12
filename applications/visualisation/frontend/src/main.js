@@ -1,8 +1,15 @@
 import Vue from 'vue'
 import App from './App'
-import axios from 'axios'
 import router from './router'
+import SocketIO from 'socket.io-client'
+import VueSocketIO from 'vue-socket.io'
 
+Vue.use(
+  new VueSocketIO({
+    debug: true,
+    connection: SocketIO('http://localhost:5000'),
+  })
+)
 Vue.config.productionTip = false
 
 new Vue({
@@ -20,23 +27,13 @@ new Vue({
       },
     })
   },
-  methods: {
-    getState() {
-      const path = 'http://localhost:5000/api/state'
-      axios
-        .get(path)
-        .then((response) => {
-          this.player_playing = response.data.player_playing
-          this.players = response.data.players
-          this.five_cards = response.data.five_cards
-        })
-        .catch((error) => {
-          console.log(error)
-        })
+  sockets: {
+    // Fired when the server sends something on the "state" channel.
+    state(data) {
+      this.player_playing = data.player_playing
+      this.players = data.players
+      this.five_cards = data.five_cards
     },
-  },
-  created() {
-    this.getState()
   },
   data: {
     player_playing: 0,
