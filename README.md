@@ -79,6 +79,50 @@ for action in state.legal_actions:
     new_state: ShortDeckPokerState = state.apply_action(action)
 ```
 
+### Visualisation code
+
+We are also working on code to visualise a given instance of the `ShortDeckPokerState`, which looks like this:
+<p align="center">
+  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
+</p>
+
+It is so we can visualise the AI as it plays, and also debug particular situations visually. The idea as it stands, is a live web-visualisation server like TensorBoard, so you'll just push your current poker game state, and this will be reflected in the visualisations, so you can see what the agents are doing. 
+
+[_The frontend code is based on this codepen._](https://codepen.io/Rovak/pen/ExYeQar)
+
+Here is an example of how you could plot the poker game state:
+```python
+from plot import PokerPlot
+from pluribus.games.short_deck.player import ShortDeckPokerPlayer
+from pluribus.games.short_deck.state import ShortDeckPokerState
+from pluribus.poker.pot import Pot
+
+
+def get_state() -> ShortDeckPokerState:
+    """Gets a state to visualise"""
+    n_players = 6
+    pot = Pot()
+    players = [
+        ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+        for player_i in range(n_players)
+    ]
+    return ShortDeckPokerState(
+        players=players, 
+        pickle_dir="../../research/blueprint_algo/"
+    )
+
+
+pp: PokerPlot = PokerPlot()
+# If you visit http://localhost:5000/ now you will see an empty table.
+
+# ... later on in the code, as proxy for some code that obtains a new state ...
+# Obtain a new state.
+state: ShortDeckPokerState = get_state()
+# Update the state to be plotted, this is sent via websockets to the frontend.
+pp.update_state(state)
+# http://localhost:5000/ will now display a table with 6 players.
+```
+
 ### Playing a game of poker
 
 There are two parts to this repository, the code to manage a game of poker, and the code to train an AI algorithm to play the game of poker. A low level thing to first to is to implement a poker engine class that can manage a game of poker.
@@ -123,15 +167,6 @@ engine = PokerEngine(
 # Play a round of Texas Hold'em Poker!
 engine.play_one_round()
 ```
-
-### Visualisation code
-
-We are also working on code to visualise a given instance of the `ShortDeckPokerState`, which looks like this:
-<p align="center">
-  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
-</p>
-
-It is so we can visualise the AI as it plays, and also debug particular situations visually. The idea is it'll be a live server like TensorBoard, so you'll just push your current state, and you can see what the agents are doing. [The frontend code is based on this codepen.](https://codepen.io/Rovak/pen/ExYeQar)
 
 ## Roadmap
 
