@@ -1,17 +1,17 @@
 | code-thing      | status        |
 | --------------- | ------------- |
-| master          | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=master)](https://travis-ci.org/fedden/pluribus-poker-AI)  |
-| develop         | [![Build Status](https://travis-ci.org/fedden/pluribus-poker-AI.svg?branch=develop)](https://travis-ci.org/fedden/pluribus-poker-AI) |
-| maintainability | [![Maintainability](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/maintainability)](https://codeclimate.com/github/fedden/pluribus-poker-AI/maintainability) |
-| coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/pluribus-poker-AI/test_coverage) |
+| master          | [![Build Status](https://travis-ci.org/fedden/poker_ai.svg?branch=master)](https://travis-ci.org/fedden/poker_ai)  |
+| develop         | [![Build Status](https://travis-ci.org/fedden/poker_ai.svg?branch=develop)](https://travis-ci.org/fedden/poker_ai) |
+| maintainability | [![Maintainability](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/maintainability)](https://codeclimate.com/github/fedden/poker_ai/maintainability) |
+| coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/poker_ai/test_coverage) |
 | license         | [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) |
 
-# 🤖 Pluribus Poker AI
+# 🤖 Open Source Poker AI
 
-This repository will contain a best effort, open source implementation of the key ideas from the [Pluribus poker AI](https://www.cs.cmu.edu/~noamb/papers/19-Science-Superhuman.pdf) that plays [Texas Hold'em Poker](https://en.wikipedia.org/wiki/Texas_hold_'em). This includes the game engine needed to manage a hand of poker, and will implement the ideas from the paper with respect to the AI algorithms.
+This repository will contain a best effort, open source implementation of the key ideas required to implement a poker AI.
 
 <p align="center">
-  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/poker.jpg">
+  <img src="https://github.com/fedden/poker_ai/blob/develop/assets/poker.jpg">
 </p>
 
 _Made with love from the developers [Leon](https://www.leonfedden.co.uk) and [Colin](http://www.colinmanko.com/)._
@@ -24,16 +24,16 @@ This repository assumes Python 3.7 or newer is used.
 
 There isn't much to do with this repository at the moment but one could install the Python package by cloning this repo and pip installing it:
 ```bash
-git clone https://github.com/fedden/pluribus-poker-AI.git # Though really we should use ssh here!
-cd /path/to/pluribus-poker-AI
+git clone https://github.com/fedden/poker_ai.git # Though really we should use ssh here!
+cd /path/to/poker_ai
 pip install .
 ```
 
 ## Running tests
 
-I'm working on improving the testing as I progress. You can run the tests by moving to this repositories root directory (i.e `pluribus-poker-AI/`) and call the python test library `pytest`:
+I'm working on improving the testing as I progress. You can run the tests by moving to this repositories root directory (i.e `poker_ai/`) and call the python test library `pytest`:
 ```bash
-cd /path/to/pluribus-poker-AI
+cd /path/to/poker_ai
 pip install pytest
 pytest
 ```
@@ -196,7 +196,7 @@ _Strengthen the game engine with more tests and allow users to see live visualis
 - [ ] Work through the coverage, adding more tests, can never have enough.
 
 <p align="center">
-  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/regret.jpeg">
+  <img src="https://github.com/fedden/poker_ai/blob/develop/assets/regret.jpeg">
 </p>
 
 ## Contributing
@@ -210,36 +210,3 @@ Feel free to start a discussion on the github issues or to reach out to me at le
 ## License
 
 The code is provided under the copy-left GPL licence. If you need it under a more permissive license then please contact me at leonfedden at gmail dot com.
-
-## Useful links and acknowledgements
-
-There have already been a lot of helpful discussions and codebases on the path to building this project, which I'll try to keep updated with links to as I progress.
-
-Naturally the first thing that should be acknowledged is the original paper. Here are the links to the paper that will be referenced to build the AI.
-* [Paper](https://www.cs.cmu.edu/~noamb/papers/19-Science-Superhuman.pdf)
-* [Supplimentary material](https://science.sciencemag.org/highwire/filestream/728919/field_highwire_adjunct_files/0/aay2400-Brown-SM.pdf)
-
-Following are blogposts and discussions on the paper that served as helpful references.
-* [Facebook blog post](https://ai.facebook.com/blog/pluribus-first-ai-to-beat-pros-in-6-player-poker/)
-* [HackerNews discussion](https://news.ycombinator.com/item?id=20415379)
-* [Other github discussions](https://github.com/whatsdis/pluribus)
-
-Big shout out to the authors of the following repositories! Here are some MIT licensed codebases that I have found, pillaged and refactored to serve as the basis of the poker engine. 
-* [Poker game code based on this (dead!?!) python package](https://pypi.org/project/pluribus-python/#data)
-* [Pretty darn efficient poker hand evaluation (python 3 fork)](https://github.com/msaindon/deuces)
-
-Useful tools that contributed to the making of the poker engine:
-* [Poker hand winner calculator that came in handy for building tests for the engine.](https://www.pokerlistings.com/which-hand-wins-calculator)
-
-Linked Notes 
-* [Based off the supplemental materials](https://github.com/fedden/pluribus-poker-AI/blob/develop/paper/linked_notes.md)
-
-MISC:
-* Some [original author papers](https://www.cs.cmu.edu/~noamb/research.html)
-* [Implementing MCCFR in python](https://www.youtube.com/watch?v=7m4bnmSkjow)
-    * [Example Applied to Poker](https://github.com/geohot/ai-notebooks/blob/master/cfr_kuhn_poker.ipynb)
-
-Other useful blog links, papers and resources:
-* [Blog post on CFR](https://int8.io/counterfactual-regret-minimization-for-poker-ai/)
-* [No regret dynamics tutorial](https://theory.stanford.edu/~tim/f13/l/l17.pdf)
-* [Prediction, Learning and Games book.](http://www.ii.uni.wroc.pl/~lukstafi/pmwiki/uploads/AGT/Prediction_Learning_and_Games.pdf)
