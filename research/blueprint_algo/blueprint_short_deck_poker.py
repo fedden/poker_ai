@@ -1,43 +1,7 @@
 """
-call python blueprint_short_deck_poker.py in the research/blueprint_algo directory
+Notes Debug 2:
 
-The following code is an attempt at mocking up the pseudo code for the blueprint algorithm found in Pluribus.
--- That pseudo code can be found here, pg. 16:
----- https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
 
-Additionally, this blueprint mockup has previously been applied to Kuhn poker.
--- https://github.com/fedden/pluribus-poker-AI/blob/develop/research/blueprint_algo/blueprint_kuhn.py
-
-This code was left in a functional style that mimics code that has been pushed to the feature/add-kuhn-poker branch.
-That code was originally inspired by the two links below, I believe, pg 12:
--- http://modelai.gettysburg.edu/2013/cfr/cfr.pdf
--- https://github.com/geohot/ai-notebooks/blob/8bdd5ca2d9560f978ea79bb9d0cb8d5acf3dee4b/cfr_kuhn_poker.ipynb
-
-The code-style choice was made in order to make converting the findings to an OOP style easier and more
-consistent by working from a familiar style (meaning, similar variable names, etc.. to the notebook link above),
-while not introducing (more) bugs in a pre-mature conversion to work in our Pluribus framework.
-
-The differences between the following code and blueprint_kuhn.py:
--- Applied blueprint mockup to Limit Holdem with three players with 20 card deck
----- This choice of a contrived short deck game
----- is in order to apply game logic that introduces similar complexities as No Limit but on a much smaller game tree
--- Now only storing actions in strategy/sigma/regret as we "discover" the infoset
--- Incorporates card combination clustering from the following files:
----- https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py
----- https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction_multiprocess.py
-
-The following would still need to be done:
--- Debug (search through TODOs)
--- Decide if the blueprint algo needs to be altered to be used for rounds past the first round (Pluribus only uses the
-blueprint for the preflop round)
----- We plan to use the blueprint algo for all rounds in order to have some intelligence without needing to search
----- This will allow for us to host the bot cheaply (although will sacrifice some itelligence)
--- Decide if chance sampling needs to be treated differently than it's currently being implemented
--- Adjust game logic if needed
--- Stop using global variables where possible - a lot of potential for subtle bugs
--- Use minutes instead of iterations for the prune_threshold and discount interval
--- Only apply pruning to non-terminal nodes and non-last round of betting as described in the supplementary materials:
----- https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf (pg.14 - 15)
 """
 from __future__ import annotations
 
@@ -49,6 +13,8 @@ import random
 from pathlib import Path
 from typing import Any, Dict
 import logging
+logging.basicConfig(filename='output_debug_2.txt', level=logging.DEBUG)
+
 
 import click
 import joblib
@@ -96,6 +62,32 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
+    logging.debug("UPDATE STRATEGY")
+    logging.debug("########")
+    logging.debug("########")
+    logging.debug("########")
+    logging.debug(f"Iteration: {t}")
+    logging.debug(f"Player Set to Update Regret: {i}")
+    logging.debug(f"P(h): {state.player_i}")
+    logging.debug(f"P(h) Updating Regret? {state.player_i == i}")
+    logging.debug(f"Betting Round {state._betting_stage}")
+
+    logging.debug(f"Community Cards {state._table.community_cards}")
+    try:
+        logging.debug(f"I(h): {state.info_set}")
+    except KeyError:
+        pass
+    logging.debug(f"Betting Action Correct?: {state.players}")
+    logging.debug("########")
+    logging.debug(f"Regret: {agent.regret}")
+    logging.debug("########")
+    logging.debug(f"Sigma: {agent.sigma}")
+    logging.debug("########")
+    logging.debug(f"Strategy: {agent.strategy}")
+
+    logging.debug("########")
+    logging.debug("########")
+    logging.debug("########")
     ph = state.player_i  # this is always the case no matter what i is
 
     player_not_in_hand = not state.players[i].is_active
@@ -119,13 +111,18 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
             a = np.random.choice(
                 list(agent.sigma[t][I].keys()), 1, p=list(agent.sigma[t][I].values())
             )[0]
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
             agent.sigma[t][I] = {action: p for action in state.legal_actions}
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
+
         # Increment the action counter.
         agent.strategy[I][a] += 1
+        logging.debug(f"Updated Strategy for {I}: {agent.strategy[I]}")
+
         # so strategy is counts based on sigma, this takes into account the
         # reach probability so there is no need to pass around that pi guy..
         new_state: ShortDeckPokerState = state.apply_action(a)
@@ -133,6 +130,8 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
     else:
         # Traverse each action.
         for a in state.legal_actions:
+            logging.debug(f"Going to Traverse {a} for opponent")
+
             # not actually updating the strategy for p_i != i, only one i at a
             # time
             new_state: ShortDeckPokerState = state.apply_action(a)
@@ -171,6 +170,32 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     :param t: iteration
     :return: expected value for node for player i
     """
+    logging.debug("CFR")
+    logging.debug("########")
+    logging.debug("########")
+    logging.debug("########")
+    logging.debug(f"Iteration: {t}")
+    logging.debug(f"Player Set to Update Regret: {i}")
+    logging.debug(f"P(h): {state.player_i}")
+    logging.debug(f"P(h) Updating Regret? {state.player_i == i}")
+    logging.debug(f"Betting Round {state._betting_stage}")
+
+
+    logging.debug(f"Community Cards {state._table.community_cards}")
+    try:
+        logging.debug(f"I(h): {state.info_set}")
+    except KeyError:
+        pass
+    logging.debug(f"Betting Action Correct?: {state.players}")
+    logging.debug("########")
+    logging.debug(f"Regret: {agent.regret}")
+    logging.debug("########")
+    logging.debug(f"Sigma: {agent.sigma}")
+    logging.debug("########")
+    logging.debug(f"Strategy: {agent.strategy}")
+    logging.debug("########")
+    logging.debug("########")
+    logging.debug("########")
     ph = state.player_i
 
     if state.is_terminal:
@@ -192,35 +217,65 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     elif ph == i:
         I = state.info_set
         # calculate strategy
+        try:
+            logging.debug(f"About to Calculate Strategy, Regret Exists: {agent.regret[I]}")
+        except UnboundLocalError:
+            logging.debug(f"About to Calculate Strategy, Regret does not exist")
         calculate_strategy(agent.regret, agent.sigma, I, state, t)
+        logging.debug(f"Calculated Strategy for {I}: {agent.sigma[t+1][I]}")
+
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
         vo = 0.0
         voa = {}
         for a in state.legal_actions:
+            logging.debug(f"ACTION TRAVERSED FOR REGRET:  ph {state.player_i} {a}")
+
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(agent, new_state, i, t)
+            logging.debug(f"Got EV for {a}: {voa[a]}")
+
             vo += agent.sigma[t][I][a] * voa[a]
+            if len(state.legal_actions) == 3:
+                if a == 'raise':
+                    logging.debug(f"Done with EV at {I}: {vo}")
+            elif len(state.legal_actions) == 2:
+                if a == 'call':
+                    logging.debug(f"Done with EV at {I}: {vo}")
+            else:
+                logging.debug(f"Updated EV at {I}: {vo}")
         for a in state.legal_actions:
             agent.regret[I][a] += voa[a] - vo
+        logging.debug(f"Updated Regret at {I}: {agent.regret[I]}")
+
             # do not need update the strategy based on regret, strategy does
             # that with sigma
         return vo
     else:
         Iph = state.info_set
+        try:
+            logging.debug(f"About to Calculate Strategy, Regret Exists: {agent.regret[Iph]}")
+        except UnboundLocalError:
+            logging.debug(f"About to Calculate Strategy, Regret does not exist")
         calculate_strategy(agent.regret, agent.sigma, Iph, state, t)
+        logging.debug(f"Calculated Strategy for {Iph}: {agent.sigma[t+1][Iph]}")
+
         try:
             a = np.random.choice(
                 list(agent.sigma[t][Iph].keys()),
                 1,
                 p=list(agent.sigma[t][Iph].values()),
             )[0]
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
+
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
             agent.sigma[t][Iph] = {action: p for action in state.legal_actions}
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
+
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfr(agent, new_state, i, t)
 
@@ -336,16 +391,16 @@ def _create_dir() -> Path:
 
 
 @click.command()
-@click.option("--strategy_interval", default=10, help=".")
-@click.option("--n_iterations", default=20000, help=".")
+@click.option("--strategy_interval", default=2, help=".")
+@click.option("--n_iterations", default=10, help=".")
 @click.option("--lcfr_threshold", default=80, help=".")
-@click.option("--discount_interval", default=10, help=".")
-@click.option("--prune_threshold", default=40, help=".")
+@click.option("--discount_interval", default=1000, help=".")
+@click.option("--prune_threshold", default=4000, help=".")
 @click.option("--c", default=-20000, help=".")
 @click.option("--n_players", default=3, help=".")
-@click.option("--print_iteration", default=10, help=".")
+@click.option("--print_iteration", default=1, help=".")
 @click.option("--dump_iteration", default=10, help=".")
-@click.option("--update_threshold", default=50, help=".")
+@click.option("--update_threshold", default=0, help=".")
 def train(
     strategy_interval: int,
     n_iterations: int,
