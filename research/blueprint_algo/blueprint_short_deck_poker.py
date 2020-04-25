@@ -395,7 +395,7 @@ def train(
     info_set_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
         agent.sigma[t + 1] = copy.deepcopy(agent.sigma[t])
-        if t > 1:
+        if t == 2:
             logging.disable(logging.DEBUG)
         for i in range(n_players):  # fixed position i
             # Create a new state.
