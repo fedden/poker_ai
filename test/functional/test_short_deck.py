@@ -173,7 +173,7 @@ def test_call_action_sequence(n_players):
     seed(42)
     # example of a bad sequence in a two-handed game in one round
     bad_seq = ["raise", "call", "call"]
-    for _ in range(1000):
+    for _ in range(200):
         state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
         betting_round_dict = {"pre_flop": [], "flop": [], "turn": [], "river": []}
         while state._betting_stage not in {"show_down", "terminal"}:
