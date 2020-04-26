@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict
 import logging
 
-logging.basicConfig(filename="after_rewrite_variable_logs.txt", level=logging.DEBUG)
+logging.basicConfig(filename="after_rewrite_variable_logs_example.txt", level=logging.DEBUG)
 
 import click
 import joblib
