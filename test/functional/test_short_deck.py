@@ -163,7 +163,8 @@ def test_pre_flop_pot(n_players: int, small_blind: int, big_blind: int):
     ), f"small and big blind have are not in pot! {n_bet_chips} == {pot.total}"
 
 
-def test_call_action_sequence():
+@pytest.mark.parametrize("n_players", [2, 3])
+def test_call_action_sequence(n_players):
     """
     Make sure we never see an action sequence of "raise", "call", "call" in the same
     round with only two players. There would be a similar analog for more than two players,
@@ -172,10 +173,9 @@ def test_call_action_sequence():
     seed(42)
     # example of a bad sequence in a two-handed game in one round
     bad_seq = ["raise", "call", "call"]
-    for t in range(100):
-        state, _ = _new_game(n_players=3, small_blind=50, big_blind=100)
+    for _ in range(1000):
+        state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
         betting_round_dict = {"pre_flop": [], "flop": [], "turn": [], "river": []}
-        iteration_i = 0
         while state._betting_stage not in {"show_down", "terminal"}:
             uniform_probability = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), uniform_probability)
@@ -194,4 +194,3 @@ def test_call_action_sequence():
                     history_slice = no_fold_action_history[i : i + len(bad_seq)]
                     assert history_slice != bad_seq
             state = state.apply_action(random_action)
-            iteration_i += 1
