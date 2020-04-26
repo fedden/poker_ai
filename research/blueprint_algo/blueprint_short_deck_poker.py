@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict
 import logging
 
-logging.basicConfig(filename="output_debug_3.txt", level=logging.DEBUG)
+logging.basicConfig(filename="after_rewrite_variable_logs.txt", level=logging.DEBUG)
 
 import click
 import joblib
@@ -40,23 +40,6 @@ class Agent:
         self.regret = collections.defaultdict(
             lambda: collections.defaultdict(lambda: 0)
         )
-        self.sigma = None
-
-    def create_sigma(self):
-        """
-        method for creating dictionary to store sigma in for the player iteration
-        :return:
-        """
-        self.sigma = collections.defaultdict(
-                lambda: collections.defaultdict(lambda: 1 / 2)
-            )
-
-    def delete_sigma(self):
-        """
-        method to remove sigma, as we don't need it
-        :return:
-        """
-        del self.sigma
 
 
 def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
@@ -106,20 +89,20 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
         I = state.info_set
         # calculate regret
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
-        logging.debug(f"Current strategy: {agent.sigma[I]}")
-        calculate_strategy(agent.regret, agent.sigma, I, state, t)
-        logging.debug(f"Calculated Strategy for {I}: {agent.sigma[I]}")
+        logging.debug(f"Current regret: {agent.regret[I]}")
+        sigma = calculate_strategy(agent.regret, I, state)
+        logging.debug(f"Calculated Strategy for {I}: {sigma[I]}")
         # choose an action based of sigma
         try:
             a = np.random.choice(
-                list(agent.sigma[I].keys()), 1, p=list(agent.sigma[I].values())
+                list(sigma[I].keys()), 1, p=list(sigma[I].values())
             )[0]
             logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            agent.sigma[I] = {action: p for action in state.legal_actions}
+            sigma[I] = {action: p for action in state.legal_actions}
             logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
 
         # Increment the action counter.
@@ -138,10 +121,8 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
 
 def calculate_strategy(
     regret: Dict[str, Dict[str, float]],
-    sigma: Dict[int, Dict[str, Dict[str, float]]],
     I: str,
     state: ShortDeckPokerState,
-    t: int,
 ):
     """
 
@@ -151,12 +132,16 @@ def calculate_strategy(
     :param state: the game state
     :return: doesn't return anything, just updates sigma
     """
+    sigma = collections.defaultdict(
+        lambda: collections.defaultdict(lambda: 1 / 3)
+    )
     rsum = sum([max(x, 0) for x in regret[I].values()])
     for a in state.legal_actions:
         if rsum > 0:
             sigma[I][a] = max(regret[I][a], 0) / rsum
         else:
             sigma[I][a] = 1 / len(state.legal_actions)
+    return sigma
 
 
 def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
@@ -209,9 +194,9 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         I = state.info_set
         # calculate strategy
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
-        logging.debug(f"Current strategy: {agent.sigma[I]}")
-        calculate_strategy(agent.regret, agent.sigma, I, state, t)
-        logging.debug(f"Calculated Strategy for {I}: {agent.sigma[I]}")
+        logging.debug(f"Current regret: {agent.regret[I]}")
+        sigma = calculate_strategy(agent.regret, I, state)
+        logging.debug(f"Calculated Strategy for {I}: {sigma[I]}")
 
         vo = 0.0
         voa = {}
@@ -223,10 +208,10 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(agent, new_state, i, t)
             logging.debug(f"Got EV for {a}: {voa[a]}")
-            vo += agent.sigma[I][a] * voa[a]
+            vo += sigma[I][a] * voa[a]
             logging.debug(
                 f"""Added to Node EV for ACTION: {a} INFOSET: {I} 
-                STRATEGY: {agent.sigma[I][a]}: {agent.sigma[I][a] * voa[a]}"""
+                STRATEGY: {sigma[I][a]}: {sigma[I][a] * voa[a]}"""
             )
         logging.debug(f"Updated EV at {I}: {vo}")
 
@@ -241,15 +226,15 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     else:
         Iph = state.info_set
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[Iph]}")
-        logging.debug(f"Current strategy: {agent.sigma[Iph]}")
-        calculate_strategy(agent.regret, agent.sigma, Iph, state, t)
-        logging.debug(f"Calculated Strategy for {Iph}: {agent.sigma[Iph]}")
+        logging.debug(f"Current regret: {agent.regret[Iph]}")
+        sigma = calculate_strategy(agent.regret, Iph, state)
+        logging.debug(f"Calculated Strategy for {Iph}: {sigma[Iph]}")
 
         try:
             a = np.random.choice(
-                list(agent.sigma[Iph].keys()),
+                list(sigma[Iph].keys()),
                 1,
-                p=list(agent.sigma[Iph].values()),
+                p=list(sigma[Iph].values()),
             )[0]
             logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
 
@@ -257,7 +242,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            agent.sigma[Iph] = {action: p for action in state.legal_actions}
+            sigma[Iph] = {action: p for action in state.legal_actions}
             logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
 
         new_state: ShortDeckPokerState = state.apply_action(a)
@@ -294,7 +279,7 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
     elif ph == i:
         I = state.info_set
         # calculate strategy
-        calculate_strategy(agent.regret, agent.sigma, I, state, t)
+        sigma = calculate_strategy(agent.regret, I, state)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
@@ -306,7 +291,7 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
                 new_state: ShortDeckPokerState = state.apply_action(a)
                 voa[a] = cfrp(agent, new_state, i, t, c)
                 explored[a] = True
-                vo += agent.sigma[I][a] * voa[a]
+                vo += sigma[I][a] * voa[a]
             else:
                 explored[a] = False
         for a in state.legal_actions:
@@ -315,18 +300,18 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
         return vo
     else:
         Iph = state.info_set
-        calculate_strategy(agent.regret, agent.sigma, Iph, state, t)
+        sigma = calculate_strategy(agent.regret, Iph, state)
         try:
             a = np.random.choice(
-                list(agent.sigma[Iph].keys()),
+                list(sigma[Iph].keys()),
                 1,
-                p=list(agent.sigma[Iph].values()),
+                p=list(sigma[Iph].values()),
             )[0]
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            agent.sigma[Iph] = {action: p for action in state.legal_actions}
+            sigma[Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfrp(agent, new_state, i, t, c)
 
@@ -409,7 +394,6 @@ def train(
         if t == 2:
             logging.disable(logging.DEBUG)
         for i in range(n_players):  # fixed position i
-            agent.create_sigma()
             # Create a new state.
             state: ShortDeckPokerState = new_game(n_players, info_set_lut)
             info_set_lut = state.info_set_lut
@@ -422,7 +406,6 @@ def train(
                     cfrp(agent, state, i, t, c)
             else:
                 cfr(agent, state, i, t)
-            agent.delete_sigma()
         if t < lcfr_threshold & t % discount_interval == 0:
             # TODO(fedden): Is discount_interval actually set/managed in
             #               minutes here? In Algorithm 1 this should be managed
