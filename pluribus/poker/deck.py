@@ -17,7 +17,7 @@ class Deck:
     def __init__(
         self,
         include_suits: List[str] = default_include_suits,
-        include_ranks: List[str] = default_include_ranks,
+        include_ranks: List[int] = default_include_ranks,
     ):
         """Construct the deck of cards."""
         self._include_suits = include_suits
