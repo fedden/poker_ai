@@ -1,7 +1,4 @@
 """
-Notes Debug 2:
-
-
 """
 from __future__ import annotations
 
@@ -13,8 +10,8 @@ import random
 from pathlib import Path
 from typing import Any, Dict
 import logging
-logging.basicConfig(filename='output_debug_2.txt', level=logging.DEBUG)
 
+logging.basicConfig(filename="after_rewrite_variable_logs_example.txt", level=logging.DEBUG)
 
 import click
 import joblib
@@ -43,16 +40,8 @@ class Agent:
         self.regret = collections.defaultdict(
             lambda: collections.defaultdict(lambda: 0)
         )
-        self.sigma = collections.defaultdict(
-            lambda: collections.defaultdict(
-                lambda: collections.defaultdict(lambda: 1 / 3)
-            )
-        )
 
 
-# TODO: In general, wondering how important this function is if we are to use
-# the blueprint algo for more than the preflop round? Would using just sigma
-# allow for a more complete rendering of strategies for infosets?
 def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
     """
 
@@ -64,35 +53,28 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
     """
     logging.debug("UPDATE STRATEGY")
     logging.debug("########")
-    logging.debug("########")
-    logging.debug("########")
+
     logging.debug(f"Iteration: {t}")
     logging.debug(f"Player Set to Update Regret: {i}")
     logging.debug(f"P(h): {state.player_i}")
     logging.debug(f"P(h) Updating Regret? {state.player_i == i}")
     logging.debug(f"Betting Round {state._betting_stage}")
-
     logging.debug(f"Community Cards {state._table.community_cards}")
+    logging.debug(f"Player 0 hole cards: {state.players[0].cards}")
+    logging.debug(f"Player 1 hole cards: {state.players[1].cards}")
+    logging.debug(f"Player 2 hole cards: {state.players[2].cards}")
     try:
         logging.debug(f"I(h): {state.info_set}")
     except KeyError:
         pass
     logging.debug(f"Betting Action Correct?: {state.players}")
-    logging.debug("########")
-    logging.debug(f"Regret: {agent.regret}")
-    logging.debug("########")
-    logging.debug(f"Sigma: {agent.sigma}")
-    logging.debug("########")
-    logging.debug(f"Strategy: {agent.strategy}")
 
-    logging.debug("########")
-    logging.debug("########")
-    logging.debug("########")
     ph = state.player_i  # this is always the case no matter what i is
 
     player_not_in_hand = not state.players[i].is_active
     if state.is_terminal or player_not_in_hand or state.betting_round > 0:
         return
+
     # NOTE(fedden): According to Algorithm 1 in the supplementary material,
     #               we would add in the following bit of logic. However we
     #               already have the game logic embedded in the state class,
@@ -102,29 +84,28 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
     # elif h is chance_node:
     #   sample action from strategy for h
     #   update_strategy(rs, h + a, i, t)
+
     elif ph == i:
         I = state.info_set
         # calculate regret
-        calculate_strategy(agent.regret, agent.sigma, I, state, t)
+        logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
+        logging.debug(f"Current regret: {agent.regret[I]}")
+        sigma = calculate_strategy(agent.regret, I, state)
+        logging.debug(f"Calculated Strategy for {I}: {sigma[I]}")
         # choose an action based of sigma
         try:
-            a = np.random.choice(
-                list(agent.sigma[t][I].keys()), 1, p=list(agent.sigma[t][I].values())
-            )[0]
-            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
+            a = np.random.choice(list(sigma[I].keys()), 1, p=list(sigma[I].values()))[0]
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            agent.sigma[t][I] = {action: p for action in state.legal_actions}
-            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
+            sigma[I] = {action: p for action in state.legal_actions}
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
 
         # Increment the action counter.
         agent.strategy[I][a] += 1
         logging.debug(f"Updated Strategy for {I}: {agent.strategy[I]}")
-
-        # so strategy is counts based on sigma, this takes into account the
-        # reach probability so there is no need to pass around that pi guy..
         new_state: ShortDeckPokerState = state.apply_action(a)
         update_strategy(agent, new_state, i, t)
     else:
@@ -132,18 +113,12 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
         for a in state.legal_actions:
             logging.debug(f"Going to Traverse {a} for opponent")
 
-            # not actually updating the strategy for p_i != i, only one i at a
-            # time
             new_state: ShortDeckPokerState = state.apply_action(a)
             update_strategy(agent, new_state, i, t)
 
 
 def calculate_strategy(
-    regret: Dict[str, Dict[str, float]],
-    sigma: Dict[int, Dict[str, Dict[str, float]]],
-    I: str,
-    state: ShortDeckPokerState,
-    t: int,
+    regret: Dict[str, Dict[str, float]], I: str, state: ShortDeckPokerState,
 ):
     """
 
@@ -153,12 +128,14 @@ def calculate_strategy(
     :param state: the game state
     :return: doesn't return anything, just updates sigma
     """
+    sigma = collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     rsum = sum([max(x, 0) for x in regret[I].values()])
     for a in state.legal_actions:
         if rsum > 0:
-            sigma[t + 1][I][a] = max(regret[I][a], 0) / rsum
+            sigma[I][a] = max(regret[I][a], 0) / rsum
         else:
-            sigma[t + 1][I][a] = 1 / len(state.legal_actions)
+            sigma[I][a] = 1 / len(state.legal_actions)
+    return sigma
 
 
 def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
@@ -172,34 +149,26 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     """
     logging.debug("CFR")
     logging.debug("########")
-    logging.debug("########")
-    logging.debug("########")
     logging.debug(f"Iteration: {t}")
     logging.debug(f"Player Set to Update Regret: {i}")
     logging.debug(f"P(h): {state.player_i}")
     logging.debug(f"P(h) Updating Regret? {state.player_i == i}")
     logging.debug(f"Betting Round {state._betting_stage}")
-
-
     logging.debug(f"Community Cards {state._table.community_cards}")
+    logging.debug(f"Player 0 hole cards: {state.players[0].cards}")
+    logging.debug(f"Player 1 hole cards: {state.players[1].cards}")
+    logging.debug(f"Player 2 hole cards: {state.players[2].cards}")
     try:
         logging.debug(f"I(h): {state.info_set}")
     except KeyError:
         pass
     logging.debug(f"Betting Action Correct?: {state.players}")
-    logging.debug("########")
-    logging.debug(f"Regret: {agent.regret}")
-    logging.debug("########")
-    logging.debug(f"Sigma: {agent.sigma}")
-    logging.debug("########")
-    logging.debug(f"Strategy: {agent.strategy}")
-    logging.debug("########")
-    logging.debug("########")
-    logging.debug("########")
+
     ph = state.player_i
 
     if state.is_terminal:
         return state.payout[i]
+
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
     #               will already skip to the next in-hand player.
@@ -214,67 +183,59 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     # elif h is chance_node:
     #   sample action from strategy for h
     #   cfr()
+
     elif ph == i:
         I = state.info_set
         # calculate strategy
-        try:
-            logging.debug(f"About to Calculate Strategy, Regret Exists: {agent.regret[I]}")
-        except UnboundLocalError:
-            logging.debug(f"About to Calculate Strategy, Regret does not exist")
-        calculate_strategy(agent.regret, agent.sigma, I, state, t)
-        logging.debug(f"Calculated Strategy for {I}: {agent.sigma[t+1][I]}")
+        logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
+        logging.debug(f"Current regret: {agent.regret[I]}")
+        sigma = calculate_strategy(agent.regret, I, state)
+        logging.debug(f"Calculated Strategy for {I}: {sigma[I]}")
 
-        # TODO: Does updating sigma here (as opposed to after regret) miss out
-        #       on any updates? If so, is there any benefit to having it up
-        #       here?
         vo = 0.0
         voa = {}
         for a in state.legal_actions:
-            logging.debug(f"ACTION TRAVERSED FOR REGRET:  ph {state.player_i} {a}")
+            logging.debug(
+                f"ACTION TRAVERSED FOR REGRET:  ph {state.player_i} ACTION: {a}"
+            )
 
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(agent, new_state, i, t)
             logging.debug(f"Got EV for {a}: {voa[a]}")
+            vo += sigma[I][a] * voa[a]
+            logging.debug(
+                f"""Added to Node EV for ACTION: {a} INFOSET: {I} 
+                STRATEGY: {sigma[I][a]}: {sigma[I][a] * voa[a]}"""
+            )
+        logging.debug(f"Updated EV at {I}: {vo}")
 
-            vo += agent.sigma[t][I][a] * voa[a]
-            if len(state.legal_actions) == 3:
-                if a == 'raise':
-                    logging.debug(f"Done with EV at {I}: {vo}")
-            elif len(state.legal_actions) == 2:
-                if a == 'call':
-                    logging.debug(f"Done with EV at {I}: {vo}")
-            else:
-                logging.debug(f"Updated EV at {I}: {vo}")
         for a in state.legal_actions:
             agent.regret[I][a] += voa[a] - vo
         logging.debug(f"Updated Regret at {I}: {agent.regret[I]}")
 
-            # do not need update the strategy based on regret, strategy does
-            # that with sigma
+        # TODO: checkout caching the regrets that get updated - for the end of the iteration we
+        #  could update strategy if that helps..
+
         return vo
     else:
         Iph = state.info_set
-        try:
-            logging.debug(f"About to Calculate Strategy, Regret Exists: {agent.regret[Iph]}")
-        except UnboundLocalError:
-            logging.debug(f"About to Calculate Strategy, Regret does not exist")
-        calculate_strategy(agent.regret, agent.sigma, Iph, state, t)
-        logging.debug(f"Calculated Strategy for {Iph}: {agent.sigma[t+1][Iph]}")
+        logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[Iph]}")
+        logging.debug(f"Current regret: {agent.regret[Iph]}")
+        sigma = calculate_strategy(agent.regret, Iph, state)
+        logging.debug(f"Calculated Strategy for {Iph}: {sigma[Iph]}")
 
         try:
             a = np.random.choice(
-                list(agent.sigma[t][Iph].keys()),
-                1,
-                p=list(agent.sigma[t][Iph].values()),
+                list(sigma[Iph].keys()), 1, p=list(sigma[Iph].values()),
             )[0]
-            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
 
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            agent.sigma[t][Iph] = {action: p for action in state.legal_actions}
-            logging.debug(f"ACTION SAMPLED: ph {state.player_i} {a}")
+            sigma[Iph] = {action: p for action in state.legal_actions}
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
 
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfr(agent, new_state, i, t)
@@ -310,7 +271,7 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
     elif ph == i:
         I = state.info_set
         # calculate strategy
-        calculate_strategy(agent.regret, agent.sigma, I, state, t)
+        sigma = calculate_strategy(agent.regret, I, state)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
@@ -322,29 +283,25 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
                 new_state: ShortDeckPokerState = state.apply_action(a)
                 voa[a] = cfrp(agent, new_state, i, t, c)
                 explored[a] = True
-                vo += agent.sigma[t][I][a] * voa[a]
+                vo += sigma[I][a] * voa[a]
             else:
                 explored[a] = False
         for a in state.legal_actions:
             if explored[a]:
                 agent.regret[I][a] += voa[a] - vo
-                # do not need update the strategy based on regret, strategy
-                # does that with sigma
         return vo
     else:
         Iph = state.info_set
-        calculate_strategy(agent.regret, agent.sigma, Iph, state, t)
+        sigma = calculate_strategy(agent.regret, Iph, state)
         try:
             a = np.random.choice(
-                list(agent.sigma[t][Iph].keys()),
-                1,
-                p=list(agent.sigma[t][Iph].values()),
+                list(sigma[Iph].keys()), 1, p=list(sigma[Iph].values()),
             )[0]
         except ValueError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
-            agent.sigma[t][Iph] = {action: p for action in state.legal_actions}
+            sigma[Iph] = {action: p for action in state.legal_actions}
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfrp(agent, new_state, i, t, c)
 
@@ -398,7 +355,7 @@ def _create_dir() -> Path:
 @click.option("--prune_threshold", default=4000, help=".")
 @click.option("--c", default=-20000, help=".")
 @click.option("--n_players", default=3, help=".")
-@click.option("--print_iteration", default=1, help=".")
+@click.option("--print_iteration", default=10, help=".")
 @click.option("--dump_iteration", default=10, help=".")
 @click.option("--update_threshold", default=0, help=".")
 def train(
@@ -421,17 +378,16 @@ def train(
         yaml.dump(config, steam)
     utils.random.seed(42)
     agent = Agent()
-    # algorithm presented here, pg.16:
-    # https://science.sciencemag.org/content/sci/suppl/2019/07/10/science.aay2400.DC1/aay2400-Brown-SM.pdf
+
     info_set_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
-        agent.sigma[t + 1] = copy.deepcopy(agent.sigma[t])
+        if t == 2:
+            logging.disable(logging.DEBUG)
         for i in range(n_players):  # fixed position i
             # Create a new state.
             state: ShortDeckPokerState = new_game(n_players, info_set_lut)
             info_set_lut = state.info_set_lut
             if t > update_threshold and t % strategy_interval == 0:
-                # Only start updating after 800 minutes in Pluribus
                 update_strategy(agent, state, i, t)
             if t > prune_threshold:
                 if random.uniform(0, 1) < 0.05:
@@ -452,22 +408,17 @@ def train(
                     agent.regret[I][a] *= d
                     agent.strategy[I][a] *= d
         if (t > update_threshold) & (t % dump_iteration == 0):
-            # Only start updating after 800 minutes in Pluribus. This is for
-            # the post-preflop betting rounds. It seems they dump the current
+            # dump the current
             # strategy (sigma) throughout training and then take an average.
             # This allows for estimation of expected value in leaf nodes later
             # on using modified versions of the blueprint strategy
-            to_persist = to_dict(
-                strategy=agent.strategy, regret=agent.regret, sigma=agent.sigma
-            )
+            to_persist = to_dict(strategy=agent.strategy, regret=agent.regret)
             joblib.dump(to_persist, save_path / f"strategy_{t}.gz", compress="gzip")
-        del agent.sigma[t]
+
         if t % print_iteration == 0:
             print_strategy(agent.strategy)
 
-    to_persist = to_dict(
-        strategy=agent.strategy, regret=agent.regret, sigma=agent.sigma
-    )
+    to_persist = to_dict(strategy=agent.strategy, regret=agent.regret)
     joblib.dump(to_persist, save_path / "strategy.gz", compress="gzip")
     print_strategy(agent.strategy)
 

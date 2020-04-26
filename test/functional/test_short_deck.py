@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 
 def test_short_deck_1():
@@ -170,3 +171,52 @@ def test_pre_flop_pot(n_players: int, small_blind: int, big_blind: int):
     assert (
         n_bet_chips == pot.total
     ), f"small and big blind have are not in pot! {n_bet_chips} == {pot.total}"
+
+
+def _play_game_helper(state, betting_round_dict, bad_seq):
+    p = 1 / len(state.legal_actions)
+    probabilities = np.full(len(state.legal_actions), p)
+    a = np.random.choice(state.legal_actions, p=probabilities)
+    betting_stage = state._betting_stage
+    if betting_stage not in ["show_down", "terminal"]:
+        if state._poker_engine.n_active_players == 2:
+            betting_round_dict[betting_stage].append(a)
+            lst = [x for x in betting_round_dict[betting_stage] if x != "skip"]
+            for i in range(len(lst)):
+                assert lst[i : i + len(bad_seq)] != bad_seq
+        state = state.apply_action(a)
+
+        _play_game_helper(state, betting_round_dict, bad_seq)
+
+
+@pytest.mark.parametrize("n_players", [2, 3])
+@pytest.mark.parametrize("small_blind", [50])
+@pytest.mark.parametrize("big_blind", [100])
+def test_call_action_sequence(n_players: int, small_blind: int, big_blind: int):
+    """
+    Make sure we never see an action sequence of "raise", "call", "call" in the same
+    round with only two players. There would be a similar analog for more than two players,
+    but this should aid in initially finding the bug.
+    """
+    from pluribus.games.short_deck.player import ShortDeckPokerPlayer
+    from pluribus.games.short_deck.state import ShortDeckPokerState
+    from pluribus.poker.pot import Pot
+
+    pot = Pot()
+    players = [
+        ShortDeckPokerPlayer(player_i=player_i, pot=pot, initial_chips=10000)
+        for player_i in range(n_players)
+    ]
+
+    state = ShortDeckPokerState(
+        players=players,
+        load_pickle_files=False,
+        small_blind=small_blind,
+        big_blind=big_blind,
+    )
+
+    # example of a bad sequence in a two-handed game in one round
+    bad_seq = ["raise", "call", "call"]
+    for t in range(100):
+        betting_round_dict = {"pre_flop": [], "flop": [], "turn": [], "river": []}
+        _play_game_helper(state, betting_round_dict, bad_seq)
