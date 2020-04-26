@@ -121,9 +121,6 @@ class ShortDeckPokerState:
         new_state.info_set_lut = self.info_set_lut = lut
         if action_str is None:
             # Assert active player has folded already.
-            import ipdb
-
-            ipdb.set_trace()
             assert (
                 not new_state.current_player.is_active
             ), "Active player cannot do nothing!"
@@ -245,7 +242,12 @@ class ShortDeckPokerState:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
 
     @property
-    def all_players_have_actioned(self):
+    def betting_stage(self) -> str:
+        """Return betting stage."""
+        return self._betting_stage
+
+    @property
+    def all_players_have_actioned(self) -> bool:
         """Return whether all players have made atleast one action."""
         return self._n_actions >= self._poker_engine.n_active_players
 

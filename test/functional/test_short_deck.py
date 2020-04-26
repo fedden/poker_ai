@@ -1,3 +1,4 @@
+import collections
 from typing import Tuple, Union
 
 import pytest
@@ -39,18 +40,18 @@ def test_short_deck_1():
     for i in range(n_players):
         assert state.current_player.name == f"player_{player_i_order[i]}"
         assert len(state.legal_actions) == 3
-        assert state._betting_stage == "pre_flop"
+        assert state.betting_stage == "pre_flop"
         state = state.apply_action(action_str="call")
-    assert state._betting_stage == "flop"
+    assert state.betting_stage == "flop"
     # Fold for all but last player.
     for player_i in range(n_players - 1):
         assert state.current_player.name == f"player_{player_i}"
         assert len(state.legal_actions) == 3
-        assert state._betting_stage == "flop"
+        assert state.betting_stage == "flop"
         state = state.apply_action(action_str="fold")
     # Only one player left, so game state should be terminal.
     assert state.is_terminal, "state was not terminal"
-    assert state._betting_stage == "terminal"
+    assert state.betting_stage == "terminal"
 
 
 def test_short_deck_2():
@@ -62,41 +63,41 @@ def test_short_deck_2():
     for i in range(n_players):
         assert state.current_player.name == f"player_{player_i_order[i]}"
         assert len(state.legal_actions) == 3
-        assert state._betting_stage == "pre_flop"
+        assert state.betting_stage == "pre_flop"
         state = state.apply_action(action_str="call")
     # Raise for all players.
     for player_i in range(n_players):
         assert state.current_player.name == f"player_{player_i}"
         assert len(state.legal_actions) == 3
-        assert state._betting_stage == "flop"
+        assert state.betting_stage == "flop"
         state = state.apply_action(action_str="raise")
     # Call for all players and ensure all players have chipped in the same..
     for player_i in range(n_players - 1):
         assert state.current_player.name == f"player_{player_i}"
         assert len(state.legal_actions) == 2
-        assert state._betting_stage == "flop"
+        assert state.betting_stage == "flop"
         state = state.apply_action(action_str="call")
     # Raise for all players.
     for player_i in range(n_players):
         assert state.current_player.name == f"player_{player_i}"
         assert len(state.legal_actions) == 3
-        assert state._betting_stage == "turn"
+        assert state.betting_stage == "turn"
         state = state.apply_action(action_str="raise")
     # Call for all players and ensure all players have chipped in the same..
     for player_i in range(n_players - 1):
         assert state.current_player.name == f"player_{player_i}"
         assert len(state.legal_actions) == 2
-        assert state._betting_stage == "turn"
+        assert state.betting_stage == "turn"
         state = state.apply_action(action_str="call")
     # Fold for all but last player.
     for player_i in range(n_players - 1):
         assert state.current_player.name == f"player_{player_i}"
         assert len(state.legal_actions) == 3
-        assert state._betting_stage == "river"
+        assert state.betting_stage == "river"
         state = state.apply_action(action_str="fold")
     # Only one player left, so game state should be terminal.
     assert state.is_terminal, "state was not terminal"
-    assert state._betting_stage == "terminal"
+    assert state.betting_stage == "terminal"
 
 
 @pytest.mark.parametrize(
@@ -125,13 +126,13 @@ def test_short_deck_3(n_players: int):
         "river": order,
     }
     prev_stage = ""
-    while state._betting_stage in player_i_order:
-        if state._betting_stage != prev_stage:
+    while state.betting_stage in player_i_order:
+        if state.betting_stage != prev_stage:
             # If there is a new betting stage, reset the target player index
             # counter.
             order_i = 0
-            prev_stage = state._betting_stage
-        target_player_i = player_i_order[state._betting_stage][order_i]
+            prev_stage = state.betting_stage
+        target_player_i = player_i_order[state.betting_stage][order_i]
         assert (
             state.current_player.name == f"player_{target_player_i}"
         ), f"{state.current_player.name} != player_{target_player_i}"
@@ -154,7 +155,7 @@ def test_pre_flop_pot(n_players: int, small_blind: int, big_blind: int):
     n_bet_chips = sum(p.n_bet_chips for p in state.players)
     target = small_blind + big_blind
     assert state.player_i == 0 if n_players == 2 else 2
-    assert state._betting_stage == "pre_flop"
+    assert state.betting_stage == "pre_flop"
     assert (
         n_bet_chips == target
     ), f"small and big blind have not bet! {n_bet_chips} == {target}"
@@ -170,27 +171,28 @@ def test_call_action_sequence(n_players):
     round with only two players. There would be a similar analog for more than two players,
     but this should aid in initially finding the bug.
     """
+    # Seed the random number generation so things are procedural/reproducable.
     seed(42)
     # example of a bad sequence in a two-handed game in one round
     bad_seq = ["raise", "call", "call"]
+    # Run some number of random iterations.
     for _ in range(200):
         state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
-        betting_round_dict = {"pre_flop": [], "flop": [], "turn": [], "river": []}
-        while state._betting_stage not in {"show_down", "terminal"}:
+        betting_round_dict = collections.defaultdict(list)
+        while state.betting_stage not in {"show_down", "terminal"}:
             uniform_probability = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), uniform_probability)
             random_action = np.random.choice(state.legal_actions, p=probabilities)
-            betting_stage = state._betting_stage
             if state._poker_engine.n_active_players == 2:
-                betting_round_dict[betting_stage].append(random_action)
+                betting_round_dict[state.betting_stage].append(random_action)
                 no_fold_action_history = [
                     action
-                    for action in betting_round_dict[betting_stage]
+                    for action in betting_round_dict[state.betting_stage]
                     if action != "skip"
                 ]
                 # Loop through the action history and make sure the bad
                 # sequence has not happened.
                 for i in range(len(no_fold_action_history)):
-                    history_slice = no_fold_action_history[i : i + len(bad_seq)]
+                    history_slice = no_fold_action_history[i:i + len(bad_seq)]
                     assert history_slice != bad_seq
             state = state.apply_action(random_action)
