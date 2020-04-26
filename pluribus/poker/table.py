@@ -17,21 +17,21 @@ class PokerTable:
     Each player is responisble for handling his own cards privately.
     """
 
-    def __init__(self, players: List[Player], pot: Pot):
+    def __init__(self, players: List[Player], pot: Pot, **deck_kwargs):
         """Construct the table."""
-        self.players = players
-        self.total_n_chips_on_table = sum(p.n_chips for p in self.players)
-        self.pot = pot
-        self.dealer = Dealer()
+        self.players: List[Player] = players
+        self.total_n_chips_on_table: int = sum(p.n_chips for p in self.players)
+        self.pot: Pot = pot
+        self.dealer: Dealer = Dealer(**deck_kwargs)
         self.community_cards: List[Card] = []
-        self.n_games = 0
+        self.n_games: int = 0
         if self.n_players < 2:
             raise ValueError(f'Must be atleast two players on the table.')
         if not all(p.pot.uid == self.pot.uid for p in self.players):
             raise ValueError(f'Players and table point to different pots.')
 
     @property
-    def n_players(self):
+    def n_players(self) -> int:
         """How many players are on the table?"""
         return len(self.players)
 

@@ -44,18 +44,11 @@ class ShortDeckPokerState:
         else:
             self.info_set_lut = {}
         # Get a reference of the pot from the first player.
-        self._table = PokerTable(players=players, pot=players[0].pot)
+        self._table = PokerTable(
+            players=players, pot=players[0].pot, include_ranks=[10, 11, 12, 13, 14]
+        )
         # Get a reference of the initial number of chips for the payout.
         self._initial_n_chips = players[0].n_chips
-        # TODO(fedden): There are an awful lot of layers of abstraction here,
-        #               this could be much neater, maybe refactor and clean
-        #               things up a bit here in the future.
-        # Shorten the deck.
-        self._table.dealer.deck._cards = [
-            card
-            for card in self._table.dealer.deck._cards
-            if card.rank_int not in {2, 3, 4, 5, 6, 7, 8, 9}
-        ]
         self.small_blind = small_blind
         self.big_blind = big_blind
         self._poker_engine = PokerEngine(
