@@ -94,9 +94,7 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
         logging.debug(f"Calculated Strategy for {I}: {sigma[I]}")
         # choose an action based of sigma
         try:
-            a = np.random.choice(
-                list(sigma[I].keys()), 1, p=list(sigma[I].values())
-            )[0]
+            a = np.random.choice(list(sigma[I].keys()), 1, p=list(sigma[I].values()))[0]
             logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
         except ValueError:
             p = 1 / len(state.legal_actions)
@@ -120,9 +118,7 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
 
 
 def calculate_strategy(
-    regret: Dict[str, Dict[str, float]],
-    I: str,
-    state: ShortDeckPokerState,
+    regret: Dict[str, Dict[str, float]], I: str, state: ShortDeckPokerState,
 ):
     """
 
@@ -132,9 +128,7 @@ def calculate_strategy(
     :param state: the game state
     :return: doesn't return anything, just updates sigma
     """
-    sigma = collections.defaultdict(
-        lambda: collections.defaultdict(lambda: 1 / 3)
-    )
+    sigma = collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     rsum = sum([max(x, 0) for x in regret[I].values()])
     for a in state.legal_actions:
         if rsum > 0:
@@ -232,9 +226,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
 
         try:
             a = np.random.choice(
-                list(sigma[Iph].keys()),
-                1,
-                p=list(sigma[Iph].values()),
+                list(sigma[Iph].keys()), 1, p=list(sigma[Iph].values()),
             )[0]
             logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
 
@@ -303,9 +295,7 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
         sigma = calculate_strategy(agent.regret, Iph, state)
         try:
             a = np.random.choice(
-                list(sigma[Iph].keys()),
-                1,
-                p=list(sigma[Iph].values()),
+                list(sigma[Iph].keys()), 1, p=list(sigma[Iph].values()),
             )[0]
         except ValueError:
             p = 1 / len(state.legal_actions)
@@ -422,17 +412,13 @@ def train(
             # strategy (sigma) throughout training and then take an average.
             # This allows for estimation of expected value in leaf nodes later
             # on using modified versions of the blueprint strategy
-            to_persist = to_dict(
-                strategy=agent.strategy, regret=agent.regret
-            )
+            to_persist = to_dict(strategy=agent.strategy, regret=agent.regret)
             joblib.dump(to_persist, save_path / f"strategy_{t}.gz", compress="gzip")
 
         if t % print_iteration == 0:
             print_strategy(agent.strategy)
 
-    to_persist = to_dict(
-        strategy=agent.strategy, regret=agent.regret
-    )
+    to_persist = to_dict(strategy=agent.strategy, regret=agent.regret)
     joblib.dump(to_persist, save_path / "strategy.gz", compress="gzip")
     print_strategy(agent.strategy)
 

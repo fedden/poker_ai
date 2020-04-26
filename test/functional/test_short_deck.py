@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 
+
 def test_short_deck_1():
     """Test the short deck poker game state works as expected."""
     from pluribus.games.short_deck.player import ShortDeckPokerPlayer
@@ -180,16 +181,12 @@ def _play_game_helper(state, betting_round_dict, bad_seq):
     if betting_stage not in ["show_down", "terminal"]:
         if state._poker_engine.n_active_players == 2:
             betting_round_dict[betting_stage].append(a)
-            lst = [x for x in betting_round_dict[betting_stage] if x != 'skip']
-            print("####")
-            print(betting_stage)
-            print(lst)
-            print(bad_seq)
+            lst = [x for x in betting_round_dict[betting_stage] if x != "skip"]
             for i in range(len(lst)):
-                assert (lst[i:i + len(bad_seq)] != bad_seq)
+                assert lst[i : i + len(bad_seq)] != bad_seq
         state = state.apply_action(a)
 
-        _play_game(state, betting_round_dict)
+        _play_game_helper(state, betting_round_dict, bad_seq)
 
 
 @pytest.mark.parametrize("n_players", [2, 3])
@@ -198,12 +195,8 @@ def _play_game_helper(state, betting_round_dict, bad_seq):
 def test_call_action_sequence(n_players: int, small_blind: int, big_blind: int):
     """
     Make sure we never see an action sequence of "raise", "call", "call" in the same
-    round with only two players
-
-    :param n_players:
-    :param small_blind:
-    :param big_blind:
-    :return:
+    round with only two players. There would be a similar analog for more than two players,
+    but this should aid in initially finding the bug.
     """
     from pluribus.games.short_deck.player import ShortDeckPokerPlayer
     from pluribus.games.short_deck.state import ShortDeckPokerState
@@ -222,7 +215,8 @@ def test_call_action_sequence(n_players: int, small_blind: int, big_blind: int):
         big_blind=big_blind,
     )
 
-    bad_seq = ['raise', 'call', 'call']
+    # example of a bad sequence in a two-handed game in one round
+    bad_seq = ["raise", "call", "call"]
     for t in range(100):
         betting_round_dict = {"pre_flop": [], "flop": [], "turn": [], "river": []}
         _play_game_helper(state, betting_round_dict, bad_seq)
