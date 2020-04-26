@@ -1,11 +1,14 @@
 import collections
-from typing import Tuple, Union
+import copy
+import random
+from typing import List, Tuple, Optional
 
 import pytest
 import numpy as np
 
 from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
+from pluribus.poker.card import Card
 from pluribus.poker.pot import Pot
 from pluribus.utils.random import seed
 
@@ -164,6 +167,31 @@ def test_pre_flop_pot(n_players: int, small_blind: int, big_blind: int):
     ), f"small and big blind have are not in pot! {n_bet_chips} == {pot.total}"
 
 
+def test_flops_are_random():
+    """Ensure across multiple runs that the flop varies."""
+
+    def _get_flop(state: ShortDeckPokerState) -> List[Card]:
+        """Get the public cards for the flop stage."""
+        state = copy.deepcopy(state)
+        while state.betting_stage != "flop":
+            action: Optional[str] = random.choice(state.legal_actions)
+            state = state.apply_action(action)
+        return state._table.community_cards
+
+    seed(42)
+    state, _ = _new_game(n_players=3, small_blind=50, big_blind=100)
+    n_iterations = 5
+    # We'll store the public cards from the flop as eval_cards (ints).
+    flops: List[Tuple[int, int, int]] = []
+    for _ in range(n_iterations):
+        flop = _get_flop(state)
+        flops.append(tuple([card.eval_card for card in flop]))
+    flop_occurances = collections.Counter(flops)
+    # Ensure that we have not had the same flop `n_iterations` number of times
+    # repeatedly.
+    assert len(flop_occurances) > 1 and len(flop_occurances.most_common()) != 1
+
+
 @pytest.mark.parametrize("n_players", [2, 3])
 def test_call_action_sequence(n_players):
     """
@@ -180,12 +208,12 @@ def test_call_action_sequence(n_players):
         state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
         betting_round_dict = collections.defaultdict(list)
         while state.betting_stage not in {"show_down", "terminal"}:
-            uniform_probability = 1 / len(state.legal_actions)
+            uniform_probability: float = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), uniform_probability)
-            random_action = np.random.choice(state.legal_actions, p=probabilities)
+            random_action: str = np.random.choice(state.legal_actions, p=probabilities)
             if state._poker_engine.n_active_players == 2:
                 betting_round_dict[state.betting_stage].append(random_action)
-                no_fold_action_history = [
+                no_fold_action_history: List[str] = [
                     action
                     for action in betting_round_dict[state.betting_stage]
                     if action != "skip"
