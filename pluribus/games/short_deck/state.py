@@ -44,18 +44,11 @@ class ShortDeckPokerState:
         else:
             self.info_set_lut = {}
         # Get a reference of the pot from the first player.
-        self._table = PokerTable(players=players, pot=players[0].pot)
+        self._table = PokerTable(
+            players=players, pot=players[0].pot, include_ranks=[10, 11, 12, 13, 14]
+        )
         # Get a reference of the initial number of chips for the payout.
         self._initial_n_chips = players[0].n_chips
-        # TODO(fedden): There are an awful lot of layers of abstraction here,
-        #               this could be much neater, maybe refactor and clean
-        #               things up a bit here in the future.
-        # Shorten the deck.
-        self._table.dealer.deck._cards = [
-            card
-            for card in self._table.dealer.deck._cards
-            if card.rank_int not in {2, 3, 4, 5, 6, 7, 8, 9}
-        ]
         self.small_blind = small_blind
         self.big_blind = big_blind
         self._poker_engine = PokerEngine(
@@ -68,7 +61,6 @@ class ShortDeckPokerState:
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
         self._history: List[str] = []
-        self._player_i_index = 0
         self._betting_stage = "pre_flop"
         self._betting_stage_to_round: Dict[str, int] = {
             "pre_flop": 0,
@@ -132,7 +124,7 @@ class ShortDeckPokerState:
             action = new_state.current_player.fold()
         elif action_str == "raise":
             bet_n_chips = new_state.big_blind
-            if self._betting_stage in {"turn", "river"}:
+            if new_state._betting_stage in {"turn", "river"}:
                 bet_n_chips *= 2
             biggest_bet = max(p.n_bet_chips for p in new_state.players)
             n_chips_to_call = biggest_bet - new_state.current_player.n_bet_chips
@@ -147,11 +139,29 @@ class ShortDeckPokerState:
             )
         # Update the new state.
         new_state._history.append(str(action))
+        new_state._n_actions += 1
         # Player has made move, increment the player that is next.
         while True:
             new_state._move_to_next_player()
-            terminal = self._betting_stage in {"terminal", "show_down"}
-            if new_state.current_player.is_active or terminal:
+            if new_state.current_player.is_active:
+                # If we have finished betting, (i.e: All players have put the
+                # same amount of chips in), then increment the stage of
+                # betting.
+                finished_betting = not new_state._poker_engine.more_betting_needed
+                if finished_betting and new_state.all_players_have_actioned:
+                    # We have done atleast one full round of betting, increment
+                    # stage of the game.
+                    new_state._increment_stage()
+                    new_state._reset_betting_round_state()
+                if new_state._poker_engine.n_players_with_moves == 1:
+                    # No players left.
+                    new_state._betting_stage = "terminal"
+                    if not new_state._table.community_cards:
+                        new_state._poker_engine.table.dealer.deal_flop(new_state._table)
+                # Now check if the game is terminal.
+                if new_state._betting_stage in {"terminal", "show_down"}:
+                    # Distribute winnings.
+                    new_state._poker_engine.compute_winners()
                 break
             else:
                 # The current player isn't active, and we are not terminal.
@@ -160,30 +170,14 @@ class ShortDeckPokerState:
                 # signify the notation h · 0 in algorithm 1 of the
                 # supplementary material of the Pluribus paper.
                 new_state._history.append("skip")
+            assert not new_state.current_player.is_active
         return new_state
 
     def _move_to_next_player(self):
-        """Ensure state points to next valid active player.
-
-        Setup game and assocaited game-state for the current turn.
-        """
+        """Ensure state points to next valid active player."""
         self._player_i_index += 1
         if self._player_i_index >= len(self.players):
             self._player_i_index = 0
-            finished_betting = not self._poker_engine.more_betting_needed
-            if finished_betting:
-                # We have done atleast one full round of betting, increment
-                # stage of the game.
-                self._increment_stage()
-        if self._poker_engine.n_players_with_moves == 1:
-            # No players left.
-            self._betting_stage = "terminal"
-            if not self._table.community_cards:
-                self._poker_engine.table.dealer.deal_flop(self._table)
-        # Now check if the game is terminal.
-        if self._betting_stage in {"terminal", "show_down"}:
-            # Distribute winnings.
-            self._poker_engine.compute_winners()
 
     def _load_pickle_files(
         self, pickle_dir: str
@@ -211,12 +205,14 @@ class ShortDeckPokerState:
     def _reset_betting_round_state(self):
         """Reset the state related to counting types of actions."""
         self._all_players_have_made_action = False
+        self._n_actions = 0
         self._n_raises = 0
+        self._player_i_index = 0
+        while not self.current_player.is_active:
+            self._player_i_index += 1
 
     def _increment_stage(self):
         """Once betting has finished, increment the stage of the poker game."""
-        # All players must bet.
-        self._reset_betting_round_state()
         # Progress the stage of the game.
         if self._betting_stage == "pre_flop":
             # Progress from private cards to the flop.
@@ -233,10 +229,20 @@ class ShortDeckPokerState:
         elif self._betting_stage == "river":
             # Progress to the showdown.
             self._betting_stage = "show_down"
-        elif self._betting_stage == "terminal":
+        elif self._betting_stage in {"show_down", "terminal"}:
             pass
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    @property
+    def betting_stage(self) -> str:
+        """Return betting stage."""
+        return self._betting_stage
+
+    @property
+    def all_players_have_actioned(self) -> bool:
+        """Return whether all players have made atleast one action."""
+        return self._n_actions >= self._poker_engine.n_active_players
 
     @property
     def player_i(self) -> int:
@@ -275,7 +281,15 @@ class ShortDeckPokerState:
             reverse=True,
         )
         eval_cards = tuple([card.eval_card for card in cards])
-        cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
+        try:
+            cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
+        except KeyError:
+            if not self.info_set_lut:
+                raise ValueError("Pickle luts must be loaded for info set.")
+            elif eval_cards not in self.info_set_lut[self._betting_stage]:
+                raise ValueError("Cards {cards} not in pickle files.")
+            else:
+                raise ValueError("Unrecognised betting stage in pickle files.")
         action_history = [str(action) for action in self._history]
         return f"cards_cluster={cards_cluster}, history={action_history}"
 

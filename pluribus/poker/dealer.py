@@ -7,41 +7,50 @@ from pluribus.poker.deck import Deck
 if TYPE_CHECKING:
     from pluribus.poker.table import PokerTable
     from pluribus.poker.player import Player
+    from pluribus.poker.card import Card
 
 
 class Dealer:
     """The dealer is in charge of handling the cards on a poker table."""
 
-    def __init__(self):
-        self.deck = Deck()
-        self.deck.shuffle()
+    def __init__(self, **deck_kwargs):
+        self.deck = Deck(**deck_kwargs)
 
-    def deal_card(self):
-        return self.deck.pick()
-
-    def use_fresh_deck(self):
-        self.deck = Deck()
-        self.deck.shuffle()
+    def deal_card(self) -> Card:
+        """Return a completely random card."""
+        return self.deck.pick(random=True)
 
     def deal_private_cards(self, players: List[Player]):
+        """Deal private card to players.
+
+        Parameters
+        ----------
+        players : list of Player
+            The players to deal the private cards to.
+        """
         for _ in range(2):
             for player in players:
-                card = self.deal_card()
+                card: Card = self.deal_card()
                 player.add_private_card(card)
 
-    def deal_community_cards(self, table: PokerTable, num_cards: int):
-        assert num_cards > 0
-        # TODO(fedden): Do we need to burn a card like in casinos? Check the
-        #               papers supplimentary materials.
-        for _ in range(num_cards):
-            card = self.deal_card()
+    def deal_community_cards(self, table: PokerTable, n_cards: int):
+        """Deal public cards."""
+        if n_cards <= 0:
+            raise ValueError(
+                f"Positive n of cards must be specified, but got {n_cards}"
+            )
+        for _ in range(n_cards):
+            card: Card = self.deal_card()
             table.add_community_card(card)
 
     def deal_flop(self, table: PokerTable):
+        """Deal the flop public cards to the `table`."""
         return self.deal_community_cards(table, 3)
 
     def deal_turn(self, table: PokerTable):
+        """Deal the turn public cards to the `table`."""
         return self.deal_community_cards(table, 1)
 
     def deal_river(self, table: PokerTable):
+        """Deal the river public cards to the `table`."""
         return self.deal_community_cards(table, 1)
