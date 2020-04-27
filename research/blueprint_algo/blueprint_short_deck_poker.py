@@ -166,7 +166,8 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
 
     ph = state.player_i
 
-    if state.is_terminal:
+    player_not_in_hand = not state.players[i].is_active
+    if state.is_terminal or player_not_in_hand:
         return state.payout[i]
 
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
@@ -252,7 +253,8 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
     """
     ph = state.player_i
 
-    if state.is_terminal:
+    player_not_in_hand = not state.players[i].is_active
+    if state.is_terminal or player_not_in_hand:
         return state.payout[i]
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class
