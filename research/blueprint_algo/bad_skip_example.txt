@@ -1,0 +1,10 @@
+DEBUG:root:Betting Round flop
+DEBUG:root:Community Cards [<Card card=[king of clubs ♣]>, <Card card=[ace of diamonds ♦]>, <Card card=[jack of clubs ♣]>]
+DEBUG:root:Player 0 hole cards: [<Card card=[10 of spades ♠]>, <Card card=[jack of hearts ♥]>]
+DEBUG:root:Player 1 hole cards: [<Card card=[jack of spades ♠]>, <Card card=[queen of hearts ♥]>]
+DEBUG:root:Player 2 hole cards: [<Card card=[10 of clubs ♣]>, <Card card=[ace of hearts ♥]>]
+DEBUG:root:I(h): cards_cluster=1, history=['fold', 'call', 'call', 'skip']
+DEBUG:root:Betting Action Correct?: [<Player name="player_0" n_chips=09900 n_bet_chips=00100 folded=0>, <Player name="player_1" n_chips=09900 n_bet_chips=00100 folded=0>, <Player name="player_2" n_chips=10000 n_bet_chips=00000 folded=1>]
+DEBUG:root:About to Calculate Strategy, Regret: defaultdict(<function Agent.__init__.<locals>.<lambda>.<locals>.<lambda> at 0x10dd99598>, {})
+DEBUG:root:Current regret: defaultdict(<function Agent.__init__.<locals>.<lambda>.<locals>.<lambda> at 0x10dd99598>, {})
+DEBUG:root:Calculated Strategy for cards_cluster=1, history=['fold', 'call', 'call', 'skip']: defaultdict(<function calculate_strategy.<locals>.<lambda>.<locals>.<lambda> at 0x10dd99620>, {'fold': 0.3333333333333333, 'call': 0.3333333333333333, 'raise': 0.3333333333333333})
