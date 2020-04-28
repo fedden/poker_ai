@@ -172,11 +172,14 @@ def test_flops_are_random():
 
     def _get_flop(state: ShortDeckPokerState) -> List[Card]:
         """Get the public cards for the flop stage."""
-        state = copy.deepcopy(state)
-        while state.betting_stage != "flop":
-            action: Optional[str] = random.choice(state.legal_actions)
-            state = state.apply_action(action)
-        return state._table.community_cards
+        save_state = copy.deepcopy(state)
+        while save_state.betting_stage != "flop":
+            # accounting for when we hit a terminal node before the flop
+            if save_state.betting_stage == "terminal":
+                return _get_flop(state)
+            action: Optional[str] = random.choice(save_state.legal_actions)
+            save_state = save_state.apply_action(action)
+        return save_state._table.community_cards
 
     seed(42)
     state, _ = _new_game(n_players=3, small_blind=50, big_blind=100)
