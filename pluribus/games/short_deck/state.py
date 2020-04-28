@@ -208,6 +208,7 @@ class ShortDeckPokerState:
         self._n_actions = 0
         self._n_raises = 0
         self._player_i_index = 0
+        self._n_players_started_round = len([p for p in self.players if p.is_active])
         while not self.current_player.is_active:
             self._player_i_index += 1
 
@@ -242,7 +243,7 @@ class ShortDeckPokerState:
     @property
     def all_players_have_actioned(self) -> bool:
         """Return whether all players have made atleast one action."""
-        return self._n_actions >= self._poker_engine.n_active_players
+        return self._n_actions >= self._n_players_started_round
 
     @property
     def player_i(self) -> int:

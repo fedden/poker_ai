@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict
 import logging
 
-logging.basicConfig(filename="after_rewrite_variable_logs_example.txt", level=logging.DEBUG)
+logging.basicConfig(filename="after_game_state_fix_return_when_active_players_out.txt", level=logging.DEBUG)
 
 import click
 import joblib
@@ -199,7 +199,6 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             logging.debug(
                 f"ACTION TRAVERSED FOR REGRET:  ph {state.player_i} ACTION: {a}"
             )
-
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(agent, new_state, i, t)
             logging.debug(f"Got EV for {a}: {voa[a]}")
@@ -213,9 +212,6 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         for a in state.legal_actions:
             agent.regret[I][a] += voa[a] - vo
         logging.debug(f"Updated Regret at {I}: {agent.regret[I]}")
-
-        # TODO: checkout caching the regrets that get updated - for the end of the iteration we
-        #  could update strategy if that helps..
 
         return vo
     else:
