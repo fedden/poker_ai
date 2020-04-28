@@ -208,7 +208,7 @@ class ShortDeckPokerState:
         self._n_actions = 0
         self._n_raises = 0
         self._player_i_index = 0
-        self._n_players_started_round = len([p for p in self.players if p.is_active])
+        self._n_players_started_round = self._poker_engine.n_active_players
         while not self.current_player.is_active:
             self._player_i_index += 1
 
