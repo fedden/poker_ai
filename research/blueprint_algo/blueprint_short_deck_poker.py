@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict
 import logging
 
-logging.basicConfig(filename="after_game_state_fix_return_when_active_players_out.txt", level=logging.DEBUG)
+logging.basicConfig(filename="test.txt", level=logging.DEBUG)
 
 import click
 import joblib
