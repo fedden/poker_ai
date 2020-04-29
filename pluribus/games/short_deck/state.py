@@ -80,6 +80,7 @@ class ShortDeckPokerState:
             "show_down": player_i_order,
             "terminal": player_i_order,
         }
+        self._skip_counter = 0
         self._reset_betting_round_state()
 
     def __repr__(self):
@@ -138,8 +139,11 @@ class ShortDeckPokerState:
                 f"type {type(action)}."
             )
         # Update the new state.
+        n_skips = new_state._skip_counter
+        new_state._history = new_state._history + ['skip'] * n_skips
         new_state._history.append(str(action))
         new_state._n_actions += 1
+        new_state._skip_counter = 0
         # Player has made move, increment the player that is next.
         while True:
             new_state._move_to_next_player()
@@ -158,7 +162,7 @@ class ShortDeckPokerState:
                 # while loop, but append a null action to the history to
                 # signify the notation h · 0 in algorithm 1 of the
                 # supplementary material of the Pluribus paper.
-                new_state._history.append("skip")
+                new_state._skip_counter += 1
                 assert not new_state.current_player.is_active
             elif new_state.current_player.is_active:
                 if new_state._poker_engine.n_players_with_moves == 1:
@@ -210,7 +214,7 @@ class ShortDeckPokerState:
         self._player_i_index = 0
         self._n_players_started_round = self._poker_engine.n_active_players
         while not self.current_player.is_active:
-            self._history.append("skip")
+            self._skip_counter += 1
             self._player_i_index += 1
 
     def _increment_stage(self):
