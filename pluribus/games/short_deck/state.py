@@ -140,7 +140,7 @@ class ShortDeckPokerState:
             )
         # Update the new state.
         n_skips = new_state._skip_counter
-        new_state._history = new_state._history + ['skip'] * n_skips
+        new_state._history = new_state._history + ["skip"] * n_skips
         new_state._history.append(str(action))
         new_state._n_actions += 1
         new_state._skip_counter = 0
@@ -332,7 +332,7 @@ class ShortDeckPokerState:
         actions: List[Optional[str]] = []
         if self.current_player.is_active:
             actions += ["fold", "call"]
-            if self._n_raises < 3 or self._poker_engine.n_active_players == 2:
+            if self._n_raises < 3:
                 # In limit hold'em we can only bet/raise if there have been
                 # less than three raises in this round of betting, or if there
                 # are two players playing.
