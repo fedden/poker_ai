@@ -1,81 +1,58 @@
-from __future__ import annotations
+from typing import List, Tuple
 
-import copy
-import collections
-import datetime
-import json
-import random
-from pathlib import Path
-from typing import Any, Dict
-import logging
-
-logging.basicConfig(filename="test.txt", level=logging.DEBUG)
-
-import click
-import joblib
-import numpy as np
-import yaml
-from tqdm import tqdm, trange
-
-from pluribus import utils
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
-action_dict = collections.defaultdict(
-    lambda: []
-)
 
-
-def cfr(state: ShortDeckPokerState, lst, t) -> float:
+def generate_preflop_action_sequences(state: ShortDeckPokerState, lst: List):
     """
+    DFS to print action combos
     """
-    if lst:
-        num_raises = len([x for x in lst if x == 'raise'])
-    else:
-        num_raises = 0
-    if state.is_terminal or state.betting_round > 0 or num_raises == 3:
+    if state.is_terminal or state.betting_round > 0:
         print(lst)
         lst.pop()
+        # PREFLOP_ACTION_SEQUENCES.append(state._history)
         return lst
 
     for a in state.legal_actions:
-        print(state._n_raises, state.legal_actions)
         lst.append(a)
         new_state: ShortDeckPokerState = state.apply_action(a)
 
-        lst = cfr(new_state, lst, t)
+        lst = generate_preflop_action_sequences(new_state, lst)
+        # generate_preflop_action_sequences(new_state, lst)
+    if lst:
+        lst.pop()
+    return lst
 
 
-
-
-def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPokerState:
-    """Create a new game of short deck poker."""
+def new_game(
+    n_players: int,
+    small_blind: int = 50,
+    big_blind: int = 100,
+    initial_chips: int = 10000,
+) -> Tuple[ShortDeckPokerState, Pot]:
+    """Create a new game."""
     pot = Pot()
     players = [
-        ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+        ShortDeckPokerPlayer(player_i=player_i, pot=pot, initial_chips=initial_chips)
         for player_i in range(n_players)
     ]
-
-    # Don't reload massive files, it takes ages.
-    state = ShortDeckPokerState(players=players, load_pickle_files=False)
-    state.info_set_lut = info_set_lut
-
+    state = ShortDeckPokerState(
+        players=players,
+        load_pickle_files=False,
+        small_blind=small_blind,
+        big_blind=big_blind,
+    )
     return state
 
 
-def create_action_sequences(action_dict):
-    n_players = 3
-    """create combos of action sequences"""
-    state: ShortDeckPokerState = new_game(n_players)
-    t = 0
+def create_action_sequences(n_players: int = 3):
+    """Create combos of action sequences"""
+    state = new_game(n_players)
     lst = []
-    cfr(state, lst, t)
-    print(action_dict)
+    generate_preflop_action_sequences(state, lst)
 
 
 if __name__ == "__main__":
-    create_action_sequences(action_dict)
-
-
-
+    create_action_sequences()
