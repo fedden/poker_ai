@@ -1,29 +1,54 @@
-from typing import List, Tuple
+"""
+DFS for finding possible action sequences using the ShortDeckPoker state, but this
+is application independent, so it should be usable for other games that could be modeled
+as tree.
+
+In this case each round of poker has the same combinations of possible action sequences
+where n_players is equal to the number of players at the start of the round. I'm just generating
+the preflop round combos for this reason, but they apply to each round.
+
+For 3 players and 2 players the space of possible action sequences is small enough to search
+for testing the ShortDeckPokerState class. However, if we move to more players, we may have
+to switch to validating with action sequence generation logic.
+"""
+from typing import Tuple, Dict
+
+import dill as pickle
 
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 
-def generate_preflop_action_sequences(state: ShortDeckPokerState, lst: List):
+class ActionSequences:
+    def __init__(self):
+        self.action_combos = {2: [], 3: []}
+        self.action_combo = []
+
+
+def generate_preflop_action_sequences(
+    state: ShortDeckPokerState, action_sequences: Dict, n_players: int
+):
     """
-    DFS to print action combos
+    DFS to return action combos
     """
     if state.is_terminal or state.betting_round > 0:
+        lst = action_sequences.action_combo.copy()
         print(lst)
-        lst.pop()
-        # PREFLOP_ACTION_SEQUENCES.append(state._history)
-        return lst
+        action_sequences.action_combos[n_players].append(lst)
+        action_sequences.action_combo.pop()
+        return action_sequences.action_combo
 
     for a in state.legal_actions:
-        lst.append(a)
+        action_sequences.action_combo.append(a)
         new_state: ShortDeckPokerState = state.apply_action(a)
 
-        lst = generate_preflop_action_sequences(new_state, lst)
-        # generate_preflop_action_sequences(new_state, lst)
-    if lst:
-        lst.pop()
-    return lst
+        action_sequences.action_combo = generate_preflop_action_sequences(
+            new_state, action_sequences, n_players
+        )
+    if action_sequences.action_combo:
+        action_sequences.action_combo.pop()
+    return action_sequences.action_combo
 
 
 def new_game(
@@ -47,12 +72,17 @@ def new_game(
     return state
 
 
-def create_action_sequences(n_players: int = 3):
+def create_action_sequences(n_players: int, action_sequences):
     """Create combos of action sequences"""
     state = new_game(n_players)
-    lst = []
-    generate_preflop_action_sequences(state, lst)
+    generate_preflop_action_sequences(state, action_sequences, n_players)
 
 
 if __name__ == "__main__":
-    create_action_sequences()
+    action_sequences = ActionSequences()
+    print("3 Players:")
+    create_action_sequences(3, action_sequences)
+    print("2 Players:")
+    create_action_sequences(2, action_sequences)
+    with open("action_sequences.pkl", "wb") as file:
+        pickle.dump(action_sequences.action_combos, file)
