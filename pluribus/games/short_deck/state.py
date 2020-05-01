@@ -251,6 +251,11 @@ class ShortDeckPokerState:
         return self._n_actions >= self._n_players_started_round
 
     @property
+    def n_players_started_round(self) -> bool:
+        """Return n_players that started the round."""
+        return self._n_players_started_round
+
+    @property
     def player_i(self) -> int:
         """Get the index of the players turn it is."""
         return self._player_i_lut[self._betting_stage][self._player_i_index]
