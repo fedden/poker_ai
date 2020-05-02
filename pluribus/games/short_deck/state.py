@@ -157,11 +157,6 @@ class ShortDeckPokerState:
                 new_state._increment_stage()
                 new_state._reset_betting_round_state()
             if not new_state.current_player.is_active:
-                # The current player isn't active, and we are not terminal.
-                # We'll move to the next player in the next iteration of this
-                # while loop, but append a null action to the history to
-                # signify the notation h · 0 in algorithm 1 of the
-                # supplementary material of the Pluribus paper.
                 new_state._skip_counter += 1
                 assert not new_state.current_player.is_active
             elif new_state.current_player.is_active:
