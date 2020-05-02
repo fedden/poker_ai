@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict
 import logging
 
-logging.basicConfig(filename="after_rewrite_variable_logs_example.txt", level=logging.DEBUG)
+logging.basicConfig(filename="test.txt", level=logging.DEBUG)
 
 import click
 import joblib
@@ -166,7 +166,8 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
 
     ph = state.player_i
 
-    if state.is_terminal:
+    player_not_in_hand = not state.players[i].is_active
+    if state.is_terminal or player_not_in_hand:
         return state.payout[i]
 
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
@@ -198,7 +199,6 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             logging.debug(
                 f"ACTION TRAVERSED FOR REGRET:  ph {state.player_i} ACTION: {a}"
             )
-
             new_state: ShortDeckPokerState = state.apply_action(a)
             voa[a] = cfr(agent, new_state, i, t)
             logging.debug(f"Got EV for {a}: {voa[a]}")
@@ -212,9 +212,6 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         for a in state.legal_actions:
             agent.regret[I][a] += voa[a] - vo
         logging.debug(f"Updated Regret at {I}: {agent.regret[I]}")
-
-        # TODO: checkout caching the regrets that get updated - for the end of the iteration we
-        #  could update strategy if that helps..
 
         return vo
     else:
@@ -252,7 +249,8 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
     """
     ph = state.player_i
 
-    if state.is_terminal:
+    player_not_in_hand = not state.players[i].is_active
+    if state.is_terminal or player_not_in_hand:
         return state.payout[i]
     # NOTE(fedden): The logic in Algorithm 1 in the supplementary material
     #               instructs the following lines of logic, but state class

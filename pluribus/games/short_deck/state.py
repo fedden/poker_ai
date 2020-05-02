@@ -80,6 +80,7 @@ class ShortDeckPokerState:
             "show_down": player_i_order,
             "terminal": player_i_order,
         }
+        self._skip_counter = 0
         self._reset_betting_round_state()
 
     def __repr__(self):
@@ -138,21 +139,27 @@ class ShortDeckPokerState:
                 f"type {type(action)}."
             )
         # Update the new state.
+        n_skips = new_state._skip_counter
+        new_state._history = new_state._history + ["skip"] * n_skips
         new_state._history.append(str(action))
         new_state._n_actions += 1
+        new_state._skip_counter = 0
         # Player has made move, increment the player that is next.
         while True:
             new_state._move_to_next_player()
-            if new_state.current_player.is_active:
-                # If we have finished betting, (i.e: All players have put the
-                # same amount of chips in), then increment the stage of
-                # betting.
-                finished_betting = not new_state._poker_engine.more_betting_needed
-                if finished_betting and new_state.all_players_have_actioned:
-                    # We have done atleast one full round of betting, increment
-                    # stage of the game.
-                    new_state._increment_stage()
-                    new_state._reset_betting_round_state()
+            # If we have finished betting, (i.e: All players have put the
+            # same amount of chips in), then increment the stage of
+            # betting.
+            finished_betting = not new_state._poker_engine.more_betting_needed
+            if finished_betting and new_state.all_players_have_actioned:
+                # We have done atleast one full round of betting, increment
+                # stage of the game.
+                new_state._increment_stage()
+                new_state._reset_betting_round_state()
+            if not new_state.current_player.is_active:
+                new_state._skip_counter += 1
+                assert not new_state.current_player.is_active
+            elif new_state.current_player.is_active:
                 if new_state._poker_engine.n_players_with_moves == 1:
                     # No players left.
                     new_state._betting_stage = "terminal"
@@ -163,14 +170,6 @@ class ShortDeckPokerState:
                     # Distribute winnings.
                     new_state._poker_engine.compute_winners()
                 break
-            else:
-                # The current player isn't active, and we are not terminal.
-                # We'll move to the next player in the next iteration of this
-                # while loop, but append a null action to the history to
-                # signify the notation h · 0 in algorithm 1 of the
-                # supplementary material of the Pluribus paper.
-                new_state._history.append("skip")
-            assert not new_state.current_player.is_active
         return new_state
 
     def _move_to_next_player(self):
@@ -208,7 +207,9 @@ class ShortDeckPokerState:
         self._n_actions = 0
         self._n_raises = 0
         self._player_i_index = 0
+        self._n_players_started_round = self._poker_engine.n_active_players
         while not self.current_player.is_active:
+            self._skip_counter += 1
             self._player_i_index += 1
 
     def _increment_stage(self):
@@ -242,7 +243,12 @@ class ShortDeckPokerState:
     @property
     def all_players_have_actioned(self) -> bool:
         """Return whether all players have made atleast one action."""
-        return self._n_actions >= self._poker_engine.n_active_players
+        return self._n_actions >= self._n_players_started_round
+
+    @property
+    def n_players_started_round(self) -> bool:
+        """Return n_players that started the round."""
+        return self._n_players_started_round
 
     @property
     def player_i(self) -> int:
@@ -326,7 +332,7 @@ class ShortDeckPokerState:
         actions: List[Optional[str]] = []
         if self.current_player.is_active:
             actions += ["fold", "call"]
-            if self._n_raises < 3 or self._poker_engine.n_active_players == 2:
+            if self._n_raises < 3:
                 # In limit hold'em we can only bet/raise if there have been
                 # less than three raises in this round of betting, or if there
                 # are two players playing.

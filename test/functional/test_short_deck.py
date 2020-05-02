@@ -5,6 +5,7 @@ from typing import List, Tuple, Optional
 
 import pytest
 import numpy as np
+import dill as pickle
 
 from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
@@ -32,6 +33,12 @@ def _new_game(
         big_blind=big_blind,
     )
     return state, pot
+
+
+def _load_action_sequences(directory):
+    with open(directory, "rb") as file:
+        action_sequences = pickle.load(file)
+    return action_sequences
 
 
 def test_short_deck_1():
@@ -172,11 +179,14 @@ def test_flops_are_random():
 
     def _get_flop(state: ShortDeckPokerState) -> List[Card]:
         """Get the public cards for the flop stage."""
-        state = copy.deepcopy(state)
-        while state.betting_stage != "flop":
-            action: Optional[str] = random.choice(state.legal_actions)
-            state = state.apply_action(action)
-        return state._table.community_cards
+        save_state = copy.deepcopy(state)
+        while save_state.betting_stage != "flop":
+            # accounting for when we hit a terminal node before the flop
+            if save_state.betting_stage == "terminal":
+                return _get_flop(state)
+            action: Optional[str] = random.choice(save_state.legal_actions)
+            save_state = save_state.apply_action(action)
+        return save_state._table.community_cards
 
     seed(42)
     state, _ = _new_game(n_players=3, small_blind=50, big_blind=100)
@@ -221,6 +231,148 @@ def test_call_action_sequence(n_players):
                 # Loop through the action history and make sure the bad
                 # sequence has not happened.
                 for i in range(len(no_fold_action_history)):
-                    history_slice = no_fold_action_history[i:i + len(bad_seq)]
+                    history_slice = no_fold_action_history[i : i + len(bad_seq)]
                     assert history_slice != bad_seq
             state = state.apply_action(random_action)
+
+
+@pytest.mark.parametrize("n_players", [2, 3])
+def test_action_sequence(n_players: int):
+    """
+    Check each round against validated action sequences to ensure the state class is
+    working correctly.
+    """
+    # Seed the random number generation so things are procedural/reproducable.
+    seed(42)
+    directory = "research/size_of_problem/action_sequences.pkl"
+    action_sequences = _load_action_sequences(directory)
+    for i in range(200):
+        state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
+
+        betting_stage_dict = {
+            "pre_flop": {"action_sequence": [], "n_players": 0},
+            "flop": {"action_sequence": [], "n_players": 0},
+            "turn": {"action_sequence": [], "n_players": 0},
+            "river": {"action_sequence": [], "n_players": 0},
+        }
+        betting_stage = None
+
+        while state.betting_stage not in {"show_down", "terminal"}:
+            if betting_stage != state.betting_stage:
+                betting_stage_dict[state.betting_stage][
+                    "n_players"
+                ] = state.n_players_started_round
+                betting_stage = state.betting_stage
+            uniform_probability: float = 1 / len(state.legal_actions)
+            probabilities = np.full(len(state.legal_actions), uniform_probability)
+            random_action: str = np.random.choice(state.legal_actions, p=probabilities)
+
+            betting_stage_dict[state.betting_stage]["action_sequence"].append(
+                random_action
+            )
+            state = state.apply_action(random_action)
+
+        for betting_stage in betting_stage_dict.keys():
+            if betting_stage_dict[betting_stage]["action_sequence"]:
+                n_players_started_round = betting_stage_dict[betting_stage]["n_players"]
+                action_sequence = betting_stage_dict[betting_stage]["action_sequence"]
+                possible_sequences = action_sequences[n_players_started_round]
+
+                assert action_sequence in possible_sequences
+
+
+def test_skips(n_players: int = 3):
+    """
+    Check each round to make sure that skips are mod number of players and appended on
+    the skipped player's turn
+    """
+    # Seed the random number generation so things are procedural/reproducable.
+    seed(42)
+    for _ in range(500):
+        state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
+
+        betting_stage_dict = {
+            "pre_flop": None,
+            "flop": None,
+            "turn": None,
+            "river": None,
+        }
+
+        first_flop_action = True
+        first_turn_action = True
+        first_river_action = True
+
+        betting_stage = "pre_flop"
+        previous_betting_stage = None
+        while True:
+            if betting_stage != state.betting_stage:
+                previous_betting_stage = betting_stage
+                betting_stage = state.betting_stage
+
+            uniform_probability: float = 1 / len(state.legal_actions)
+            probabilities = np.full(len(state.legal_actions), uniform_probability)
+            random_action: str = np.random.choice(state.legal_actions, p=probabilities)
+
+            state = state.apply_action(random_action)
+
+            if state.betting_stage == "flop" and first_flop_action:
+                betting_stage_dict["pre_flop"] = state._history
+                first_flop_action = False
+                flop_start = len(betting_stage_dict["pre_flop"])
+            if state.betting_stage == "turn" and first_turn_action:
+                betting_stage_dict["flop"] = state._history[flop_start:]
+                first_turn_action = False
+                turn_start = len(betting_stage_dict["flop"]) + flop_start
+            if state.betting_stage == "river" and first_river_action:
+                betting_stage_dict["turn"] = state._history[turn_start:]
+                first_river_action = False
+                river_start = len(betting_stage_dict["turn"]) + turn_start
+            if state.betting_stage in {"show_down", "terminal"}:
+                if previous_betting_stage == None:
+                    betting_stage_dict["pre_flop"] = state._history
+                elif previous_betting_stage == "pre_flop":
+                    betting_stage_dict["flop"] = state._history[flop_start:]
+                elif previous_betting_stage == "flop":
+                    betting_stage_dict["turn"] = state._history[turn_start:]
+                elif previous_betting_stage == "turn":
+                    betting_stage_dict["river"] = state._history[river_start:]
+                break
+
+        # TODO: wrap this in a for loop, add history as property of poker state class
+        preflop_actions = betting_stage_dict["pre_flop"]
+        preflop_folds = [i for i, x in enumerate(preflop_actions) if x == "fold"]
+        # accounting for rotation preflop
+        preflop_fold_players = [(x + 2) % 3 for x in preflop_folds]
+
+        if betting_stage_dict["flop"] is not None:
+            flop_actions = betting_stage_dict["flop"]
+            flop_folds = [i for i, x in enumerate(flop_actions) if x == "fold"]
+
+        if betting_stage_dict["turn"] is not None:
+            turn_actions = betting_stage_dict["turn"]
+            turn_folds = [i for i, x in enumerate(turn_actions) if x == "fold"]
+
+        for stage in betting_stage_dict.keys():
+            if betting_stage_dict[stage] is not None:
+                if stage == "flop":
+                    fold_players = preflop_fold_players
+                if stage == "turn":
+                    fold_players = preflop_fold_players + flop_folds
+                if stage == "river":
+                    fold_players = preflop_fold_players + flop_folds + turn_folds
+
+                actions = betting_stage_dict[stage]
+                folds = [i for i, x in enumerate(actions) if x == "fold"]
+
+                for fold_idx in folds:
+                    for i, action in enumerate(actions[fold_idx:]):
+                        # i greater than 0 because 0 is a fold
+                        if i > 0 and i % n_players == 0:
+                            assert action == "skip"
+
+                if stage != "pre_flop":
+                    for fold_idx in fold_players:
+                        # i can be 0 because folds happened in a previous round
+                        for i, action in enumerate(actions[fold_idx:]):
+                            if i % n_players == 0:
+                                assert action == "skip"
