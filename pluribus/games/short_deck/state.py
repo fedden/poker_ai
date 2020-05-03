@@ -236,6 +236,17 @@ class ShortDeckPokerState:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
 
     @property
+    def community_cards(self) -> List[Card]:
+        """Return all shared/public cards."""
+        return self._table.community_cards
+
+    @property
+    def private_hands(self) -> Dict[ShortDeckPokerPlayer, List[Card]]:
+        """Return all private hands."""
+        return {p: p.cards for p in self.players}
+
+
+    @property
     def betting_stage(self) -> str:
         """Return betting stage."""
         return self._betting_stage
