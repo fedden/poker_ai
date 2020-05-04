@@ -40,7 +40,7 @@ class ShortDeckPokerState:
                 f"were provided."
             )
         if load_pickle_files:
-            self.info_set_lut = self._load_pickle_files(pickle_dir)
+            self.info_set_lut = self.load_pickle_files(pickle_dir)
         else:
             self.info_set_lut = {}
         # Get a reference of the pot from the first player.
@@ -178,9 +178,8 @@ class ShortDeckPokerState:
         if self._player_i_index >= len(self.players):
             self._player_i_index = 0
 
-    def _load_pickle_files(
-        self, pickle_dir: str
-    ) -> Dict[str, Dict[Tuple[int, ...], str]]:
+    @staticmethod
+    def load_pickle_files(pickle_dir: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
         """Load pickle files into memory."""
         file_names = [
             "preflop_lossless.pkl",
