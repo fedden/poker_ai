@@ -8,7 +8,7 @@ import json
 import logging
 import multiprocessing as mp
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import click
 import joblib
@@ -22,6 +22,8 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 from pluribus.poker.pot import Pot
 
 logging.basicConfig(filename="async_logs.txt", level=logging.DEBUG)
+manager = mp.Manager()
+InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
 
 
 class Agent:
@@ -32,11 +34,10 @@ class Agent:
     #               action. This made it easier to unprune actions that were
     #               initially pruned but later improved. This also prevented
     #               integer overﬂows".
-    manager = mp.Manager()
 
     def __init__(self):
-        self.strategy = self.manager.dict()
-        self.regret = self.manager.dict()
+        self.strategy = manager.dict()
+        self.regret = manager.dict()
 
 
 def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
@@ -90,7 +91,7 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
         # choose an action based of sigma
         available_actions: List[str] = list(sigma.keys())
         action_probabilities: List[float] = list(sigma.values())
-        action: str = np.random.choice(available_actions, p=action_probabilities)[0]
+        action: str = np.random.choice(available_actions, p=action_probabilities)
         logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         # Increment the action counter.
         this_states_strategy = agent.strategy.get(I, state.initial_strategy)
@@ -210,7 +211,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         logging.debug(f"Calculated Strategy for {Iph}: {sigma}")
         available_actions: List[str] = list(sigma.keys())
         action_probabilities: List[float] = list(sigma.values())
-        action: str = np.random.choice(available_actions, p=action_probabilities)[0]
+        action: str = np.random.choice(available_actions, p=action_probabilities)
         logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         new_state: ShortDeckPokerState = state.apply_action(action)
         return cfr(agent, new_state, i, t)
@@ -274,12 +275,14 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
         sigma = calculate_strategy(agent.regret, state)
         available_actions: List[str] = list(sigma.keys())
         action_probabilities: List[float] = list(sigma.values())
-        action: str = np.random.choice(available_actions, p=action_probabilities)[0]
+        action: str = np.random.choice(available_actions, p=action_probabilities)
         new_state: ShortDeckPokerState = state.apply_action(action)
         return cfrp(agent, new_state, i, t, c)
 
 
-def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPokerState:
+def new_game(
+    n_players: int, info_set_lut: InfoSetLookupTable = {}
+) -> ShortDeckPokerState:
     """Create a new game of short deck poker."""
     pot = Pot()
     players = [
@@ -294,6 +297,16 @@ def new_game(n_players: int, info_set_lut: Dict[str, Any] = {}) -> ShortDeckPoke
         # Load massive files.
         state = ShortDeckPokerState(players=players)
     return state
+
+
+def load_info_set_lut() -> InfoSetLookupTable:
+    """"""
+    info_set_lut = ShortDeckPokerState.load_pickle_files(".")
+    return info_set_lut
+    shared_dict = manager.dict()
+    for key, value in info_set_lut.items():
+        shared_dict[key] = value
+    return shared_dict
 
 
 def print_strategy(strategy: Dict[str, Dict[str, int]]):
@@ -331,6 +344,8 @@ class Worker(mp.Process):
     def __init__(
         self,
         queue: mp.Queue,
+        agent: Agent,
+        info_set_lut: InfoSetLookupTable,
         n_players: int,
         prune_threshold: int,
         c: int,
@@ -344,10 +359,10 @@ class Worker(mp.Process):
         super(Worker, self).__init__()
         self._queue: mp.Queue = queue
         self._state: ShortDeckPokerState = None
-        self._info_set_lut: Dict[str, str] = {}
+        self._info_set_lut: InfoSetLookupTable = info_set_lut
         self._n_players = n_players
         self._prune_threshold = prune_threshold
-        self._agent = None
+        self._agent = agent
         self._c = c
         self._lcfr_threshold = lcfr_threshold
         self._discount_interval = discount_interval
@@ -406,7 +421,25 @@ class Worker(mp.Process):
     def _setup_new_game(self):
         """"""
         self._state: ShortDeckPokerState = new_game(self._n_players, self._info_set_lut)
-        self._info_set_lut = self._state.info_set_lut
+
+
+import sys
+import pdb
+
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+
+    """
+
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open("/dev/stdin")
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
 
 
 @click.command()
@@ -434,17 +467,22 @@ def train(
 ):
     """Train agent."""
     # Get the values passed to this method, save this.
-    n_processes = 3  # mp.cpu_count() - 1
+    n_processes = mp.cpu_count() - 1
     config: Dict[str, int] = {**locals()}
     save_path: Path = _create_dir()
     with open(save_path / "config.yaml", "w") as steam:
         yaml.dump(config, steam)
     utils.random.seed(42)
-    queue: mp.Queue = mp.Queue(maxsize=100)
+    logging.info("saved config")
+    info_set_lut: InfoSetLookupTable = load_info_set_lut()
+    logging.info("Loaded lookup table.")
+    queue: mp.Queue = mp.Queue(maxsize=n_processes)
     agent = Agent()
     workers = [
         Worker(
             queue=queue,
+            agent=agent,
+            info_set_lut=info_set_lut,
             n_players=n_players,
             prune_threshold=prune_threshold,
             c=c,
@@ -456,7 +494,8 @@ def train(
         )
         for _ in range(n_processes)
     ]
-    for worker in workers:
+    for worker_i, worker in enumerate(workers):
+        logging.info(f"started worker {worker_i}")
         worker.start()
     for t in trange(1, n_iterations + 1, desc="train iter"):
         for i in range(n_players):  # fixed position i
