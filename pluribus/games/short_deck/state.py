@@ -245,6 +245,10 @@ class ShortDeckPokerState:
         """Return all private hands."""
         return {p: p.cards for p in self.players}
 
+    @property
+    def initial_regret(self) -> Dict[str, float]:
+        """Returns the default regret for this state."""
+        return {action: 0 for action in self.legal_actions}
 
     @property
     def betting_stage(self) -> str:
