@@ -38,7 +38,7 @@ class Server:
     ):
         """Set up the optimisation server."""
         config: Dict[str, int] = {**locals()}
-        self._save_path: Path = utils.create_dir()
+        self._save_path: Path = utils.io.create_dir()
         with open(self._save_path / "config.yaml", "w") as steam:
             yaml.dump(config, steam)
         log.info("saved config")
