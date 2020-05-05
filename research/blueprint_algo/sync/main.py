@@ -41,6 +41,7 @@ def search(
         update_threshold=update_threshold,
         # n_processes=1,
         seed=42,
+        pickle_dir="..",
     )
     server.search()
     server.terminate()

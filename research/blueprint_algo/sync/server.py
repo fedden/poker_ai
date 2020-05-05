@@ -2,7 +2,7 @@ import logging
 import multiprocessing as mp
 import time
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import joblib
 import yaml
@@ -34,6 +34,7 @@ class Server:
         update_threshold: int,
         n_processes: int = mp.cpu_count() - 1,
         seed: Optional[int] = None,
+        pickle_dir: Union[str, Path] = ".",
     ):
         """Set up the optimisation server."""
         config: Dict[str, int] = {**locals()}
@@ -49,7 +50,9 @@ class Server:
         self._update_threshold = update_threshold
         self._dump_iteration = dump_iteration
         self._n_players = n_players
-        self._info_set_lut: state.InfoSetLookupTable = utils.io.load_info_set_lut()
+        self._info_set_lut: state.InfoSetLookupTable = utils.io.load_info_set_lut(
+            pickle_dir,
+        )
         log.info("Loaded lookup table.")
         self._queue: mp.Queue = mp.Queue(maxsize=n_processes)
         self._worker_status: Dict[str, bool] = manager.dict()

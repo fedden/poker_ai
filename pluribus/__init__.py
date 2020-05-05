@@ -6,7 +6,6 @@ from rich.logging import RichHandler
 
 FORMAT = "%(message)s"
 logging.basicConfig(
-    filename="async_logs.txt",
     format=FORMAT,
     datefmt="[%X] ",
     handlers=[RichHandler()],
