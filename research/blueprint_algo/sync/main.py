@@ -39,7 +39,6 @@ def search(
         print_iteration=print_iteration,
         dump_iteration=dump_iteration,
         update_threshold=update_threshold,
-        # n_processes=1,
         seed=42,
         pickle_dir="..",
     )
