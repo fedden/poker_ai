@@ -8,13 +8,33 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import dill as pickle
 
-from pluribus.poker.actions import Action
 from pluribus.poker.card import Card
 from pluribus.poker.engine import PokerEngine
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
+from pluribus.poker.pot import Pot
 from pluribus.poker.table import PokerTable
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pluribus.games.short_deck.state")
+InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
+
+
+def new_game(
+    n_players: int, info_set_lut: InfoSetLookupTable = {}
+) -> ShortDeckPokerState:
+    """Create a new game of short deck poker."""
+    pot = Pot()
+    players = [
+        ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+        for player_i in range(n_players)
+    ]
+    if info_set_lut:
+        # Don't reload massive files, it takes ages.
+        state = ShortDeckPokerState(players=players, load_pickle_files=False)
+        state.info_set_lut = info_set_lut
+    else:
+        # Load massive files.
+        state = ShortDeckPokerState(players=players)
+    return state
 
 
 class ShortDeckPokerState:
