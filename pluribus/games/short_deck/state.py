@@ -192,12 +192,6 @@ class ShortDeckPokerState:
                 break
         return new_state
 
-    def _move_to_next_player(self):
-        """Ensure state points to next valid active player."""
-        self._player_i_index += 1
-        if self._player_i_index >= len(self.players):
-            self._player_i_index = 0
-
     @staticmethod
     def load_pickle_files(pickle_dir: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
         """Load pickle files into memory."""
@@ -219,6 +213,12 @@ class ShortDeckPokerState:
             with open(file_path, "rb") as fp:
                 info_set_lut[betting_stage] = pickle.load(fp)
         return info_set_lut
+
+    def _move_to_next_player(self):
+        """Ensure state points to next valid active player."""
+        self._player_i_index += 1
+        if self._player_i_index >= len(self.players):
+            self._player_i_index = 0
 
     def _reset_betting_round_state(self):
         """Reset the state related to counting types of actions."""
@@ -268,6 +268,13 @@ class ShortDeckPokerState:
     def initial_regret(self) -> Dict[str, float]:
         """Returns the default regret for this state."""
         return {action: 0 for action in self.legal_actions}
+
+    @property
+    def initial_strategy(self) -> Dict[str, float]:
+        """Returns the default strategy for this state."""
+        actions = self.legal_actions
+        equal_probability = 1 / len(actions)
+        return {action: equal_probability for action in actions}
 
     @property
     def betting_stage(self) -> str:

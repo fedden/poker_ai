@@ -9,7 +9,7 @@ logging.basicConfig(
     format=FORMAT,
     datefmt="[%X] ",
     handlers=[RichHandler()],
-    level="NOTSET",
+    level=logging.INFO,
 )
 
 
