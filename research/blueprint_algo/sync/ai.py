@@ -2,24 +2,15 @@ import logging
 from typing import Dict, List
 
 import numpy as np
-from rich.logging import RichHandler
 
 from agent import Agent
 from pluribus.games.short_deck.state import ShortDeckPokerState
 
 
-FORMAT = "%(message)s"
-logging.basicConfig(
-    filename="async_logs.txt",
-    format=FORMAT,
-    datefmt="[%X] ",
-    handlers=[RichHandler()],
-    level="NOTSET",
-)
-log = logging.getLogger("rich")
+log = logging.getLogger("sync.ai")
 
 
-def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
+def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int, locks):
     """
 
     :param state: the game state
@@ -73,18 +64,20 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
         action: str = np.random.choice(available_actions, p=action_probabilities)
         log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         # Increment the action counter.
+        locks["strategy"].acquire()
         this_states_strategy = agent.strategy.get(I, state.initial_strategy)
         this_states_strategy[action] += 1
         # Update the master strategy by assigning.
         agent.strategy[I] = this_states_strategy
+        locks["strategy"].release()
         new_state: ShortDeckPokerState = state.apply_action(action)
-        update_strategy(agent, new_state, i, t)
+        update_strategy(agent, new_state, i, t, locks)
     else:
         # Traverse each action.
         for action in state.legal_actions:
             log.debug(f"Going to Traverse {action} for opponent")
             new_state: ShortDeckPokerState = state.apply_action(action)
-            update_strategy(agent, new_state, i, t)
+            update_strategy(agent, new_state, i, t, locks)
 
 
 def calculate_strategy(
@@ -110,7 +103,7 @@ def calculate_strategy(
     return sigma
 
 
-def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
+def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int, locks) -> float:
     """
     regular cfr algo
 
@@ -170,7 +163,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
                 f"ACTION TRAVERSED FOR REGRET: ph {state.player_i} ACTION: {action}"
             )
             new_state: ShortDeckPokerState = state.apply_action(action)
-            voa[action] = cfr(agent, new_state, i, t)
+            voa[action] = cfr(agent, new_state, i, t, locks)
             log.debug(f"Got EV for {action}: {voa[action]}")
             vo += sigma[action] * voa[action]
             log.debug(
@@ -178,11 +171,13 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
                 f"STRATEGY: {sigma[action]}: {sigma[action] * voa[action]}"
             )
         log.debug(f"Updated EV at {I}: {vo}")
+        locks["regret"].acquire()
         this_states_regret = agent.regret.get(I, state.initial_regret)
         for action in state.legal_actions:
             this_states_regret[action] += voa[action] - vo
         # Assign regret back to the shared memory.
         agent.regret[I] = this_states_regret
+        locks["regret"].release()
         return vo
     else:
         Iph = state.info_set
@@ -193,10 +188,10 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         action: str = np.random.choice(available_actions, p=action_probabilities)
         log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         new_state: ShortDeckPokerState = state.apply_action(action)
-        return cfr(agent, new_state, i, t)
+        return cfr(agent, new_state, i, t, locks)
 
 
-def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
+def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int, locks):
     """
     pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
 
@@ -241,14 +236,19 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
         for action in state.legal_actions:
             if this_states_regret[action] > c:
                 new_state: ShortDeckPokerState = state.apply_action(action)
-                voa[action] = cfrp(agent, new_state, i, t, c)
+                voa[action] = cfrp(agent, new_state, i, t, c, locks)
                 explored[action] = True
                 vo += sigma[action] * voa[action]
+        locks["regret"].acquire()
+        # Get the regret for this state again, incase any other process updated
+        # it whilst we were doing `cfrp`.
+        this_states_regret = agent.regret.get(I, state.initial_regret)
         for action in state.legal_actions:
             if explored[action]:
                 this_states_regret[action] += voa[action] - vo
         # Update the master copy of the regret.
         agent.regret[I] = this_states_regret
+        locks["regret"].release()
         return vo
     else:
         sigma = calculate_strategy(agent.regret, state)
@@ -256,4 +256,4 @@ def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
         action_probabilities: List[float] = list(sigma.values())
         action: str = np.random.choice(available_actions, p=action_probabilities)
         new_state: ShortDeckPokerState = state.apply_action(action)
-        return cfrp(agent, new_state, i, t, c)
+        return cfrp(agent, new_state, i, t, c, locks)

@@ -61,10 +61,12 @@ class Server:
         self._worker_status: Dict[str, str] = dict()
         self._agent: Agent = Agent()
         self._workers: Dict[str, Worker] = dict()
+        locks: Dict[str, mp.Lock] = dict(regret=manager.Lock(), strategy=manager.Lock())
         for _ in range(n_processes):
             worker = Worker(
                 job_queue=self._job_queue,
                 status_queue=self._status_queue,
+                locks=locks,
                 agent=self._agent,
                 info_set_lut=self._info_set_lut,
                 n_players=n_players,

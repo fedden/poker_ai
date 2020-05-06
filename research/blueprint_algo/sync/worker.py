@@ -1,6 +1,7 @@
 import logging
 import multiprocessing as mp
 from pathlib import Path
+from typing import Dict
 
 import joblib
 import numpy as np
@@ -20,6 +21,7 @@ class Worker(mp.Process):
         self,
         job_queue: mp.Queue,
         status_queue: mp.Queue,
+        locks: Dict[str, mp.Lock],
         agent: Agent,
         info_set_lut: state.InfoSetLookupTable,
         n_players: int,
@@ -35,6 +37,7 @@ class Worker(mp.Process):
         super(Worker, self).__init__()
         self._job_queue: mp.Queue = job_queue
         self._status_queue: mp.Queue = status_queue
+        self._locks = locks
         self._n_players = n_players
         self._prune_threshold = prune_threshold
         self._agent = agent
@@ -45,16 +48,14 @@ class Worker(mp.Process):
         self._dump_iteration = dump_iteration
         self._save_path = save_path
         self._info_set_lut: state.InfoSetLookupTable = info_set_lut
-        self._state: state.ShortDeckPokerState = state.new_game(
-            self._n_players, self._info_set_lut,
-        )
-        self._update_status("idle")
+        self._setup_new_game()
 
     def run(self):
         """"""
         while True:
             # Get the name of the method and the key word arguments needed for
             # the method.
+            self._update_status("idle")
             name, kwargs = self._job_queue.get(block=True)
             if name == "terminate":
                 break
@@ -71,19 +72,16 @@ class Worker(mp.Process):
             self._update_status(name)
             function(**kwargs)
             # Notify the job queue that the task is done.
-            self._update_status("idle")
             self._job_queue.task_done()
 
     def _cfr(self, t, i):
         """Search over random game and calculate the strategy."""
-        self._state: state.ShortDeckPokerState = state.new_game(
-            self._n_players, self._info_set_lut
-        )
+        self._setup_new_game()
         use_pruning = np.random.uniform() < 0.95
         if t > self._prune_threshold and use_pruning:
-            ai.cfr(self._agent, self._state, i, t)
+            ai.cfr(self._agent, self._state, i, t, self._locks)
         else:
-            ai.cfrp(self._agent, self._state, i, t, self._c)
+            ai.cfrp(self._agent, self._state, i, t, self._c, self._locks)
 
     def _discount(self, t):
         """Discount previous regrets and strategy."""
@@ -102,7 +100,7 @@ class Worker(mp.Process):
 
     def _update_strategy(self, t, i):
         """Update the strategy."""
-        ai.update_strategy(self._agent, self._state, i, t)
+        ai.update_strategy(self._agent, self._state, i, t, self._locks)
 
     def _serialise_agent(self, t):
         """Write agent to file."""
@@ -115,7 +113,14 @@ class Worker(mp.Process):
         )
         joblib.dump(to_persist, self._save_path / f"strategy_{t}.gz", compress="gzip")
 
-    def _update_status(self, status):
+    def _update_status(self, status, log_status: bool = False):
         """Update the status of this worker by posting it to the server."""
-        # log.info(f"{self.name} updating status to {status}")
+        if log_status:
+            log.info(f"{self.name} updating status to {status}")
         self._status_queue.put((self.name, status), block=True)
+
+    def _setup_new_game(self):
+        """Setup up new poker game."""
+        self._state: state.ShortDeckPokerState = state.new_game(
+            self._n_players, self._info_set_lut,
+        )
