@@ -1,4 +1,5 @@
 import logging
+import multiprocessing as mp
 from typing import Dict, List
 
 import numpy as np
@@ -10,7 +11,13 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 log = logging.getLogger("sync.ai")
 
 
-def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int, locks):
+def update_strategy(
+    agent: Agent,
+    state: ShortDeckPokerState,
+    i: int,
+    t: int,
+    locks: Dict[str, mp.synchronize.Lock],
+):
     """
 
     :param state: the game state
@@ -103,7 +110,13 @@ def calculate_strategy(
     return sigma
 
 
-def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int, locks) -> float:
+def cfr(
+    agent: Agent,
+    state: ShortDeckPokerState,
+    i: int,
+    t: int,
+    locks: Dict[str, mp.synchronize.Lock],
+) -> float:
     """
     regular cfr algo
 
@@ -191,7 +204,14 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int, locks) -> floa
         return cfr(agent, new_state, i, t, locks)
 
 
-def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int, locks):
+def cfrp(
+    agent: Agent,
+    state: ShortDeckPokerState,
+    i: int,
+    t: int,
+    c: int,
+    locks: Dict[str, mp.synchronize.Lock],
+):
     """
     pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
 

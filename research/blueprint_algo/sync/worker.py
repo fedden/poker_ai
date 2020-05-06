@@ -21,7 +21,7 @@ class Worker(mp.Process):
         self,
         job_queue: mp.Queue,
         status_queue: mp.Queue,
-        locks: Dict[str, mp.Lock],
+        locks: Dict[str, mp.synchronize.Lock],
         agent: Agent,
         info_set_lut: state.InfoSetLookupTable,
         n_players: int,
@@ -34,7 +34,7 @@ class Worker(mp.Process):
         save_path: Path,
     ):
         """"""
-        super(Worker, self).__init__()
+        super().__init__(group=None, name=None, args=(), kwargs={}, daemon=None)
         self._job_queue: mp.Queue = job_queue
         self._status_queue: mp.Queue = status_queue
         self._locks = locks
