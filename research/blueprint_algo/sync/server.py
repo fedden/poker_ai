@@ -95,10 +95,15 @@ class Server:
 
     def terminate(self):
         """Kill all workers."""
+        # Wait for all workers to finish their current jobs.
+        self._job_queue.join()
+        # Ensure all workers are idle.
+        self._wait_until_all_workers_are_idle()
+        # Send the terminate command to all workers.
         for _ in self._workers.values():
             name = "terminate"
             kwargs = dict()
-            self._queue.put((name, kwargs), block=True)
+            self._job_queue.put((name, kwargs), block=True)
             log.info("sending sentinel to worker")
         for name, worker in self._workers.items():
             worker.join()
