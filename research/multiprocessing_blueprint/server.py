@@ -69,10 +69,10 @@ class Server:
         self._status_queue: mp.Queue = mp.Queue()
         self._worker_status: Dict[str, str] = dict()
         self._agent: Agent = Agent(agent_path)
-        self._workers: Dict[str, Worker] = self._start_workers(n_processes)
         self._locks: Dict[str, mp.synchronize.Lock] = dict(
             regret=mp.Lock(), strategy=mp.Lock()
         )
+        self._workers: Dict[str, Worker] = self._start_workers(n_processes)
 
     def search(self):
         """Perform MCCFR and train the agent.
