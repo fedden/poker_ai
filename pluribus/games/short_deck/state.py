@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import operator
+import collections
 import copy
+import json
 import logging
+import operator
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -80,7 +82,7 @@ class ShortDeckPokerState:
         # Deal private cards to players.
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
-        self._history: List[str] = []
+        self._history: Dict[str, List[str]] = collections.defaultdict(list)
         self._betting_stage = "pre_flop"
         self._betting_stage_to_round: Dict[str, int] = {
             "pre_flop": 0,
@@ -101,6 +103,7 @@ class ShortDeckPokerState:
             "terminal": player_i_order,
         }
         self._skip_counter = 0
+        self._first_move_of_current_round = True
         self._reset_betting_round_state()
 
     def __repr__(self):
@@ -133,6 +136,9 @@ class ShortDeckPokerState:
         self.info_set_lut = {}
         new_state = copy.deepcopy(self)
         new_state.info_set_lut = self.info_set_lut = lut
+        # An action has been made, so alas we are not in the first move of the
+        # current betting round.
+        new_state._first_move_of_current_round = False
         if action_str is None:
             # Assert active player has folded already.
             assert (
@@ -159,9 +165,9 @@ class ShortDeckPokerState:
                 f"type {type(action)}."
             )
         # Update the new state.
-        n_skips = new_state._skip_counter
-        new_state._history = new_state._history + ["skip"] * n_skips
-        new_state._history.append(str(action))
+        skip_actions = ["skip" for _ in range(new_state._skip_counter)]
+        new_state._history[new_state.betting_stage] += skip_actions
+        new_state._history[new_state.betting_stage].append(str(action))
         new_state._n_actions += 1
         new_state._skip_counter = 0
         # Player has made move, increment the player that is next.
@@ -176,6 +182,7 @@ class ShortDeckPokerState:
                 # stage of the game.
                 new_state._increment_stage()
                 new_state._reset_betting_round_state()
+                new_state._first_move_of_current_round = True
             if not new_state.current_player.is_active:
                 new_state._skip_counter += 1
                 assert not new_state.current_player.is_active
@@ -335,8 +342,16 @@ class ShortDeckPokerState:
                 raise ValueError("Cards {cards} not in pickle files.")
             else:
                 raise ValueError("Unrecognised betting stage in pickle files.")
-        action_history = [str(action) for action in self._history]
-        return f"cards_cluster={cards_cluster}, history={action_history}"
+        # Convert history from a dict of lists to a list of dicts as I'm
+        # paranoid about JSON's lack of care with insertion order.
+        info_set_dict = {
+            "cards_cluster": cards_cluster,
+            "history": [
+                {betting_stage: [str(action) for action in actions]}
+                for betting_stage, actions in self._history.items()
+            ],
+        }
+        return json.dumps(info_set_dict, separators=(",", ":"))
 
     @property
     def payout(self) -> Dict[int, int]:
