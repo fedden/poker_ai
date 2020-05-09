@@ -85,17 +85,32 @@ class Server:
             worker.start()
             log.info(f"started worker {name}")
 
-    def search(self):
-        """Perform MCCFR and train the agent."""
+    def search(
+        self,
+        sync_update_strategy: bool = False,
+        sync_cfr: bool = False,
+        sync_discount: bool = False,
+        sync_serialise_agent: bool = True,
+    ):
+        """Perform MCCFR and train the agent.
+
+        If all `sync_*` parameters are set to True then there shouldn't be any
+        difference between this and the original MCCFR implementation.
+        """
         for t in trange(1, self._n_iterations + 1, desc="train iter"):
             for i in range(self._n_players):
                 if t > self._update_threshold and t % self._strategy_interval == 0:
-                    self._syncronised_job("update_strategy", t=t, i=i)
-                self._send_job("cfr", t=t, i=i)
+                    self.job(
+                        job_name="update_strategy",
+                        sync_workers=sync_update_strategy,
+                        t=t,
+                        i=i,
+                    )
+                self.job(job_name="cfr", sync_workers=sync_cfr, t=t, i=i)
                 if t < self._lcfr_threshold & t % self._discount_interval == 0:
-                    self._syncronised_job("discount", t=t)
+                    self.job(job_name="discount", sync_workers=sync_discount, t=t)
                 if t > self._update_threshold and t % self._dump_iteration == 0:
-                    self._syncronised_job("serialise_agent", t=t)
+                    self.job("serialise_agent", sync_workers=sync_serialise_agent, t=t)
 
     def terminate(self):
         """Kill all workers."""
@@ -120,6 +135,11 @@ class Server:
         )
         joblib.dump(to_persist, self._save_path / "strategy.gz", compress="gzip")
         utils.io.print_strategy(self._agent.strategy)
+
+    def job(self, job_name: str, sync_workers: bool = False, **kwargs):
+        """Create a job for the workers."""
+        func = self._syncronised_job if sync_workers else self._send_job
+        func(job_name, **kwargs)
 
     def _send_job(self, job_name: str, **kwargs):
         """Send job of type `name` with arguments `kwargs` to worker pool."""
