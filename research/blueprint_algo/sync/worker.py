@@ -1,10 +1,8 @@
-import random
-
 import logging
 import multiprocessing as mp
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 import joblib
 import numpy as np
@@ -72,8 +70,8 @@ class Worker(mp.Process):
                 function = self._discount
             elif name == "update_strategy":
                 function = self._update_strategy
-            elif name == "serialise_agent":
-                function = self._serialise_agent
+            elif name == "serialise":
+                function = self._serialise
             else:
                 raise ValueError(f"Unrecognised function name: {name}")
             self._update_status(name)
@@ -123,11 +121,10 @@ class Worker(mp.Process):
         """Update the strategy."""
         ai.update_strategy(self._agent, self._state, i, t, self._locks)
 
-    def _serialise_agent(self, t):
-        """Write agent to file."""
-        # Dump the current strategy (sigma) throughout training and then take
-        # an average. This allows for estimation of expected value in leaf
-        # nodes later on using modified versions of the blueprint strategy.
+    def _serialise(self, t: int, server_state: Dict[str, Union[str, float, int, None]]):
+        """Write progress of optimising agent (and server state) to file."""
+        # Lock shared dicts so no other process modifies it whilst writing to
+        # file.
         self._locks["regret"].acquire()
         self._locks["strategy"].acquire()
         to_persist = utils.io.to_dict(
@@ -135,7 +132,18 @@ class Worker(mp.Process):
         )
         self._locks["regret"].release()
         self._locks["strategy"].release()
-        joblib.dump(to_persist, self._save_path / f"strategy_{t}.gz", compress="gzip")
+        # Dump the current strategy (sigma) throughout training and then take
+        # an average. This allows for estimation of expected value in leaf
+        # nodes later on using modified versions of the blueprint strategy.
+        agent_path = os.path.abspath(str(self._save_path / f"strategy_{t}.gz"))
+        joblib.dump(to_persist, agent_path, compress="gzip")
+        # Dump the server state to file too, but first update a few bits of the
+        # state so when we load it next time, we start from the right place in
+        # the optimisation process.
+        server_path = self._save_path / f"server.cfg"
+        server_state["agent_path"] = agent_path
+        server_state["start_timestep"] = t + 1
+        joblib.dump(server_state, server_path)
 
     def _update_status(self, status, log_status: bool = False):
         """Update the status of this worker by posting it to the server."""

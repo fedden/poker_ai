@@ -1,5 +1,6 @@
 import logging
 import multiprocessing as mp
+import os
 import time
 from pathlib import Path
 from typing import Dict, Optional, Union
@@ -17,7 +18,7 @@ manager = mp.Manager()
 
 
 class Server:
-    """"""
+    """Server class to manage all workers optimising CFR algorithm."""
 
     def __init__(
         self,
@@ -33,17 +34,33 @@ class Server:
         update_threshold: int,
         save_path: Union[str, Path],
         pickle_dir: Union[str, Path] = ".",
+        agent_path: Optional[Union[str, Path]] = None,
+        sync_update_strategy: bool = False,
+        sync_cfr: bool = False,
+        sync_discount: bool = False,
+        sync_serialise_agent: bool = False,
+        start_timestep: int = 1,
         n_processes: int = mp.cpu_count() - 1,
     ):
         """Set up the optimisation server."""
-        self._save_path = save_path
+        self._strategy_interval = strategy_interval
         self._n_iterations = n_iterations
         self._lcfr_threshold = lcfr_threshold
         self._discount_interval = discount_interval
-        self._update_threshold = update_threshold
-        self._dump_iteration = dump_iteration
+        self._prune_threshold = prune_threshold
+        self._c = c
         self._n_players = n_players
-        self._strategy_interval = strategy_interval
+        self._print_iteration = print_iteration
+        self._dump_iteration = dump_iteration
+        self._update_threshold = update_threshold
+        self._save_path = save_path
+        self._pickle_dir = pickle_dir
+        self._agent_path = agent_path
+        self._sync_update_strategy = sync_update_strategy
+        self._sync_cfr = sync_cfr
+        self._sync_discount = sync_discount
+        self._sync_serialise_agent = sync_serialise_agent
+        self._start_timestep = start_timestep
         self._info_set_lut: state.InfoSetLookupTable = utils.io.load_info_set_lut(
             pickle_dir,
         )
@@ -51,62 +68,43 @@ class Server:
         self._job_queue: mp.JoinableQueue = mp.JoinableQueue(maxsize=n_processes)
         self._status_queue: mp.Queue = mp.Queue()
         self._worker_status: Dict[str, str] = dict()
-        self._agent: Agent = Agent()
-        self._workers: Dict[str, Worker] = dict()
-        locks: Dict[str, mp.synchronize.Lock] = dict(
+        self._agent: Agent = Agent(agent_path)
+        self._workers: Dict[str, Worker] = self._start_workers(n_processes)
+        self._locks: Dict[str, mp.synchronize.Lock] = dict(
             regret=mp.Lock(), strategy=mp.Lock()
         )
-        for _ in range(n_processes):
-            worker = Worker(
-                job_queue=self._job_queue,
-                status_queue=self._status_queue,
-                locks=locks,
-                agent=self._agent,
-                info_set_lut=self._info_set_lut,
-                n_players=n_players,
-                prune_threshold=prune_threshold,
-                c=c,
-                lcfr_threshold=lcfr_threshold,
-                discount_interval=discount_interval,
-                update_threshold=update_threshold,
-                dump_iteration=dump_iteration,
-                save_path=self._save_path,
-            )
-            self._workers[worker.name] = worker
-        for name, worker in self._workers.items():
-            worker.start()
-            log.info(f"started worker {name}")
 
-    def search(
-        self,
-        sync_update_strategy: bool = False,
-        sync_cfr: bool = False,
-        sync_discount: bool = False,
-        sync_serialise_agent: bool = False,
-    ):
+    def search(self):
         """Perform MCCFR and train the agent.
 
         If all `sync_*` parameters are set to True then there shouldn't be any
         difference between this and the original MCCFR implementation.
         """
-        log.info(f"synchronising update_strategy - {sync_update_strategy}")
-        log.info(f"synchronising cfr             - {sync_cfr}")
-        log.info(f"synchronising discount        - {sync_discount}")
-        log.info(f"synchronising serialise_agent - {sync_serialise_agent}")
-        for t in trange(1, self._n_iterations + 1, desc="train iter"):
+        log.info(f"synchronising update_strategy - {self._sync_update_strategy}")
+        log.info(f"synchronising cfr             - {self._sync_cfr}")
+        log.info(f"synchronising discount        - {self._sync_discount}")
+        log.info(f"synchronising serialise_agent - {self._sync_serialise_agent}")
+        for t in trange(
+            self._start_timestep, self._n_iterations + 1, desc="train iter"
+        ):
             for i in range(self._n_players):
                 if t > self._update_threshold and t % self._strategy_interval == 0:
                     self.job(
-                        job_name="update_strategy",
-                        sync_workers=sync_update_strategy,
+                        "update_strategy",
+                        sync_workers=self._sync_update_strategy,
                         t=t,
                         i=i,
                     )
-                self.job(job_name="cfr", sync_workers=sync_cfr, t=t, i=i)
-                if t < self._lcfr_threshold & t % self._discount_interval == 0:
-                    self.job(job_name="discount", sync_workers=sync_discount, t=t)
-                if t > self._update_threshold and t % self._dump_iteration == 0:
-                    self.job("serialise_agent", sync_workers=sync_serialise_agent, t=t)
+                self.job("cfr", sync_workers=self._sync_cfr, t=t, i=i)
+            if t < self._lcfr_threshold & t % self._discount_interval == 0:
+                self.job("discount", sync_workers=self._sync_discount, t=t)
+            if t > self._update_threshold and t % self._dump_iteration == 0:
+                self.job(
+                    "serialise",
+                    sync_workers=self._sync_serialise,
+                    t=t,
+                    server_state=self.to_dict(),
+                )
 
     def terminate(self):
         """Kill all workers."""
@@ -124,13 +122,39 @@ class Server:
             worker.join()
             log.info(f"worker {name} joined.")
 
-    def serialise_agent(self):
-        """Write agent to file."""
-        to_persist = utils.io.to_dict(
-            strategy=self._agent.strategy, regret=self._agent.regret
+    def to_dict(self) -> Dict[str, Union[str, float, int, None]]:
+        """Serialise the server object to save the progress of optimisation."""
+        config = dict(
+            strategy_interval=self._strategy_interval,
+            n_iterations=self._n_iterations,
+            lcfr_threshold=self._lcfr_threshold,
+            discount_interval=self._discount_interval,
+            prune_threshold=self._prune_threshold,
+            c=self._c,
+            n_players=self._n_players,
+            print_iteration=self._print_iteration,
+            dump_iteration=self._dump_iteration,
+            update_threshold=self._update_threshold,
+            save_path=self._save_path,
+            pickle_dir=self._pickle_dir,
+            agent_path=self._agent_path,
+            sync_update_strategy=self._sync_update_strategy,
+            sync_cfr=self._sync_cfr,
+            sync_discount=self._sync_discount,
+            sync_serialise_agent=self._sync_serialise_agent,
+            start_timestep=self._start_timestep,
         )
-        joblib.dump(to_persist, self._save_path / "strategy.gz", compress="gzip")
-        utils.io.print_strategy(self._agent.strategy)
+        # Sort dictionary for human-friendlyness and convert all pathlib.Path
+        # objects to absolute path strings.
+        return {
+            k: os.path.abspath(str(v)) if isinstance(v, Path) else v
+            for k, v in sorted(config.items())
+        }
+
+    @staticmethod
+    def from_dict(config):
+        """Load serialised server and return instance."""
+        return Server(**config)
 
     def job(self, job_name: str, sync_workers: bool = False, **kwargs):
         """Create a job for the workers."""
@@ -161,6 +185,31 @@ class Server:
         name_b, status = self._status_queue.get(block=True)
         assert status == "idle", f"status should be idle but was {status}"
         assert name_a == name_b, f"{name_a} != {name_b}"
+
+    def _start_workers(self, n_processes: int) -> Dict[str, Worker]:
+        """Begin the processes."""
+        workers = dict()
+        for _ in range(n_processes):
+            worker = Worker(
+                job_queue=self._job_queue,
+                status_queue=self._status_queue,
+                locks=self._locks,
+                agent=self._agent,
+                info_set_lut=self._info_set_lut,
+                n_players=self._n_players,
+                prune_threshold=self._prune_threshold,
+                c=self._c,
+                lcfr_threshold=self._lcfr_threshold,
+                discount_interval=self._discount_interval,
+                update_threshold=self._update_threshold,
+                dump_iteration=self._dump_iteration,
+                save_path=self._save_path,
+            )
+            workers[worker.name] = worker
+        for name, worker in workers.items():
+            worker.start()
+            log.info(f"started worker {name}")
+        return workers
 
     def _wait_until_all_workers_are_idle(self, sleep_secs=0.5):
         """Blocks until all workers have finished their current job."""
