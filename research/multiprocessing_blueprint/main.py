@@ -1,14 +1,81 @@
+"""Script for using multiprocessing to train agent.
+
+CLI Use
+-------
+
+Below you can run `python main.py --help` to get the following description of
+the two commands available in the CLI, `resume` and `search`:
+```
+Usage: main.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  resume  Continue training agent from config loaded from file.
+  search  Train agent from scratch.
+```
+
+More information on the `search` command can be obtained by running the command
+`python main.py search --help`. This will then return the following args that
+can be set to guide the agent:
+```
+Usage: main.py search [OPTIONS]
+
+  Train agent from scratch.
+
+Options:
+  --strategy_interval INTEGER  .
+  --n_iterations INTEGER       .
+  --lcfr_threshold INTEGER     .
+  --discount_interval INTEGER  .
+  --prune_threshold INTEGER    .
+  --c INTEGER                  .
+  --n_players INTEGER          .
+  --print_iteration INTEGER    .
+  --dump_iteration INTEGER     .
+  --update_threshold INTEGER   .
+  --pickle_dir TEXT            .
+  --sync_update_strategy TEXT  .
+  --sync_cfr TEXT              .
+  --sync_discount TEXT         .
+  --sync_serialise TEXT        .
+  --help                       Show this message and exit.
+```
+"""
 from pathlib import Path
 from typing import Dict
 
 import click
+import joblib
 import yaml
 
 from pluribus import utils
 from server import Server
 
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+@click.option("--server_config_path", default="./server.gz", help=".")
+def resume(server_config_path: str):
+    """Continue training agent from config loaded from file."""
+    try:
+        config = joblib.load(server_config_path)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"Server config file not found at the path: {server_config_path}\n "
+            f"Please set the path to a valid file dumped by a previous session."
+        )
+    server = Server.from_dict(config)
+    server.search()
+    server.terminate()
+
+
+@cli.command()
 @click.option("--strategy_interval", default=2, help=".")
 @click.option("--n_iterations", default=10, help=".")
 @click.option("--lcfr_threshold", default=80, help=".")
@@ -23,7 +90,7 @@ from server import Server
 @click.option("--sync_update_strategy", default=False, help=".")
 @click.option("--sync_cfr", default=False, help=".")
 @click.option("--sync_discount", default=False, help=".")
-@click.option("--sync_serialise_agent", default=False, help=".")
+@click.option("--sync_serialise", default=False, help=".")
 def search(
     strategy_interval: int,
     n_iterations: int,
@@ -39,9 +106,9 @@ def search(
     sync_update_strategy: bool,
     sync_cfr: bool,
     sync_discount: bool,
-    sync_serialise_agent: bool,
+    sync_serialise: bool,
 ):
-    """Train agent."""
+    """Train agent from scratch."""
     # Write config to file, and create directory to save results in.
     config: Dict[str, int] = {**locals()}
     save_path: Path = utils.io.create_dir()
@@ -64,11 +131,11 @@ def search(
         sync_update_strategy=sync_update_strategy,
         sync_cfr=sync_cfr,
         sync_discount=sync_discount,
-        sync_serialise_agent=sync_serialise_agent,
+        sync_serialise=sync_serialise,
     )
     server.search()
     server.terminate()
 
 
 if __name__ == "__main__":
-    search()
+    cli()

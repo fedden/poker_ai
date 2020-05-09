@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-import joblib
 from tqdm import trange
 
 from agent import Agent
@@ -38,7 +37,7 @@ class Server:
         sync_update_strategy: bool = False,
         sync_cfr: bool = False,
         sync_discount: bool = False,
-        sync_serialise_agent: bool = False,
+        sync_serialise: bool = False,
         start_timestep: int = 1,
         n_processes: int = mp.cpu_count() - 1,
     ):
@@ -59,7 +58,7 @@ class Server:
         self._sync_update_strategy = sync_update_strategy
         self._sync_cfr = sync_cfr
         self._sync_discount = sync_discount
-        self._sync_serialise_agent = sync_serialise_agent
+        self._sync_serialise = sync_serialise
         self._start_timestep = start_timestep
         self._info_set_lut: state.InfoSetLookupTable = utils.io.load_info_set_lut(
             pickle_dir,
@@ -83,7 +82,7 @@ class Server:
         log.info(f"synchronising update_strategy - {self._sync_update_strategy}")
         log.info(f"synchronising cfr             - {self._sync_cfr}")
         log.info(f"synchronising discount        - {self._sync_discount}")
-        log.info(f"synchronising serialise_agent - {self._sync_serialise_agent}")
+        log.info(f"synchronising serialise_agent - {self._sync_serialise}")
         for t in trange(
             self._start_timestep, self._n_iterations + 1, desc="train iter"
         ):
@@ -141,7 +140,7 @@ class Server:
             sync_update_strategy=self._sync_update_strategy,
             sync_cfr=self._sync_cfr,
             sync_discount=self._sync_discount,
-            sync_serialise_agent=self._sync_serialise_agent,
+            sync_serialise=self._sync_serialise,
             start_timestep=self._start_timestep,
         )
         # Sort dictionary for human-friendlyness and convert all pathlib.Path
