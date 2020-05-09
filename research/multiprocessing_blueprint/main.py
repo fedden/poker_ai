@@ -19,6 +19,7 @@ from server import Server
 @click.option("--print_iteration", default=10, help=".")
 @click.option("--dump_iteration", default=10, help=".")
 @click.option("--update_threshold", default=0, help=".")
+@click.option("--pickle_dir", default="../blueprint_algo", help=".")
 @click.option("--sync_update_strategy", default=False, help=".")
 @click.option("--sync_cfr", default=False, help=".")
 @click.option("--sync_discount", default=False, help=".")
@@ -34,6 +35,7 @@ def search(
     print_iteration: int,
     dump_iteration: int,
     update_threshold: int,
+    pickle_dir: str,
     sync_update_strategy: bool,
     sync_cfr: bool,
     sync_discount: bool,
@@ -58,7 +60,7 @@ def search(
         dump_iteration=dump_iteration,
         update_threshold=update_threshold,
         save_path=save_path,
-        pickle_dir="..",
+        pickle_dir=pickle_dir,
         sync_update_strategy=sync_update_strategy,
         sync_cfr=sync_cfr,
         sync_discount=sync_discount,
