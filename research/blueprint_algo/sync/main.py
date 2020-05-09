@@ -59,16 +59,13 @@ def search(
         update_threshold=update_threshold,
         save_path=save_path,
         pickle_dir="..",
-    )
-    # Minimise the regret!
-    server.search(
         sync_update_strategy=sync_update_strategy,
         sync_cfr=sync_cfr,
         sync_discount=sync_discount,
         sync_serialise_agent=sync_serialise_agent,
     )
+    server.search()
     server.terminate()
-    server.serialise_agent()
 
 
 if __name__ == "__main__":
