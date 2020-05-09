@@ -135,15 +135,16 @@ class Worker(mp.Process):
         # Dump the current strategy (sigma) throughout training and then take
         # an average. This allows for estimation of expected value in leaf
         # nodes later on using modified versions of the blueprint strategy.
-        agent_path = os.path.abspath(str(self._save_path / f"strategy_{t}.gz"))
+        agent_path = os.path.abspath(str(self._save_path / f"agent_{t}.gz"))
         joblib.dump(to_persist, agent_path, compress="gzip")
         # Dump the server state to file too, but first update a few bits of the
         # state so when we load it next time, we start from the right place in
         # the optimisation process.
-        server_path = self._save_path / f"server.cfg"
+        server_path = self._save_path / f"server.gz"
         server_state["agent_path"] = agent_path
         server_state["start_timestep"] = t + 1
         joblib.dump(server_state, server_path)
+        log.info(f"saved agent and server to {self._save_path}")
 
     def _update_status(self, status, log_status: bool = False):
         """Update the status of this worker by posting it to the server."""
