@@ -102,11 +102,16 @@ def calculate_strategy(
     # describing uniform regret of zero for all legal actions for this state.
     this_states_regret = regret.get(state.info_set, state.initial_regret)
     regret_sum = sum([max(r, 0) for r in this_states_regret.values()])
-    for action in state.legal_actions:
-        if regret_sum > 0:
-            sigma[action] = max(this_states_regret[action], 0) / regret_sum
-        else:
-            sigma[action] = default_probability
+    # Previously we were adding if/else inside the loop. Not a big issue but we
+    # call this method so many times so wanted to optimise this a little...
+    # Now we branch once and loop, rather than loop and branch many times.
+    if regret_sum > 0:
+        sigma = {
+            action: max(this_states_regret[action], 0) / regret_sum
+            for action in state.legal_actions
+        }
+    else:
+        sigma = {action: default_probability for action in state.legal_actions}
     return sigma
 
 

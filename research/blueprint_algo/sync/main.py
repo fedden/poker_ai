@@ -59,7 +59,6 @@ def search(
         update_threshold=update_threshold,
         save_path=save_path,
         pickle_dir="..",
-        seed=42,
     )
     # Minimise the regret!
     server.search(

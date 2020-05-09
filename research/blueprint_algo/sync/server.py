@@ -34,11 +34,8 @@ class Server:
         save_path: Union[str, Path],
         pickle_dir: Union[str, Path] = ".",
         n_processes: int = mp.cpu_count() - 1,
-        seed: Optional[int] = None,
     ):
         """Set up the optimisation server."""
-        if seed is not None:
-            utils.random.seed(42)
         self._save_path = save_path
         self._n_iterations = n_iterations
         self._lcfr_threshold = lcfr_threshold
@@ -92,6 +89,10 @@ class Server:
         If all `sync_*` parameters are set to True then there shouldn't be any
         difference between this and the original MCCFR implementation.
         """
+        log.info(f"synchronising update_strategy - {sync_update_strategy}")
+        log.info(f"synchronising cfr             - {sync_cfr}")
+        log.info(f"synchronising discount        - {sync_discount}")
+        log.info(f"synchronising serialise_agent - {sync_serialise_agent}")
         for t in trange(1, self._n_iterations + 1, desc="train iter"):
             for i in range(self._n_players):
                 if t > self._update_threshold and t % self._strategy_interval == 0:

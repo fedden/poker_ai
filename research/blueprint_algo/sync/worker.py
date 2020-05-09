@@ -1,5 +1,8 @@
+import random
+
 import logging
 import multiprocessing as mp
+import os
 from pathlib import Path
 from typing import Dict
 
@@ -15,7 +18,7 @@ log = logging.getLogger("sync.worker")
 
 
 class Worker(mp.Process):
-    """"""
+    """Subclass of multiprocessing Process to handle agent optimisation."""
 
     def __init__(
         self,
@@ -33,7 +36,7 @@ class Worker(mp.Process):
         dump_iteration: int,
         save_path: Path,
     ):
-        """"""
+        """Construct the process, setup the state."""
         super().__init__(group=None, name=None, args=(), kwargs={}, daemon=None)
         self._job_queue: mp.Queue = job_queue
         self._status_queue: mp.Queue = status_queue
@@ -51,7 +54,11 @@ class Worker(mp.Process):
         self._setup_new_game()
 
     def run(self):
-        """"""
+        """Compute the next job the server sent."""
+        # Seed process.
+        self._set_seed()
+        # Start processing loop, that will block on a wait for the next job
+        # that will be sent from the server to be consumed by the worker(s).
         while True:
             # Get the name of the method and the key word arguments needed for
             # the method.
@@ -74,14 +81,22 @@ class Worker(mp.Process):
             # Notify the job queue that the task is done.
             self._job_queue.task_done()
 
+    def _set_seed(self):
+        """Lose all reproducability as we need unique streams per worker."""
+        # NOTE(fedden): NumPy in particular has a problem with processes and
+        #               seeds: https://github.com/numpy/numpy/issues/9650
+        random_seed: int = int.from_bytes(os.urandom(4), byteorder="little")
+        utils.random.seed(random_seed)
+
     def _cfr(self, t, i):
         """Search over random game and calculate the strategy."""
         self._setup_new_game()
-        use_pruning = np.random.uniform() < 0.95
-        if t > self._prune_threshold and use_pruning:
-            ai.cfr(self._agent, self._state, i, t, self._locks)
-        else:
+        use_pruning: bool = np.random.uniform() < 0.95
+        pruning_allowed: bool = t > self._prune_threshold
+        if pruning_allowed and use_pruning:
             ai.cfrp(self._agent, self._state, i, t, self._c, self._locks)
+        else:
+            ai.cfr(self._agent, self._state, i, t, self._locks)
 
     def _discount(self, t):
         """Discount previous regrets and strategy."""
@@ -93,10 +108,16 @@ class Worker(mp.Process):
         discount_factor = (t / self._discount_interval) / (
             (t / self._discount_interval) + 1
         )
+        self._locks["regret"].acquire()
         for info_set in self._agent.regret.keys():
             for action in self._agent.regret[info_set].keys():
                 self._agent.regret[info_set][action] *= discount_factor
+        self._locks["regret"].release()
+        self._locks["strategy"].acquire()
+        for info_set in self._agent.strategy.keys():
+            for action in self._agent.strategy[info_set].keys():
                 self._agent.strategy[info_set][action] *= discount_factor
+        self._locks["strategy"].release()
 
     def _update_strategy(self, t, i):
         """Update the strategy."""
@@ -104,13 +125,16 @@ class Worker(mp.Process):
 
     def _serialise_agent(self, t):
         """Write agent to file."""
-        # dump the current
-        # strategy (sigma) throughout training and then take an average.
-        # This allows for estimation of expected value in leaf nodes later
-        # on using modified versions of the blueprint strategy
+        # Dump the current strategy (sigma) throughout training and then take
+        # an average. This allows for estimation of expected value in leaf
+        # nodes later on using modified versions of the blueprint strategy.
+        self._locks["regret"].acquire()
+        self._locks["strategy"].acquire()
         to_persist = utils.io.to_dict(
             strategy=self._agent.strategy, regret=self._agent.regret
         )
+        self._locks["regret"].release()
+        self._locks["strategy"].release()
         joblib.dump(to_persist, self._save_path / f"strategy_{t}.gz", compress="gzip")
 
     def _update_status(self, status, log_status: bool = False):

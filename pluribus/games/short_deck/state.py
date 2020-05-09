@@ -272,9 +272,7 @@ class ShortDeckPokerState:
     @property
     def initial_strategy(self) -> Dict[str, float]:
         """Returns the default strategy for this state."""
-        actions = self.legal_actions
-        equal_probability = 1 / len(actions)
-        return {action: equal_probability for action in actions}
+        return {action: 0 for action in self.legal_actions}
 
     @property
     def betting_stage(self) -> str:
