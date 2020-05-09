@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import dill as pickle
 
+from pluribus import utils
 from pluribus.poker.card import Card
 from pluribus.poker.engine import PokerEngine
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
@@ -351,7 +352,9 @@ class ShortDeckPokerState:
                 for betting_stage, actions in self._history.items()
             ],
         }
-        return json.dumps(info_set_dict, separators=(",", ":"))
+        return json.dumps(
+            info_set_dict, separators=(",", ":"), cls=utils.io.NumpyJSONEncoder
+        )
 
     @property
     def payout(self) -> Dict[int, int]:

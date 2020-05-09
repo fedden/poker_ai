@@ -5,9 +5,26 @@ import logging
 from pathlib import Path
 from typing import Any, Dict
 
+import numpy as np
+
 from pluribus.games.short_deck import state
 
 log = logging.getLogger("pluribus.utils.io")
+
+
+class NumpyJSONEncoder(json.JSONEncoder):
+    """Handle those pesky numpy arrays on serialisation."""
+
+    def default(self, obj):
+        """Method to handle the conversion of numpy types to Python types."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NumpyJSONEncoder, self).default(obj)
 
 
 def load_info_set_lut(path: str) -> state.InfoSetLookupTable:
