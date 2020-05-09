@@ -1,5 +1,10 @@
-import click
+from pathlib import Path
+from typing import Dict
 
+import click
+import yaml
+
+from pluribus import utils
 from server import Server
 
 
@@ -14,6 +19,10 @@ from server import Server
 @click.option("--print_iteration", default=10, help=".")
 @click.option("--dump_iteration", default=10, help=".")
 @click.option("--update_threshold", default=0, help=".")
+@click.option("--sync_update_strategy", default=False, help=".")
+@click.option("--sync_cfr", default=False, help=".")
+@click.option("--sync_discount", default=True, help=".")
+@click.option("--sync_serialise_agent", default=True, help=".")
 def search(
     strategy_interval: int,
     n_iterations: int,
@@ -25,9 +34,18 @@ def search(
     print_iteration: int,
     dump_iteration: int,
     update_threshold: int,
+    sync_update_strategy: bool,
+    sync_cfr: bool,
+    sync_discount: bool,
+    sync_serialise_agent: bool,
 ):
     """Train agent."""
-    # Get the values passed to this method, save this.
+    # Write config to file, and create directory to save results in.
+    config: Dict[str, int] = {**locals()}
+    save_path: Path = utils.io.create_dir()
+    with open(save_path / "config.yaml", "w") as steam:
+        yaml.dump(config, steam)
+    # Create the server that controls/coordinates the workers.
     server = Server(
         strategy_interval=strategy_interval,
         n_iterations=n_iterations,
@@ -39,10 +57,17 @@ def search(
         print_iteration=print_iteration,
         dump_iteration=dump_iteration,
         update_threshold=update_threshold,
-        seed=42,
+        save_path=save_path,
         pickle_dir="..",
+        seed=42,
     )
-    server.search()
+    # Minimise the regret!
+    server.search(
+        sync_update_strategy=sync_update_strategy,
+        sync_cfr=sync_cfr,
+        sync_discount=sync_discount,
+        sync_serialise_agent=sync_serialise_agent,
+    )
     server.terminate()
     server.serialise_agent()
 

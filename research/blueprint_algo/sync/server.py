@@ -1,12 +1,10 @@
 import logging
 import multiprocessing as mp
 import time
-import threading
 from pathlib import Path
 from typing import Dict, Optional, Union
 
 import joblib
-import yaml
 from tqdm import trange
 
 from agent import Agent
@@ -33,18 +31,15 @@ class Server:
         print_iteration: int,
         dump_iteration: int,
         update_threshold: int,
+        save_path: Union[str, Path],
+        pickle_dir: Union[str, Path] = ".",
         n_processes: int = mp.cpu_count() - 1,
         seed: Optional[int] = None,
-        pickle_dir: Union[str, Path] = ".",
     ):
         """Set up the optimisation server."""
-        config: Dict[str, int] = {**locals()}
-        self._save_path: Path = utils.io.create_dir()
-        with open(self._save_path / "config.yaml", "w") as steam:
-            yaml.dump(config, steam)
-        log.info("saved config")
         if seed is not None:
             utils.random.seed(42)
+        self._save_path = save_path
         self._n_iterations = n_iterations
         self._lcfr_threshold = lcfr_threshold
         self._discount_interval = discount_interval
@@ -89,7 +84,7 @@ class Server:
         self,
         sync_update_strategy: bool = False,
         sync_cfr: bool = False,
-        sync_discount: bool = False,
+        sync_discount: bool = True,
         sync_serialise_agent: bool = True,
     ):
         """Perform MCCFR and train the agent.
