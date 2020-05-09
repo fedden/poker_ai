@@ -81,8 +81,8 @@ class Server:
         self,
         sync_update_strategy: bool = False,
         sync_cfr: bool = False,
-        sync_discount: bool = True,
-        sync_serialise_agent: bool = True,
+        sync_discount: bool = False,
+        sync_serialise_agent: bool = False,
     ):
         """Perform MCCFR and train the agent.
 
