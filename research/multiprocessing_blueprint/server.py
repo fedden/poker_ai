@@ -28,7 +28,6 @@ class Server:
         prune_threshold: int,
         c: int,
         n_players: int,
-        print_iteration: int,
         dump_iteration: int,
         update_threshold: int,
         save_path: Union[str, Path],
@@ -49,7 +48,6 @@ class Server:
         self._prune_threshold = prune_threshold
         self._c = c
         self._n_players = n_players
-        self._print_iteration = print_iteration
         self._dump_iteration = dump_iteration
         self._update_threshold = update_threshold
         self._save_path = save_path
@@ -131,7 +129,6 @@ class Server:
             prune_threshold=self._prune_threshold,
             c=self._c,
             n_players=self._n_players,
-            print_iteration=self._print_iteration,
             dump_iteration=self._dump_iteration,
             update_threshold=self._update_threshold,
             save_path=self._save_path,

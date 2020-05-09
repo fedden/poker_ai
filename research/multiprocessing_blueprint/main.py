@@ -32,7 +32,6 @@ Options:
   --prune_threshold INTEGER    .
   --c INTEGER                  .
   --n_players INTEGER          .
-  --print_iteration INTEGER    .
   --dump_iteration INTEGER     .
   --update_threshold INTEGER   .
   --pickle_dir TEXT            .
@@ -83,7 +82,6 @@ def resume(server_config_path: str):
 @click.option("--prune_threshold", default=4000, help=".")
 @click.option("--c", default=-20000, help=".")
 @click.option("--n_players", default=3, help=".")
-@click.option("--print_iteration", default=10, help=".")
 @click.option("--dump_iteration", default=10, help=".")
 @click.option("--update_threshold", default=0, help=".")
 @click.option("--pickle_dir", default="../blueprint_algo", help=".")
@@ -99,7 +97,6 @@ def search(
     prune_threshold: int,
     c: int,
     n_players: int,
-    print_iteration: int,
     dump_iteration: int,
     update_threshold: int,
     pickle_dir: str,
@@ -123,7 +120,6 @@ def search(
         prune_threshold=prune_threshold,
         c=c,
         n_players=n_players,
-        print_iteration=print_iteration,
         dump_iteration=dump_iteration,
         update_threshold=update_threshold,
         save_path=save_path,
