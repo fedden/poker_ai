@@ -35,10 +35,10 @@ Options:
   --dump_iteration INTEGER     .
   --update_threshold INTEGER   .
   --pickle_dir TEXT            .
-  --sync_update_strategy TEXT  .
-  --sync_cfr TEXT              .
-  --sync_discount TEXT         .
-  --sync_serialise TEXT        .
+  --sync_update_strategy / --async_update_strategy
+  --sync_cfr / --async_cfr
+  --sync_discount / --async_discount
+  --sync_serialise / --async_serialise
   --help                       Show this message and exit.
 ```
 """
@@ -85,10 +85,10 @@ def resume(server_config_path: str):
 @click.option("--dump_iteration", default=10, help=".")
 @click.option("--update_threshold", default=0, help=".")
 @click.option("--pickle_dir", default="../blueprint_algo", help=".")
-@click.option("--sync_update_strategy", default=False, help=".")
-@click.option("--sync_cfr", default=False, help=".")
-@click.option("--sync_discount", default=False, help=".")
-@click.option("--sync_serialise", default=False, help=".")
+@click.option("--sync_update_strategy/--async_update_strategy", default=False, help=".")
+@click.option("--sync_cfr/--async_cfr", default=False, help=".")
+@click.option("--sync_discount/--async_discount", default=False, help=".")
+@click.option("--sync_serialise/--async_serialise", default=False, help=".")
 def search(
     strategy_interval: int,
     n_iterations: int,
