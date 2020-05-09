@@ -21,8 +21,8 @@ from server import Server
 @click.option("--update_threshold", default=0, help=".")
 @click.option("--sync_update_strategy", default=False, help=".")
 @click.option("--sync_cfr", default=False, help=".")
-@click.option("--sync_discount", default=True, help=".")
-@click.option("--sync_serialise_agent", default=True, help=".")
+@click.option("--sync_discount", default=False, help=".")
+@click.option("--sync_serialise_agent", default=False, help=".")
 def search(
     strategy_interval: int,
     n_iterations: int,
