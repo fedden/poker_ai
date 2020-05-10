@@ -346,7 +346,7 @@ class ShortDeckPokerState:
         # Convert history from a dict of lists to a list of dicts as I'm
         # paranoid about JSON's lack of care with insertion order.
         info_set_dict = {
-            "cards_cluster": int(cards_cluster),
+            "cards_cluster": cards_cluster,
             "history": [
                 {betting_stage: [str(action) for action in actions]}
                 for betting_stage, actions in self._history.items()
