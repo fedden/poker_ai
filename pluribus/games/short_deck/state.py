@@ -1,20 +1,43 @@
 from __future__ import annotations
 
-import operator
+import collections
 import copy
+import json
 import logging
+import operator
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
 import dill as pickle
 
-from pluribus.poker.actions import Action
+from pluribus import utils
 from pluribus.poker.card import Card
 from pluribus.poker.engine import PokerEngine
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
+from pluribus.poker.pot import Pot
 from pluribus.poker.table import PokerTable
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pluribus.games.short_deck.state")
+InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
+
+
+def new_game(
+    n_players: int, info_set_lut: InfoSetLookupTable = {}
+) -> ShortDeckPokerState:
+    """Create a new game of short deck poker."""
+    pot = Pot()
+    players = [
+        ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+        for player_i in range(n_players)
+    ]
+    if info_set_lut:
+        # Don't reload massive files, it takes ages.
+        state = ShortDeckPokerState(players=players, load_pickle_files=False)
+        state.info_set_lut = info_set_lut
+    else:
+        # Load massive files.
+        state = ShortDeckPokerState(players=players)
+    return state
 
 
 class ShortDeckPokerState:
@@ -40,7 +63,7 @@ class ShortDeckPokerState:
                 f"were provided."
             )
         if load_pickle_files:
-            self.info_set_lut = self._load_pickle_files(pickle_dir)
+            self.info_set_lut = self.load_pickle_files(pickle_dir)
         else:
             self.info_set_lut = {}
         # Get a reference of the pot from the first player.
@@ -60,7 +83,7 @@ class ShortDeckPokerState:
         # Deal private cards to players.
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
-        self._history: List[str] = []
+        self._history: Dict[str, List[str]] = collections.defaultdict(list)
         self._betting_stage = "pre_flop"
         self._betting_stage_to_round: Dict[str, int] = {
             "pre_flop": 0,
@@ -81,6 +104,7 @@ class ShortDeckPokerState:
             "terminal": player_i_order,
         }
         self._skip_counter = 0
+        self._first_move_of_current_round = True
         self._reset_betting_round_state()
 
     def __repr__(self):
@@ -113,6 +137,9 @@ class ShortDeckPokerState:
         self.info_set_lut = {}
         new_state = copy.deepcopy(self)
         new_state.info_set_lut = self.info_set_lut = lut
+        # An action has been made, so alas we are not in the first move of the
+        # current betting round.
+        new_state._first_move_of_current_round = False
         if action_str is None:
             # Assert active player has folded already.
             assert (
@@ -139,9 +166,9 @@ class ShortDeckPokerState:
                 f"type {type(action)}."
             )
         # Update the new state.
-        n_skips = new_state._skip_counter
-        new_state._history = new_state._history + ["skip"] * n_skips
-        new_state._history.append(str(action))
+        skip_actions = ["skip" for _ in range(new_state._skip_counter)]
+        new_state._history[new_state.betting_stage] += skip_actions
+        new_state._history[new_state.betting_stage].append(str(action))
         new_state._n_actions += 1
         new_state._skip_counter = 0
         # Player has made move, increment the player that is next.
@@ -156,6 +183,7 @@ class ShortDeckPokerState:
                 # stage of the game.
                 new_state._increment_stage()
                 new_state._reset_betting_round_state()
+                new_state._first_move_of_current_round = True
             if not new_state.current_player.is_active:
                 new_state._skip_counter += 1
                 assert not new_state.current_player.is_active
@@ -172,15 +200,8 @@ class ShortDeckPokerState:
                 break
         return new_state
 
-    def _move_to_next_player(self):
-        """Ensure state points to next valid active player."""
-        self._player_i_index += 1
-        if self._player_i_index >= len(self.players):
-            self._player_i_index = 0
-
-    def _load_pickle_files(
-        self, pickle_dir: str
-    ) -> Dict[str, Dict[Tuple[int, ...], str]]:
+    @staticmethod
+    def load_pickle_files(pickle_dir: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
         """Load pickle files into memory."""
         file_names = [
             "preflop_lossless.pkl",
@@ -200,6 +221,12 @@ class ShortDeckPokerState:
             with open(file_path, "rb") as fp:
                 info_set_lut[betting_stage] = pickle.load(fp)
         return info_set_lut
+
+    def _move_to_next_player(self):
+        """Ensure state points to next valid active player."""
+        self._player_i_index += 1
+        if self._player_i_index >= len(self.players):
+            self._player_i_index = 0
 
     def _reset_betting_round_state(self):
         """Reset the state related to counting types of actions."""
@@ -234,6 +261,26 @@ class ShortDeckPokerState:
             pass
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    @property
+    def community_cards(self) -> List[Card]:
+        """Return all shared/public cards."""
+        return self._table.community_cards
+
+    @property
+    def private_hands(self) -> Dict[ShortDeckPokerPlayer, List[Card]]:
+        """Return all private hands."""
+        return {p: p.cards for p in self.players}
+
+    @property
+    def initial_regret(self) -> Dict[str, float]:
+        """Returns the default regret for this state."""
+        return {action: 0 for action in self.legal_actions}
+
+    @property
+    def initial_strategy(self) -> Dict[str, float]:
+        """Returns the default strategy for this state."""
+        return {action: 0 for action in self.legal_actions}
 
     @property
     def betting_stage(self) -> str:
@@ -296,8 +343,18 @@ class ShortDeckPokerState:
                 raise ValueError("Cards {cards} not in pickle files.")
             else:
                 raise ValueError("Unrecognised betting stage in pickle files.")
-        action_history = [str(action) for action in self._history]
-        return f"cards_cluster={cards_cluster}, history={action_history}"
+        # Convert history from a dict of lists to a list of dicts as I'm
+        # paranoid about JSON's lack of care with insertion order.
+        info_set_dict = {
+            "cards_cluster": cards_cluster,
+            "history": [
+                {betting_stage: [str(action) for action in actions]}
+                for betting_stage, actions in self._history.items()
+            ],
+        }
+        return json.dumps(
+            info_set_dict, separators=(",", ":"), cls=utils.io.NumpyJSONEncoder
+        )
 
     @property
     def payout(self) -> Dict[int, int]:

@@ -291,69 +291,31 @@ def test_skips(n_players: int = 3):
     for _ in range(500):
         state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
 
-        betting_stage_dict = {
-            "pre_flop": None,
-            "flop": None,
-            "turn": None,
-            "river": None,
-        }
-
-        first_flop_action = True
-        first_turn_action = True
-        first_river_action = True
-
-        betting_stage = "pre_flop"
-        previous_betting_stage = None
         while True:
-            if betting_stage != state.betting_stage:
-                previous_betting_stage = betting_stage
-                betting_stage = state.betting_stage
-
             uniform_probability: float = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), uniform_probability)
             random_action: str = np.random.choice(state.legal_actions, p=probabilities)
-
             state = state.apply_action(random_action)
 
-            if state.betting_stage == "flop" and first_flop_action:
-                betting_stage_dict["pre_flop"] = state._history
-                first_flop_action = False
-                flop_start = len(betting_stage_dict["pre_flop"])
-            if state.betting_stage == "turn" and first_turn_action:
-                betting_stage_dict["flop"] = state._history[flop_start:]
-                first_turn_action = False
-                turn_start = len(betting_stage_dict["flop"]) + flop_start
-            if state.betting_stage == "river" and first_river_action:
-                betting_stage_dict["turn"] = state._history[turn_start:]
-                first_river_action = False
-                river_start = len(betting_stage_dict["turn"]) + turn_start
             if state.betting_stage in {"show_down", "terminal"}:
-                if previous_betting_stage == None:
-                    betting_stage_dict["pre_flop"] = state._history
-                elif previous_betting_stage == "pre_flop":
-                    betting_stage_dict["flop"] = state._history[flop_start:]
-                elif previous_betting_stage == "flop":
-                    betting_stage_dict["turn"] = state._history[turn_start:]
-                elif previous_betting_stage == "turn":
-                    betting_stage_dict["river"] = state._history[river_start:]
                 break
 
         # TODO: wrap this in a for loop, add history as property of poker state class
-        preflop_actions = betting_stage_dict["pre_flop"]
+        preflop_actions = state._history["pre_flop"]
         preflop_folds = [i for i, x in enumerate(preflop_actions) if x == "fold"]
         # accounting for rotation preflop
         preflop_fold_players = [(x + 2) % 3 for x in preflop_folds]
 
-        if betting_stage_dict["flop"] is not None:
-            flop_actions = betting_stage_dict["flop"]
+        if state._history["flop"] is not None:
+            flop_actions = state._history["flop"]
             flop_folds = [i for i, x in enumerate(flop_actions) if x == "fold"]
 
-        if betting_stage_dict["turn"] is not None:
-            turn_actions = betting_stage_dict["turn"]
+        if state._history["turn"] is not None:
+            turn_actions = state._history["turn"]
             turn_folds = [i for i, x in enumerate(turn_actions) if x == "fold"]
 
-        for stage in betting_stage_dict.keys():
-            if betting_stage_dict[stage] is not None:
+        for stage in state._history.keys():
+            if state._history[stage] is not None:
                 if stage == "flop":
                     fold_players = preflop_fold_players
                 if stage == "turn":
@@ -361,7 +323,7 @@ def test_skips(n_players: int = 3):
                 if stage == "river":
                     fold_players = preflop_fold_players + flop_folds + turn_folds
 
-                actions = betting_stage_dict[stage]
+                actions = state._history[stage]
                 folds = [i for i, x in enumerate(actions) if x == "fold"]
 
                 for fold_idx in folds:
