@@ -155,6 +155,7 @@ class ShortDeckPokerState:
         load_pickle_files: bool = True,
         real_time_test: bool = False,
         offline_strategy: Dict = None,
+        public_cards: List[Card] = None
     ):
         """Initialise state."""
         n_players = len(players)
@@ -214,10 +215,15 @@ class ShortDeckPokerState:
         self._skip_counter = 0
         self._first_move_of_current_round = True
         self._reset_betting_round_state()
+<<<<<<< HEAD
         for player in self.players:
             player.is_turn = False
         self.current_player.is_turn = True
         # TODO add attribute of public_cards, that can be supplied by convenience method
+=======
+        self._public_cards = public_cards
+
+>>>>>>> 9f665cd... fix infoset lookup issue
         # only want to do these actions in real game play, as they are slow
         if self.real_time_test:
             # must have offline strategy loaded up
@@ -407,6 +413,13 @@ class ShortDeckPokerState:
             for starting_hand, prob in self._starting_hand_probs[player].items():
                 self._starting_hand_probs[player][starting_hand] = prob / total_prob
 
+    # def set_public_cards(self, public_cards):
+    #     """Method to add public cards for RTS"""
+    #     # can't add them if you have community cards already
+    #     assert not self._public_cards
+    #     assert not self._table.community_cards
+    #     self._public_cards = public_cards
+
     def update_hole_cards_bayes(self):
         """Get probability of reach for each pair of hole cards for each player"""
         n_players = len(self._table.players)
@@ -451,9 +464,10 @@ class ShortDeckPokerState:
                                     public_cards = self._public_information[
                                         betting_stage
                                     ]
+                                    public_cards_evals = [c.eval_card for c in public_cards]
                                     infoset = self._info_set_helper(
                                         opp_starting_hand,
-                                        public_cards,
+                                        public_cards_evals,
                                         action_sequence,
                                         betting_stage,
                                     )
@@ -481,9 +495,10 @@ class ShortDeckPokerState:
                                 prob_reach_all_hands.append(prob)
                             else:
                                 public_cards = self._public_information[betting_stage]
+                                public_cards_evals = [c.eval_card for c in public_cards]
                                 infoset = self._info_set_helper(
                                     starting_hand,
-                                    public_cards,
+                                    public_cards_evals,
                                     action_sequence,
                                     betting_stage,
                                 )
