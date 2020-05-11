@@ -7,6 +7,8 @@ import logging
 import operator
 import os
 from typing import Any, Dict, List, Optional, Tuple
+import joblib
+from itertools import combinations
 
 import dill as pickle
 
@@ -40,6 +42,101 @@ def new_game(
     return state
 
 
+# TODO: there is probably a better place for agent related items
+class Agent:
+    # TODO(fedden): Note from the supplementary material, the data here will
+    #               need to be lower precision: "To save memory, regrets were
+    #               stored using 4-byte integers rather than 8-byte doubles.
+    #               There was also a ﬂoor on regret at -310,000,000 for every
+    #               action. This made it easier to unprune actions that were
+    #               initially pruned but later improved. This also prevented
+    #               integer overﬂows".
+    def __init__(self):
+        self.strategy = collections.defaultdict(
+            lambda: collections.defaultdict(lambda: 0)
+        )
+        self.regret = collections.defaultdict(
+            lambda: collections.defaultdict(lambda: 0)
+        )
+
+
+# TODO: Change to Leon's newest iteration on this method
+class TrainedAgent(Agent):
+    """
+    Agent who has been trained
+    Points to a folder whose strategies is calculated from regret and then averaged
+    """
+
+    def __init__(self, directory: str):
+        super().__init__()
+        self.offline_strategy = self._load_regret(directory)
+
+    # TODO: the following could use a refactor, just getting through this rather quickly
+    def _calculate_strategy(
+        self,
+        regret: Dict[str, Dict[str, float]],
+        sigma: Dict[int, Dict[str, Dict[str, float]]],
+        I: str,
+    ):
+        """
+        Get strategy from regret
+        """
+        rsum = sum([max(x, 0) for x in regret[I].values()])
+        ACTIONS = regret[I].keys()  # TODO: this is hacky, might be a better way
+        for a in ACTIONS:
+            if rsum > 0:
+                sigma[I][a] = max(regret[I][a], 0) / rsum
+            else:
+                sigma[I][a] = 1 / len(ACTIONS)
+        return sigma
+
+    def _average_strategy(self, directory: str):
+        files = [
+            x
+            for x in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, x))
+        ]
+
+        offline_strategy = collections.defaultdict(
+            lambda: collections.defaultdict(lambda: 0)
+        )
+        strategy_tmp = collections.defaultdict(
+            lambda: collections.defaultdict(lambda: 0)
+        )
+
+        for idx, f in enumerate(files):
+            if f in ["config.yaml", "strategy.gz"]:
+                continue
+
+            regret_dict = joblib.load(directory + "/" + f)["regret"]
+            sigma = collections.defaultdict(
+                lambda: collections.defaultdict(lambda: 1 / 3)
+            )
+
+            for info_set, regret in sorted(regret_dict.items()):
+                sigma = self._calculate_strategy(regret_dict, sigma, info_set)
+
+            for info_set, strategy in sigma.items():
+                for action, probability in strategy.items():
+                    try:
+                        strategy_tmp[info_set][action] += probability
+                    except KeyError:
+                        strategy_tmp[info_set][action] = probability
+
+        for info_set, strategy in sorted(strategy_tmp.items()):
+            norm = sum(list(strategy.values()))
+            for action, probability in strategy.items():
+                try:
+                    offline_strategy[info_set][action] += probability / norm
+                except KeyError:
+                    offline_strategy[info_set][action] = probability / norm
+
+        return offline_strategy
+
+    def _load_regret(self, directory: str):
+        return self._average_strategy(directory)
+
+
 class ShortDeckPokerState:
     """The state of a Short Deck Poker game at some given point in time.
 
@@ -54,6 +151,8 @@ class ShortDeckPokerState:
         big_blind: int = 100,
         pickle_dir: str = ".",
         load_pickle_files: bool = True,
+        real_time: bool = False,
+        offline_strategy: Dict = None,
     ):
         """Initialise state."""
         n_players = len(players)
@@ -74,6 +173,7 @@ class ShortDeckPokerState:
         self._initial_n_chips = players[0].n_chips
         self.small_blind = small_blind
         self.big_blind = big_blind
+        self.real_time = real_time
         self._poker_engine = PokerEngine(
             table=self._table, small_blind=small_blind, big_blind=big_blind
         )
@@ -84,7 +184,9 @@ class ShortDeckPokerState:
         self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
         self._history: Dict[str, List[str]] = collections.defaultdict(list)
+        self._public_information: Dict[str, List[Card]] = collections.defaultdict(list)
         self._betting_stage = "pre_flop"
+        self._previous_betting_stage = None
         self._betting_stage_to_round: Dict[str, int] = {
             "pre_flop": 0,
             "flop": 1,
@@ -112,6 +214,17 @@ class ShortDeckPokerState:
         for player in self.players:
             player.is_turn = False
         self.current_player.is_turn = True
+
+        # only want to do these actions in real game play, as they are slow
+        if self.real_time:
+            # must have offline strategy loaded up
+            assert offline_strategy
+            self._offline_strategy = offline_strategy
+            self._starting_hand_probs = self._initialize_starting_hands()
+            cards_in_deck = self._table.dealer.deck._cards_in_deck
+            # TODO: We might not need this
+            self._evals = [c.eval_card for c in cards_in_deck]
+            self._evals_to_cards = {i.eval_card: i for i in cards_in_deck}
 
     def __repr__(self):
         """Return a helpful description of object in strings and debugger."""
@@ -175,6 +288,11 @@ class ShortDeckPokerState:
         skip_actions = ["skip" for _ in range(new_state._skip_counter)]
         new_state._history[new_state.betting_stage] += skip_actions
         new_state._history[new_state.betting_stage].append(str(action))
+        # save public information
+        if self._first_move_of_current_round:
+            new_state._public_information[
+                new_state.betting_stage
+            ] = self._table.community_cards
         new_state._n_actions += 1
         new_state._skip_counter = 0
         # Player has made move, increment the player that is next.
@@ -254,22 +372,172 @@ class ShortDeckPokerState:
         if self._betting_stage == "pre_flop":
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
+            self._previous_betting_stage = "pre_flop"
             self._poker_engine.table.dealer.deal_flop(self._table)
         elif self._betting_stage == "flop":
             # Progress from flop to turn.
             self._betting_stage = "turn"
+            self._previous_betting_stage = "flop"
             self._poker_engine.table.dealer.deal_turn(self._table)
         elif self._betting_stage == "turn":
             # Progress from turn to river.
             self._betting_stage = "river"
+            self._previous_betting_stage = "turn"
             self._poker_engine.table.dealer.deal_river(self._table)
         elif self._betting_stage == "river":
             # Progress to the showdown.
             self._betting_stage = "show_down"
+            self._previous_betting_stage = "river"
         elif self._betting_stage in {"show_down", "terminal"}:
             pass
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    def _normalize_bayes(self):
+        """Normalize probability of reach for each player"""
+        n_players = len(self.players)
+        for player in range(n_players):
+            total_prob = sum(self._starting_hand_probs[player].values())
+            for starting_hand, prob in self._starting_hand_probs[player].items():
+                self._starting_hand_probs[player][starting_hand] = prob / total_prob
+
+    def update_hole_cards_bayes(self):
+        """Get probability of reach for each pair of hole cards for each player"""
+        n_players = len(self._table.players)
+        player_indices: List[int] = [p_i for p_i in range(n_players)]
+        for p_i in player_indices:
+            for starting_hand in self._starting_hand_probs[p_i].keys():
+                # TODO: is this bad?
+                if "p_reach" in locals():
+                    del p_reach
+                action_sequence = []
+                for idx, betting_stage in enumerate(self._history.keys()):
+                    if self._first_move_of_current_round:
+                        betting_stage = self._previous_betting_stage
+                    n_actions_round = len(self._history[betting_stage])
+                    for i in range(n_actions_round):
+                        action = self._history[betting_stage][i]
+                        # TODO: maybe a method already exists for this?
+                        if betting_stage == "pre_flop":
+                            ph = (i + 2) % n_players
+                        else:
+                            ph = i % n_players
+                        if p_i != ph:
+                            prob_reach_all_hands = []
+                            num_hands = 0
+                            for opp_starting_hand in self._starting_hand_probs[
+                                p_i
+                            ].keys():
+                                # TODO: clean this up
+                                public_evals = [
+                                    c.eval_card
+                                    for c in self._public_information[betting_stage]
+                                ]
+                                if len(
+                                    set(starting_hand)
+                                    .union(set(opp_starting_hand))
+                                    .union(set(public_evals))
+                                ) < (len(public_evals) + 4):
+                                    prob = 0
+                                    prob_reach_all_hands.append(prob)
+                                else:
+                                    num_hands += 1
+                                    public_cards = self._public_information[
+                                        betting_stage
+                                    ]
+                                    infoset = self._info_set_helper(
+                                        opp_starting_hand,
+                                        public_cards,
+                                        action_sequence,
+                                        betting_stage,
+                                    )
+                                    # check to see if the strategy exists, if not equal probability
+                                    # TODO: is this hacky? problem with defaulting to 1 / 3, is that it
+                                    #  doesn't work for calculations that need to be made with the object's values
+                                    if self._offline_strategy[infoset].keys():
+                                        prob = self._offline_strategy[infoset][action]
+                                    else:
+                                        prob = 1 / len(self.legal_actions)
+                                    prob_reach_all_hands.append(prob)
+                            if "p_reach" not in locals():
+                                p_reach = sum(prob_reach_all_hands) / num_hands
+                            else:
+                                p_reach *= p_reach
+                        elif p_i == ph:
+                            public_evals = [
+                                c.eval_card
+                                for c in self._public_information[betting_stage]
+                            ]
+                            if len(set(starting_hand).union(set(public_evals))) < (
+                                len(public_evals) + 2
+                            ):
+                                prob = 0
+                                prob_reach_all_hands.append(prob)
+                            else:
+                                public_cards = self._public_information[betting_stage]
+                                infoset = self._info_set_helper(
+                                    starting_hand,
+                                    public_cards,
+                                    action_sequence,
+                                    betting_stage,
+                                )
+                                if self._offline_strategy[infoset].keys():
+                                    prob = self._offline_strategy[infoset][action]
+                                else:
+                                    prob = 1 / len(self.legal_actions)
+                            if "p_reach" not in locals():
+                                p_reach = prob
+                            else:
+                                p_reach *= p_reach
+                        action_sequence.append(action)
+                self._starting_hand_probs[p_i][tuple(starting_hand)] = p_reach
+        self._normalize_bayes()
+
+    def _initialize_starting_hands(self):
+        """Dictionary of starting hands to store probabilities in"""
+        assert self.betting_stage == "pre_flop"
+        # TODO: make this abstracted for n_players
+        starting_hand_probs = {0: {}, 1: {}, 2: {}}
+        n_players = len(self.players)
+        starting_hands = self._get_card_combos(2)
+        for p_i in range(n_players):
+            for starting_hand in starting_hands:
+                starting_hand_probs[p_i][
+                    tuple([c.eval_card for c in starting_hand])
+                ] = 1
+        return starting_hand_probs
+
+    def _info_set_helper(
+        self, hole_cards, public_cards, action_sequence, betting_stage
+    ):
+        # didn't want to combine this with the other, as we may want to modularize soon
+        """Get the information set for the current player."""
+        cards = sorted(hole_cards, reverse=True,)
+        cards += sorted(public_cards, reverse=True,)
+        eval_cards = tuple(cards)
+        try:
+            cards_cluster = self.info_set_lut[betting_stage][eval_cards]
+        except KeyError:
+            if not self.info_set_lut:
+                raise ValueError("Pickle luts must be loaded for info set.")
+            elif eval_cards not in self.info_set_lut[self._betting_stage]:
+                raise ValueError("Cards {cards} not in pickle files.")
+            else:
+                raise ValueError("Unrecognised betting stage in pickle files.")
+        info_set_dict = {
+            "cards_cluster": cards_cluster,
+            "history": [
+                {betting_stage: [str(action) for action in actions]}
+                for betting_stage, actions in self._history.items()
+            ],
+        }
+        return json.dumps(
+            info_set_dict, separators=(",", ":"), cls=utils.io.NumpyJSONEncoder
+        )
+
+    def _get_card_combos(self, num_cards):
+        """Get combinations of cards"""
+        return list(combinations(self._table.dealer.deck._cards_in_deck, num_cards))
 
     @property
     def community_cards(self) -> List[Card]:
@@ -297,6 +565,11 @@ class ShortDeckPokerState:
         return self._betting_stage
 
     @property
+    def previous_betting_stage(self) -> str:
+        """Return previous betting stage."""
+        return self._previous_betting_stage
+
+    @property
     def all_players_have_actioned(self) -> bool:
         """Return whether all players have made atleast one action."""
         return self._n_actions >= self._n_players_started_round
@@ -305,6 +578,11 @@ class ShortDeckPokerState:
     def n_players_started_round(self) -> bool:
         """Return n_players that started the round."""
         return self._n_players_started_round
+
+    @property
+    def first_move_of_current_round(self) -> bool:
+        """Return boolfor first move of current round."""
+        return self._first_move_of_current_round
 
     @property
     def player_i(self) -> int:
