@@ -9,8 +9,10 @@ import os
 from typing import Any, Dict, List, Optional, Tuple
 import joblib
 from itertools import combinations
+import random
 
 import dill as pickle
+import numpy as np
 
 from pluribus import utils
 from pluribus.poker.card import Card
@@ -151,7 +153,7 @@ class ShortDeckPokerState:
         big_blind: int = 100,
         pickle_dir: str = ".",
         load_pickle_files: bool = True,
-        real_time: bool = False,
+        real_time_test: bool = False,
         offline_strategy: Dict = None,
     ):
         """Initialise state."""
@@ -173,7 +175,7 @@ class ShortDeckPokerState:
         self._initial_n_chips = players[0].n_chips
         self.small_blind = small_blind
         self.big_blind = big_blind
-        self.real_time = real_time
+        self.real_time_test = real_time_test
         self._poker_engine = PokerEngine(
             table=self._table, small_blind=small_blind, big_blind=big_blind
         )
@@ -181,7 +183,8 @@ class ShortDeckPokerState:
         # this), assign blinds to the players.
         self._poker_engine.round_setup()
         # Deal private cards to players.
-        self._table.dealer.deal_private_cards(self._table.players)
+        if not self.real_time_test:
+            self._table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
         self._history: Dict[str, List[str]] = collections.defaultdict(list)
         self._public_information: Dict[str, List[Card]] = collections.defaultdict(list)
@@ -216,7 +219,7 @@ class ShortDeckPokerState:
         self.current_player.is_turn = True
 
         # only want to do these actions in real game play, as they are slow
-        if self.real_time:
+        if self.real_time_test:
             # must have offline strategy loaded up
             assert offline_strategy
             self._offline_strategy = offline_strategy
@@ -492,6 +495,35 @@ class ShortDeckPokerState:
                         action_sequence.append(action)
                 self._starting_hand_probs[p_i][tuple(starting_hand)] = p_reach
         self._normalize_bayes()
+
+    def deal_bayes(self):
+        players = list(range(len(self.players)))
+        random.shuffle(players)
+        cards_selected = []
+
+        for player in players:
+            # does this maintain order?
+            starting_hand_eval = self._get_starting_hand(player)
+            len_union = len(set(starting_hand_eval).union(set(cards_selected)))
+            len_individual = len(starting_hand_eval) + len(cards_selected)
+            while len_union < len_individual:
+                starting_hand_eval = self._get_starting_hand(player)
+                len_union = len(set(starting_hand_eval).union(set(cards_selected)))
+                len_individual = len(starting_hand_eval) + len(cards_selected)
+            for card_eval in starting_hand_eval:
+                card = self._evals_to_cards[card_eval]
+                self.players[player].add_private_card(card)
+            cards_selected += starting_hand_eval
+
+    def _get_starting_hand(self, player_idx: int):
+        """Get starting hand based on probability of reach"""
+        starting_hand_idxs = list(range(len(self._starting_hand_probs[player_idx].keys())))
+        starting_hands_probs = list(self._starting_hand_probs[player_idx].values())
+        starting_hand_idx = np.random.choice(starting_hand_idxs, 1, p=starting_hands_probs)[0]
+        import ipdb;
+        ipdb.set_trace()
+        starting_hand = list(self._starting_hand_probs[player_idx].keys())[starting_hand_idx]
+        return starting_hand
 
     def _initialize_starting_hands(self):
         """Dictionary of starting hands to store probabilities in"""

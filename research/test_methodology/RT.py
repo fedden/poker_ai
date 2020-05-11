@@ -19,7 +19,7 @@ def get_game_state(state: ShortDeckPokerState, action_sequence: list):
 
 # added some flags for RT
 def new_rt_game(
-    n_players: int, offline_strategy: Dict, real_time=True
+    n_players: int, offline_strategy: Dict, real_time_test=True
 ) -> ShortDeckPokerState:
     """Create a new game of short deck poker."""
     pot = Pot()
@@ -28,7 +28,7 @@ def new_rt_game(
         for player_i in range(n_players)
     ]
     state = ShortDeckPokerState(
-        players=players, offline_strategy=offline_strategy, real_time=real_time
+        players=players, offline_strategy=offline_strategy, real_time_test=real_time_test
     )
     return state
 
@@ -43,7 +43,9 @@ if __name__ == "__main__":
     # decided to make this a one time method rather than something that always updates
     # reason being: we won't need it except for a few choice nodes
     current_game_state.update_hole_cards_bayes()
-
+    import ipdb
+    ipdb.set_trace()
+    current_game_state.deal_bayes()
     import ipdb
     ipdb.set_trace()
     # TODO: need function for dealing starting hands according to the bayesian updates
