@@ -1,7 +1,8 @@
 import collections
 import glob
 import os
-from typing import Dict
+import re
+from typing import Dict, List, Union
 
 import click
 import joblib
@@ -24,12 +25,18 @@ def calculate_strategy(this_info_sets_regret: Dict[str, float]) -> Dict[str, flo
     return strategy
 
 
-def average_strategy(results_dir_path: str) -> Dict[str, Dict[str, float]]:
+def try_to_int(text: str) -> Union[str, int]:
+    """Attempt to return int."""
+    return int(text) if text.isdigit() else text
+
+
+def natural_key(text):
+    """Sort with natural numbers."""
+    return [try_to_int(c) for c in re.split(r"(\d+)", text)]
+
+
+def average_strategy(all_file_paths: List[str]) -> Dict[str, Dict[str, float]]:
     """Compute the mean strategy over all timesteps."""
-    # Find all files to load.
-    all_file_paths = glob.glob(os.path.join(results_dir_path, "agent*.gz"))
-    if not all_file_paths:
-        raise ValueError(f"No agent dumps could be found at: {results_dir_path}")
     # The offline strategy for all information sets.
     offline_strategy: Dict[str, Dict[str, float]] = collections.defaultdict(
         lambda: collections.defaultdict(lambda: 0.0)
@@ -66,9 +73,18 @@ def average_strategy(results_dir_path: str) -> Dict[str, Dict[str, float]]:
 )
 def cli(results_dir_path: str, write_dir_path: str):
     """Compute the strategy and write to file."""
-    offline_strategy = average_strategy(results_dir_path)
+    # Find all files to load.
+    all_file_paths = glob.glob(os.path.join(results_dir_path, "agent*.gz"))
+    if not all_file_paths:
+        raise ValueError(f"No agent dumps could be found at: {results_dir_path}")
+    # Sort the file paths in the order they were created.
+    all_file_paths = sorted(all_file_paths, key=natural_key)
+    offline_strategy = average_strategy(all_file_paths)
     # Save dictionary to compressed file.
-    joblib.dump(offline_strategy, os.path.join(write_dir_path, "offline_strategy.gz"))
+    latest_file = os.path.basename(all_file_paths[-1])
+    latest_iteration: int = int(re.findall(r"\d+", latest_file)[0])
+    save_file: str = f"offline_strategy_{latest_iteration}.gz"
+    joblib.dump(offline_strategy, os.path.join(write_dir_path, save_file))
 
 
 if __name__ == "__main__":
