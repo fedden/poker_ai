@@ -7,10 +7,12 @@ class Player:
     def __init__(
         self,
         *cards,
+        term: Terminal,
         name: str = "",
         chips_in_pot: int = 0,
         chips_in_bank: int = 0,
-        term: Terminal = None,
+        info_position: str = "right",
+        folded: bool = False,
         **card_collection_kwargs,
     ):
         self.cards = cards
@@ -19,16 +21,40 @@ class Player:
         self.chips_in_bank = chips_in_bank
         self.name = name
         self.term = term
+        self.folded = folded
+        self.info_position = info_position
         self.update()
+
+    def stylise_name(self, name: str) -> str:
+        if self.folded:
+            name = f"{self.term.snow3}{name} (folded){self.term.normal}"
+        return name
 
     def update(self):
         card_collection = CardCollection(
             *self.cards, term=self.term, **self.card_collection_kwargs
         )
         self.lines = card_collection.lines
-        self.lines[1] += f" {self.name}"
-        self.lines[2] += f" bet chips: {self.chips_in_pot}"
-        self.lines[3] += f" bank roll: {self.chips_in_bank}"
+        info = [
+            self.stylise_name(self.name),
+            f"bet chips: {self.chips_in_pot}",
+            f"bank roll: {self.chips_in_bank}",
+        ]
+        if self.info_position == "right":
+            max_len = max(len(i) for i in info)
+            for line_i, line in enumerate(info):
+                self.lines[1 + line_i] += f" {line}"
+            max_len = max(len(l) for l in self.lines)
+            for line_i, line in enumerate(self.lines):
+                n_spaces = max_len - len(line)
+                self.lines[line_i] += f" {n_spaces * ' '}"
+        elif self.info_position == "top":
+            self.lines = info + self.lines
+        elif self.info_position == "bottom":
+            self.lines = self.lines + info
+        else:
+            raise NotImplementedError(
+                f"info position {self.info_position} not supported")
         self.width = max(len(line) for line in self.lines)
         self.height = len(self.lines)
 
