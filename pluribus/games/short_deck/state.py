@@ -222,7 +222,7 @@ class ShortDeckPokerState:
         self._public_cards = public_cards
         if public_cards:
             assert len(public_cards) in {3, 4, 5}
-            self._public_cards = public_cards
+        self._public_cards = public_cards
         # only want to do these actions in real game play, as they are slow
         if self.real_time_test:
             # must have offline strategy loaded up
