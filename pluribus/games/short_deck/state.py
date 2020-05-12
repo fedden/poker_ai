@@ -385,7 +385,7 @@ class ShortDeckPokerState:
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
             self._previous_betting_stage = "pre_flop"
-            if self._public_cards
+            if self._public_cards:
                 if len(self._public_cards) == 3:
                     community_cards = self._public_cards[:3]
                     self._poker_engine.table.community_cards += community_cards
