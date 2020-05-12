@@ -10,9 +10,7 @@ if __name__ == "__main__":
     public_cards = [Card("ace", "spades"), Card("jack", "spades"), Card("queen", "hearts")]
     # we load a (trained) strategy
     agent1 = TrainedAgent("../blueprint_algo/results_2020_05_10_21_36_47_291425")
-    action_sequence = ["raise", "call", "raise"]
-    import ipdb
-    ipdb.set_trace()
+    action_sequence = ["raise", "call", "raise", "call", "call", "call"]
     agent_output = train(agent1.offline_strategy, public_cards, action_sequence, 100, 20, 20, 3)
     import ipdb;
     ipdb.set_trace()

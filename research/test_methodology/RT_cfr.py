@@ -76,7 +76,11 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     #   cfr()
 
     elif ph == i:
-        I = state.info_set
+        try:
+            I = state.info_set
+        except:
+            import ipdb;
+            ipdb.set_trace()
         # calculate strategy
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
         logging.debug(f"Current regret: {agent.regret[I]}")
@@ -107,7 +111,11 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     else:
         # import ipdb;
         # ipdb.set_trace()
-        Iph = state.info_set
+        try:
+            Iph = state.info_set
+        except:
+            import ipdb;
+            ipdb.set_trace()
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[Iph]}")
         logging.debug(f"Current regret: {agent.regret[Iph]}")
         sigma = calculate_strategy(agent.regret, Iph, state)
@@ -136,10 +144,10 @@ def get_game_state(state: ShortDeckPokerState, action_sequence: list):
     if not action_sequence:
         return state
     a = action_sequence.pop(0)
-    state.apply_action(a)
+    # state.apply_action(a)
     if a == "skip":
         a = action_sequence.pop(0)
-        state.apply_action(a)
+        # state.apply_action(a)
     new_state = state.apply_action(a)
     return get_game_state(new_state, action_sequence)
 
@@ -184,8 +192,8 @@ def train(
         for i in range(n_players):  # fixed position i
             # Create a new state.
             state: ShortDeckPokerState = current_game_state.deal_bayes()
-            import ipdb;
-            ipdb.set_trace()
+            # import ipdb;
+            # ipdb.set_trace()
             cfr(agent, state, i, t)
         if t < lcfr_threshold & t % discount_interval == 0:
             d = (t / discount_interval) / ((t / discount_interval) + 1)

@@ -213,7 +213,7 @@ class ShortDeckPokerState:
             "terminal": player_i_order,
         }
         self._skip_counter = 0
-        self._first_move_of_current_round = True
+        # self._first_move_of_current_round = True
         self._reset_betting_round_state()
         for player in self.players:
             player.is_turn = False
@@ -266,7 +266,7 @@ class ShortDeckPokerState:
         new_state.info_set_lut = self.info_set_lut = lut
         # An action has been made, so alas we are not in the first move of the
         # current betting round.
-        new_state._first_move_of_current_round = False
+        # new_state._first_move_of_current_round = False
         if action_str is None:
             # Assert active player has folded already.
             assert (
@@ -297,10 +297,10 @@ class ShortDeckPokerState:
         new_state._history[new_state.betting_stage] += skip_actions
         new_state._history[new_state.betting_stage].append(str(action))
         # save public information
-        if self._first_move_of_current_round:
-            new_state._public_information[
-                new_state.betting_stage
-            ] = self._table.community_cards
+        # if new_state._first_move_of_current_round:
+        #     new_state._public_information[
+        #         new_state.betting_stage
+        #     ] = new_state._table.community_cards
         new_state._n_actions += 1
         new_state._skip_counter = 0
         # Player has made move, increment the player that is next.
@@ -315,7 +315,7 @@ class ShortDeckPokerState:
                 # stage of the game.
                 new_state._increment_stage()
                 new_state._reset_betting_round_state()
-                new_state._first_move_of_current_round = True
+                # new_state._first_move_of_current_round = True
             if not new_state.current_player.is_active:
                 new_state._skip_counter += 1
                 assert not new_state.current_player.is_active
@@ -385,31 +385,37 @@ class ShortDeckPokerState:
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
             self._previous_betting_stage = "pre_flop"
-            if self._public_cards:
-                if len(self._public_cards) == 3:
+            if len(self._public_cards) >= 3:
                     community_cards = self._public_cards[:3]
                     self._poker_engine.table.community_cards += community_cards
             else:
                 self._poker_engine.table.dealer.deal_flop(self._table)
+            self._public_information[
+                self.betting_stage
+            ] = self._table.community_cards
         elif self._betting_stage == "flop":
             # Progress from flop to turn.
             self._betting_stage = "turn"
             self._previous_betting_stage = "flop"
-            if self._public_cards:
-                if len(self._public_cards) == 4:
+            if len(self._public_cards) >= 4:
                     community_cards = self._public_cards[3:4]
                     self._poker_engine.table.community_cards += community_cards
             else:
                 self._poker_engine.table.dealer.deal_turn(self._table)
+            self._public_information[
+                self.betting_stage
+            ] = self._table.community_cards
         elif self._betting_stage == "turn":
             # Progress from turn to river.
             self._betting_stage = "river"
             self._previous_betting_stage = "turn"
-            if self._public_cards:
-                if len(self._public_cards) == 5:
+            if len(self._public_cards) == 5:
                     community_cards = self._public_cards[4:]
                     self._poker_engine.table.community_cards += community_cards
             self._poker_engine.table.dealer.deal_river(self._table)
+            self._public_information[
+                self.betting_stage
+            ] = self._table.community_cards
         elif self._betting_stage == "river":
             # Progress to the showdown.
             self._betting_stage = "show_down"
@@ -437,9 +443,12 @@ class ShortDeckPokerState:
                 if "p_reach" in locals():
                     del p_reach
                 action_sequence = []
+                previous_betting_stage = "pre_flop"
                 for idx, betting_stage in enumerate(self._history.keys()):
-                    if self._first_move_of_current_round:
-                        betting_stage = self._previous_betting_stage
+                    if previous_betting_stage != betting_stage:
+                        tmp = betting_stage
+                        betting_stage = previous_betting_stage
+                        previous_betting_stage = tmp
                     n_actions_round = len(self._history[betting_stage])
                     for i in range(n_actions_round):
                         action = self._history[betting_stage][i]
@@ -504,12 +513,16 @@ class ShortDeckPokerState:
                             else:
                                 public_cards = self._public_information[betting_stage]
                                 public_cards_evals = [c.eval_card for c in public_cards]
-                                infoset = self._info_set_helper(
-                                    starting_hand,
-                                    public_cards_evals,
-                                    action_sequence,
-                                    betting_stage,
-                                )
+                                try:
+                                    infoset = self._info_set_helper(
+                                        starting_hand,
+                                        public_cards_evals,
+                                        action_sequence,
+                                        betting_stage,
+                                    )
+                                except:
+                                    import ipdb;
+                                    ipdb.set_trace()
                                 if self._offline_strategy[infoset].keys():
                                     prob = self._offline_strategy[infoset][action]
                                 else:
@@ -551,8 +564,8 @@ class ShortDeckPokerState:
         cards_selected += new_state._public_cards
         for card in cards_selected:
             new_state._table.dealer.deck.remove(card)
-        import ipdb;
-        ipdb.set_trace()
+        # import ipdb;
+        # ipdb.set_trace()
         return new_state
 
     # TODO add convenience method to supply public cards
@@ -651,10 +664,10 @@ class ShortDeckPokerState:
         """Return n_players that started the round."""
         return self._n_players_started_round
 
-    @property
-    def first_move_of_current_round(self) -> bool:
-        """Return boolfor first move of current round."""
-        return self._first_move_of_current_round
+    # @property
+    # def first_move_of_current_round(self) -> bool:
+    #     """Return boolfor first move of current round."""
+    #     return self._first_move_of_current_round
 
     @property
     def player_i(self) -> int:
