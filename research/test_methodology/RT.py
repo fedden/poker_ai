@@ -1,7 +1,10 @@
 from typing import Dict
 
 from pluribus.games.short_deck.state import *
+from pluribus.poker.card import Card
 
+
+public_cards = [Card("ace", "spades"), Card("jack", "spades"), Card("queen", "hearts")]
 
 # this is a decent function for loading up a particular action sequence
 def get_game_state(state: ShortDeckPokerState, action_sequence: list):
@@ -28,7 +31,7 @@ def new_rt_game(
         for player_i in range(n_players)
     ]
     state = ShortDeckPokerState(
-        players=players, offline_strategy=offline_strategy, real_time_test=real_time_test
+        players=players, offline_strategy=offline_strategy, real_time_test=real_time_test, public_cards=public_cards
     )
     return state
 
@@ -36,7 +39,7 @@ def new_rt_game(
 if __name__ == "__main__":
     # we load a (trained) strategy
     agent1 = TrainedAgent("../blueprint_algo/results_2020_05_10_21_36_47_291425")
-    action_sequence = ["raise", "call", "raise"]
+    action_sequence = ["raise", "call", "raise", "fold", "call", "call"]
     state: ShortDeckPokerState = new_rt_game(3, agent1.offline_strategy)
     # load up a particular action sequence
     current_game_state = get_game_state(state, action_sequence)

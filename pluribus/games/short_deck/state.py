@@ -215,15 +215,14 @@ class ShortDeckPokerState:
         self._skip_counter = 0
         self._first_move_of_current_round = True
         self._reset_betting_round_state()
-<<<<<<< HEAD
         for player in self.players:
             player.is_turn = False
         self.current_player.is_turn = True
         # TODO add attribute of public_cards, that can be supplied by convenience method
-=======
         self._public_cards = public_cards
-
->>>>>>> 9f665cd... fix infoset lookup issue
+        if public_cards:
+            assert len(public_cards) in {3, 4, 5}
+            self._public_cards = public_cards
         # only want to do these actions in real game play, as they are slow
         if self.real_time_test:
             # must have offline strategy loaded up
@@ -382,19 +381,32 @@ class ShortDeckPokerState:
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
             self._previous_betting_stage = "pre_flop"
+            if self._public_cards:
+                community_cards = []
+                for _ in range(3):
+                    community_cards.append(self._public_cards.pop(0))
+                self._poker_engine.table.community_cards += community_cards
             # TODO check to see if there are supplied public cards, and then use those
-            self._poker_engine.table.dealer.deal_flop(self._table)
+            else:
+                self._poker_engine.table.dealer.deal_flop(self._table)
         elif self._betting_stage == "flop":
             # Progress from flop to turn.
             self._betting_stage = "turn"
             self._previous_betting_stage = "flop"
             # TODO check to see if there are supplied public cards, and then use those
-            self._poker_engine.table.dealer.deal_turn(self._table)
+            if self._public_cards:
+                turn_card = self._public_cards.pop(0)
+                self._poker_engine.table.community_cards.append(turn_card)
+            else:
+                self._poker_engine.table.dealer.deal_turn(self._table)
         elif self._betting_stage == "turn":
             # Progress from turn to river.
             self._betting_stage = "river"
             self._previous_betting_stage = "turn"
             # TODO check to see if there are supplied public cards, and then use those
+            if self._public_cards:
+                river_card = self._public_cards.pop(0)
+                self._poker_engine.table.community_cards.append(river_card)
             self._poker_engine.table.dealer.deal_river(self._table)
         elif self._betting_stage == "river":
             # Progress to the showdown.
@@ -412,13 +424,6 @@ class ShortDeckPokerState:
             total_prob = sum(self._starting_hand_probs[player].values())
             for starting_hand, prob in self._starting_hand_probs[player].items():
                 self._starting_hand_probs[player][starting_hand] = prob / total_prob
-
-    # def set_public_cards(self, public_cards):
-    #     """Method to add public cards for RTS"""
-    #     # can't add them if you have community cards already
-    #     assert not self._public_cards
-    #     assert not self._table.community_cards
-    #     self._public_cards = public_cards
 
     def update_hole_cards_bayes(self):
         """Get probability of reach for each pair of hole cards for each player"""
