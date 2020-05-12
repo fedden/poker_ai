@@ -155,7 +155,7 @@ class ShortDeckPokerState:
         load_pickle_files: bool = True,
         real_time_test: bool = False,
         offline_strategy: Dict = None,
-        public_cards: List[Card] = None
+        public_cards: List[Card] = []
     ):
         """Initialise state."""
         n_players = len(players)
