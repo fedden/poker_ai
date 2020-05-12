@@ -185,7 +185,7 @@ class ShortDeckPokerState:
         self._poker_engine.round_setup()
         # Deal private cards to players.
         if not self.real_time_test:
-            self._table.dealer.deal_private_cards(self._table.players)
+            self._poker_engine.table.dealer.deal_private_cards(self._table.players)
         # Store the actions as they come in here.
         self._history: Dict[str, List[str]] = collections.defaultdict(list)
         self._public_information: Dict[str, List[Card]] = collections.defaultdict(list)
@@ -229,8 +229,8 @@ class ShortDeckPokerState:
             assert offline_strategy
             self._offline_strategy = offline_strategy
             self._starting_hand_probs = self._initialize_starting_hands()
-            cards_in_deck = self._table.dealer.deck._cards_in_deck
             # TODO: We might not need this
+            cards_in_deck = self._table.dealer.deck._cards_in_deck
             self._evals = [c.eval_card for c in cards_in_deck]
             self._evals_to_cards = {i.eval_card: i for i in cards_in_deck}
 
@@ -328,7 +328,11 @@ class ShortDeckPokerState:
                 # Now check if the game is terminal.
                 if new_state._betting_stage in {"terminal", "show_down"}:
                     # Distribute winnings.
-                    new_state._poker_engine.compute_winners()
+                    try:
+                        new_state._poker_engine.compute_winners()
+                    except:
+                        import ipdb;
+                        ipdb.set_trace()
                 break
         for player in new_state.players:
             player.is_turn = False
@@ -381,32 +385,30 @@ class ShortDeckPokerState:
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
             self._previous_betting_stage = "pre_flop"
-            if self._public_cards:
-                community_cards = []
-                for _ in range(3):
-                    community_cards.append(self._public_cards.pop(0))
-                self._poker_engine.table.community_cards += community_cards
-            # TODO check to see if there are supplied public cards, and then use those
+            if self._public_cards
+                if len(self._public_cards) == 3:
+                    community_cards = self._public_cards[:3]
+                    self._poker_engine.table.community_cards += community_cards
             else:
                 self._poker_engine.table.dealer.deal_flop(self._table)
         elif self._betting_stage == "flop":
             # Progress from flop to turn.
             self._betting_stage = "turn"
             self._previous_betting_stage = "flop"
-            # TODO check to see if there are supplied public cards, and then use those
             if self._public_cards:
-                turn_card = self._public_cards.pop(0)
-                self._poker_engine.table.community_cards.append(turn_card)
+                if len(self._public_cards) == 4:
+                    community_cards = self._public_cards[3:4]
+                    self._poker_engine.table.community_cards += community_cards
             else:
                 self._poker_engine.table.dealer.deal_turn(self._table)
         elif self._betting_stage == "turn":
             # Progress from turn to river.
             self._betting_stage = "river"
             self._previous_betting_stage = "turn"
-            # TODO check to see if there are supplied public cards, and then use those
             if self._public_cards:
-                river_card = self._public_cards.pop(0)
-                self._poker_engine.table.community_cards.append(river_card)
+                if len(self._public_cards) == 5:
+                    community_cards = self._public_cards[4:]
+                    self._poker_engine.table.community_cards += community_cards
             self._poker_engine.table.dealer.deal_river(self._table)
         elif self._betting_stage == "river":
             # Progress to the showdown.
@@ -466,6 +468,7 @@ class ShortDeckPokerState:
                                     prob_reach_all_hands.append(prob)
                                 else:
                                     num_hands += 1
+
                                     public_cards = self._public_information[
                                         betting_stage
                                     ]
@@ -520,25 +523,37 @@ class ShortDeckPokerState:
         self._normalize_bayes()
 
     def deal_bayes(self):
+        lut = self.info_set_lut
+        self.info_set_lut = {}
+        new_state = copy.deepcopy(self)
+        new_state.info_set_lut = self.info_set_lut = lut
+
         players = list(range(len(self.players)))
         random.shuffle(players)
 
         # TODO should contain the current public cards/heros real hand, if exists
-        cards_selected = []
+        card_evals_selected = []
 
         for player in players:
             # does this maintain order?
-            starting_hand_eval = self._get_starting_hand(player)
-            len_union = len(set(starting_hand_eval).union(set(cards_selected)))
-            len_individual = len(starting_hand_eval) + len(cards_selected)
+            starting_hand_eval = new_state._get_starting_hand(player)
+            len_union = len(set(starting_hand_eval).union(set(card_evals_selected)))
+            len_individual = len(starting_hand_eval) + len(card_evals_selected)
             while len_union < len_individual:
-                starting_hand_eval = self._get_starting_hand(player)
-                len_union = len(set(starting_hand_eval).union(set(cards_selected)))
-                len_individual = len(starting_hand_eval) + len(cards_selected)
+                starting_hand_eval = new_state._get_starting_hand(player)
+                len_union = len(set(starting_hand_eval).union(set(card_evals_selected)))
+                len_individual = len(starting_hand_eval) + len(card_evals_selected)
             for card_eval in starting_hand_eval:
-                card = self._evals_to_cards[card_eval]
-                self.players[player].add_private_card(card)
-            cards_selected += starting_hand_eval
+                card = new_state._evals_to_cards[card_eval]
+                new_state.players[player].add_private_card(card)
+            card_evals_selected += starting_hand_eval
+        cards_selected = [new_state._evals_to_cards[c] for c in card_evals_selected]
+        cards_selected += new_state._public_cards
+        for card in cards_selected:
+            new_state._table.dealer.deck.remove(card)
+        import ipdb;
+        ipdb.set_trace()
+        return new_state
 
     # TODO add convenience method to supply public cards
 
@@ -594,7 +609,7 @@ class ShortDeckPokerState:
 
     def _get_card_combos(self, num_cards):
         """Get combinations of cards"""
-        return list(combinations(self._table.dealer.deck._cards_in_deck, num_cards))
+        return list(combinations(self._poker_engine.table.dealer.deck._cards_in_deck, num_cards))
 
     @property
     def community_cards(self) -> List[Card]:

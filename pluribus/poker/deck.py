@@ -61,3 +61,11 @@ class Deck:
         card: Card = self._cards_in_deck.pop(index)
         self._dealt_cards.append(card)
         return card
+
+    def remove(self, card):
+        """Remove a specific card from the deck"""
+        # TODO: is there any reason for them to be?
+        #  Maybe better to assert it's not
+        if card not in self._cards_in_deck:
+            self._cards_in_deck.remove(card)
+            self._dealt_cards.append(card)
