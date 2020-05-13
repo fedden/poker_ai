@@ -170,7 +170,7 @@ class ShortDeckPokerState:
             self.info_set_lut = {}
         # Get a reference of the pot from the first player.
         self._table = PokerTable(
-            players=players, pot=players[0].pot, include_ranks=[12, 13, 14] #TODO, made the deck shorter, add 10, 11 back
+            players=players, pot=players[0].pot, include_ranks=[10, 11, 12, 13, 14]
         )
         # Get a reference of the initial number of chips for the payout.
         self._initial_n_chips = players[0].n_chips
