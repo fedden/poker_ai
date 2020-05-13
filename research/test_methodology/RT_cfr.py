@@ -144,10 +144,8 @@ def get_game_state(state: ShortDeckPokerState, action_sequence: list):
     if not action_sequence:
         return state
     a = action_sequence.pop(0)
-    # state.apply_action(a)
     if a == "skip":
         a = action_sequence.pop(0)
-        # state.apply_action(a)
     new_state = state.apply_action(a)
     return get_game_state(new_state, action_sequence)
 
@@ -192,8 +190,6 @@ def train(
         for i in range(n_players):  # fixed position i
             # Create a new state.
             state: ShortDeckPokerState = current_game_state.deal_bayes()
-            # import ipdb;
-            # ipdb.set_trace()
             cfr(agent, state, i, t)
         if t < lcfr_threshold & t % discount_interval == 0:
             d = (t / discount_interval) / ((t / discount_interval) + 1)

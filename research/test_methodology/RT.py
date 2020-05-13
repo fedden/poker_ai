@@ -7,7 +7,7 @@ from pluribus.poker.card import Card
 
 if __name__ == "__main__":
     utils.random.seed(38)
-    public_cards = [Card("ace", "spades"), Card("jack", "spades"), Card("queen", "hearts")]
+    public_cards = [Card("ace", "spades"), Card("queen", "spades"), Card("queen", "hearts")]
     # we load a (trained) strategy
     agent1 = TrainedAgent("../blueprint_algo/results_2020_05_10_21_36_47_291425")
     action_sequence = ["raise", "call", "raise", "call", "call", "call"]

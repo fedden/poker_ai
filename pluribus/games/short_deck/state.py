@@ -170,7 +170,7 @@ class ShortDeckPokerState:
             self.info_set_lut = {}
         # Get a reference of the pot from the first player.
         self._table = PokerTable(
-            players=players, pot=players[0].pot, include_ranks=[10, 11, 12, 13, 14]
+            players=players, pot=players[0].pot, include_ranks=[12, 13, 14] #TODO, made the deck shorter, add 10, 11 back
         )
         # Get a reference of the initial number of chips for the payout.
         self._initial_n_chips = players[0].n_chips
@@ -442,15 +442,20 @@ class ShortDeckPokerState:
                 # TODO: is this bad?
                 if "p_reach" in locals():
                     del p_reach
-                action_sequence = []
+                action_sequence: Dict[str, List[str]] = collections.defaultdict(list)
                 previous_betting_stage = "pre_flop"
+                first_action_round = False
                 for idx, betting_stage in enumerate(self._history.keys()):
-                    if previous_betting_stage != betting_stage:
-                        tmp = betting_stage
-                        betting_stage = previous_betting_stage
-                        previous_betting_stage = tmp
+                    # import ipdb;
+                    # ipdb.set_trace()
                     n_actions_round = len(self._history[betting_stage])
                     for i in range(n_actions_round):
+                        # if i == 0:
+                        #     betting_stage = previous_betting_stage
+                        # elif i == n_actions_round - 1:
+                        #     previous_betting_stage = betting_stage
+                        # else:
+                        #     betting_stage = betting_round
                         action = self._history[betting_stage][i]
                         # TODO: maybe a method already exists for this?
                         if betting_stage == "pre_flop":
@@ -468,13 +473,10 @@ class ShortDeckPokerState:
                                     c.eval_card
                                     for c in self._public_information[betting_stage]
                                 ]
-                                if len(
-                                    set(starting_hand)
-                                    .union(set(opp_starting_hand))
-                                    .union(set(public_evals))
-                                ) < (len(public_evals) + 4):
+                                if len(set(opp_starting_hand).union(set(public_evals)).union(set(starting_hand))) < \
+                                        len(opp_starting_hand) + len(starting_hand) + len(public_evals):
                                     prob = 0
-                                    prob_reach_all_hands.append(prob)
+                                    num_hands += 1
                                 else:
                                     num_hands += 1
 
@@ -491,15 +493,19 @@ class ShortDeckPokerState:
                                     # check to see if the strategy exists, if not equal probability
                                     # TODO: is this hacky? problem with defaulting to 1 / 3, is that it
                                     #  doesn't work for calculations that need to be made with the object's values
+
                                     if self._offline_strategy[infoset].keys():
                                         prob = self._offline_strategy[infoset][action]
                                     else:
                                         prob = 1 / len(self.legal_actions)
-                                    prob_reach_all_hands.append(prob)
+                                prob_reach_all_hands.append(prob)
+                            # import ipdb;
+                            # ipdb.set_trace()
+                            prob2 = sum(prob_reach_all_hands) / num_hands
                             if "p_reach" not in locals():
-                                p_reach = sum(prob_reach_all_hands) / num_hands
+                                p_reach = prob2
                             else:
-                                p_reach *= p_reach
+                                p_reach *= prob2
                         elif p_i == ph:
                             public_evals = [
                                 c.eval_card
@@ -509,7 +515,6 @@ class ShortDeckPokerState:
                                 len(public_evals) + 2
                             ):
                                 prob = 0
-                                prob_reach_all_hands.append(prob)
                             else:
                                 public_cards = self._public_information[betting_stage]
                                 public_cards_evals = [c.eval_card for c in public_cards]
@@ -527,11 +532,13 @@ class ShortDeckPokerState:
                                     prob = self._offline_strategy[infoset][action]
                                 else:
                                     prob = 1 / len(self.legal_actions)
+                            # import ipdb;
+                            # ipdb.set_trace()
                             if "p_reach" not in locals():
                                 p_reach = prob
                             else:
-                                p_reach *= p_reach
-                        action_sequence.append(action)
+                                p_reach *= prob
+                        action_sequence[betting_stage].append(action)
                 self._starting_hand_probs[p_i][tuple(starting_hand)] = p_reach
         self._normalize_bayes()
 
@@ -613,7 +620,7 @@ class ShortDeckPokerState:
             "cards_cluster": cards_cluster,
             "history": [
                 {betting_stage: [str(action) for action in actions]}
-                for betting_stage, actions in self._history.items()
+                for betting_stage, actions in action_sequence.items()
             ],
         }
         return json.dumps(
