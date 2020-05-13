@@ -22,7 +22,7 @@ InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
 
 
 def new_game(
-    n_players: int, info_set_lut: InfoSetLookupTable = {}
+    n_players: int, info_set_lut: InfoSetLookupTable = {}, **kwargs
 ) -> ShortDeckPokerState:
     """Create a new game of short deck poker."""
     pot = Pot()
@@ -32,11 +32,11 @@ def new_game(
     ]
     if info_set_lut:
         # Don't reload massive files, it takes ages.
-        state = ShortDeckPokerState(players=players, load_pickle_files=False)
+        state = ShortDeckPokerState(players=players, load_pickle_files=False, **kwargs)
         state.info_set_lut = info_set_lut
     else:
         # Load massive files.
-        state = ShortDeckPokerState(players=players)
+        state = ShortDeckPokerState(players=players, **kwargs)
     return state
 
 

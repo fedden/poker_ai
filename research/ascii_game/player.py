@@ -13,6 +13,7 @@ class Player:
         chips_in_bank: int = 0,
         info_position: str = "right",
         folded: bool = False,
+        is_turn: bool = False,
         **card_collection_kwargs,
     ):
         self.cards = cards
@@ -22,12 +23,15 @@ class Player:
         self.name = name
         self.term = term
         self.folded = folded
+        self.is_turn = is_turn
         self.info_position = info_position
         self.update()
 
     def stylise_name(self, name: str) -> str:
         if self.folded:
-            name = f"{self.term.snow3}{name} (folded){self.term.normal}"
+            name = f"{name} (folded)"
+        if self.is_turn:
+            name = self.term.orangered(f"{name} {self.term.blink_bold('turn')}")
         return name
 
     def update(self):
