@@ -2,6 +2,7 @@ import copy
 import random
 from typing import List
 
+import joblib
 import numpy as np
 from blessed import Terminal
 
@@ -43,10 +44,16 @@ term = Terminal()
 
 table_position_to_orientation = {0: "bottom", 1: "right", 2: "top"}
 n_players = 3
-# state: ShortDeckPokerState = new_game(n_players, pickle_dir="../blueprint_algo")
-state: ShortDeckPokerState = new_game(n_players, load_pickle_files=False)
+pickle_dir = "/home/tollie/dev/pluribus/research/blueprint_algo"
+state: ShortDeckPokerState = new_game(n_players, pickle_dir=pickle_dir)
 is_bot = [True, True, False]
 selected_action_i = 0
+agent = "offline"
+strategy_path = (
+    "/home/tollie/dev/pluribus/research/blueprint_algo/offline_strategy_140000.gz"
+)
+if agent in {"offline", "online"}:
+    offline_strategy = joblib.load(strategy_path)
 with term.cbreak(), term.hidden_cursor():
     while True:
         players: List[Player] = []
@@ -73,7 +80,9 @@ with term.cbreak(), term.hidden_cursor():
                     best_delta = chips_delta
                     winner_i = player_i
             winner = state.players[winner_i]
-            header_str = f"{state.betting_stage} - {winner.name} wins {best_delta} chips"
+            header_str = (
+                f"{state.betting_stage} - {winner.name} wins {best_delta} chips"
+            )
         else:
             legal_actions = [] if is_bot[state.player_i] else state.legal_actions
             header_str = state.betting_stage
@@ -96,10 +105,21 @@ with term.cbreak(), term.hidden_cursor():
                     break
                 elif action == "new game":
                     state: ShortDeckPokerState = new_game(
-                        n_players, load_pickle_files=False
+                        n_players, state.info_set_lut,
                     )
                 else:
                     state: ShortDeckPokerState = state.apply_action(action)
         else:
-            action = random.choice(state.legal_actions)
+            if agent == "random":
+                action = random.choice(state.legal_actions)
+            elif agent == "offline":
+                default_strategy = {
+                    action: 1 / len(legal_actions) for action in legal_actions
+                }
+                this_state_strategy = offline_strategy.get(
+                    state.info_set, default_strategy
+                )
+                actions = list(this_state_strategy.keys())
+                probabilties = list(this_state_strategy.values())
+                action = np.random.choice(actions, p=probabilties)
             state: ShortDeckPokerState = state.apply_action(action)
