@@ -1,6 +1,6 @@
 import copy
 import random
-from typing import List
+from typing import Dict, List
 
 import joblib
 import numpy as np
@@ -42,15 +42,15 @@ def print_table(players: List[Player], public_cards: CardCollection):
 
 term = Terminal()
 
-table_position_to_orientation = {0: "bottom", 1: "right", 2: "top"}
-n_players = 3
-pickle_dir = "/home/tollie/dev/pluribus/research/blueprint_algo"
+table_position_to_orientation: Dict[int, str] = {0: "bottom", 1: "right", 2: "top"}
+n_players: int = 3
+pickle_dir: str = "/home/tollie/dev/pluribus/research/blueprint_algo"
 state: ShortDeckPokerState = new_game(n_players, pickle_dir=pickle_dir)
-is_bot = [True, True, False]
-selected_action_i = 0
-agent = "offline"
-strategy_path = (
-    "/home/tollie/dev/pluribus/research/blueprint_algo/offline_strategy_140000.gz"
+is_bot: List[bool] = [True, True, False]
+selected_action_i: int = 0
+agent: str = "offline"
+strategy_path: str = (
+    "/home/tollie/dev/pluribus/research/blueprint_algo/offline_strategy_285800.gz"
 )
 if agent in {"offline", "online"}:
     offline_strategy = joblib.load(strategy_path)
