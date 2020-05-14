@@ -340,12 +340,7 @@ class ShortDeckPokerState:
         try:
             cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
         except KeyError:
-            if not self.info_set_lut:
-                raise ValueError("Pickle luts must be loaded for info set.")
-            elif eval_cards not in self.info_set_lut[self._betting_stage]:
-                raise ValueError("Cards {cards} not in pickle files.")
-            else:
-                raise ValueError("Unrecognised betting stage in pickle files.")
+            return "default info set, please ensure you load it correctly"
         # Convert history from a dict of lists to a list of dicts as I'm
         # paranoid about JSON's lack of care with insertion order.
         info_set_dict = {
