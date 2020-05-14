@@ -114,7 +114,8 @@ with term.cbreak(), term.hidden_cursor():
                 action = random.choice(state.legal_actions)
             elif agent == "offline":
                 default_strategy = {
-                    action: 1 / len(legal_actions) for action in legal_actions
+                    action: 1 / len(state.legal_actions)
+                    for action in state.legal_actions
                 }
                 this_state_strategy = offline_strategy.get(
                     state.info_set, default_strategy
