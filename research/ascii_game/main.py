@@ -20,11 +20,12 @@ def _compute_header_str(
         for player_i, chips_delta in state.payout.items():
             rotated_i = (player_i + table_rotation) % len(state.players)
             player_winnings.append((player_names[rotated_i], chips_delta))
-        player_winnings.sort(key=itemgetter(1), desc=True)
-        strings = [
+        player_winnings.sort(key=itemgetter(1), reverse=True)
+        player_desc_strings = [
             f"{n} {'wins' if x > 0 else 'loses'} {x} chips" for n, x in player_winnings
         ]
-        header_str = f"{state.betting_stage} - {', '.join(strings)}"
+        player_desc: str = ', '.join(player_desc_strings)
+        header_str: str = f"{state.betting_stage} - {player_desc}"
     else:
         header_str = state.betting_stage
     return header_str
@@ -73,7 +74,7 @@ n_players: int = 3
 pickle_dir: str = "/home/tollie/dev/pluribus/research/blueprint_algo"
 state: ShortDeckPokerState = new_game(n_players, pickle_dir=pickle_dir)
 is_bot: List[bool] = [False, True, True]
-player_names: List[str] = ["you", "bot 1", "bot 2"]
+player_names: List[str] = ["human", "bot 1", "bot 2"]
 selected_action_i: int = 0
 table_rotation: int = 0
 agent: str = "offline"
