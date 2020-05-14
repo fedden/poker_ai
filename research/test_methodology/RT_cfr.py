@@ -11,6 +11,57 @@ from tqdm import trange
 from pluribus.games.short_deck.state import *
 
 
+def update_strategy(agent: Agent, state: ShortDeckPokerState, ph_test_node: int):
+    """
+
+    :param state: the game state
+    :param i: the player, i = 1 is always first to act and i = 2 is always second to act, but they take turns who
+        updates the strategy (only one strategy)
+    :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
+        actions is what allows the algorithm to build up preference for one action over another in a given spot
+    """
+    logging.debug("UPDATE STRATEGY")
+    logging.debug("########")
+
+    logging.debug(f"P(h): {state.player_i}")
+    logging.debug(f"Betting Round {state._betting_stage}")
+    logging.debug(f"Community Cards {state._table.community_cards}")
+    logging.debug(f"Player 0 hole cards: {state.players[0].cards}")
+    logging.debug(f"Player 1 hole cards: {state.players[1].cards}")
+    logging.debug(f"Player 2 hole cards: {state.players[2].cards}")
+    logging.debug(f"Betting Action Correct?: {state.players}")
+
+    ph = state.player_i  # this is always the case no matter what i is
+
+    if ph == ph_test_node:
+        try:
+            I = state.info_set
+        except:
+            import ipdb;
+            ipdb.set_trace()
+        # calculate regret
+        logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
+        logging.debug(f"Current regret: {agent.regret[I]}")
+        sigma = calculate_strategy(agent.regret, I, state)
+        logging.debug(f"Calculated Strategy for {I}: {sigma[I]}")
+        # choose an action based of sigma
+        try:
+            a = np.random.choice(list(sigma[I].keys()), 1, p=list(sigma[I].values()))[0]
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
+        except ValueError:
+            p = 1 / len(state.legal_actions)
+            probabilities = np.full(len(state.legal_actions), p)
+            a = np.random.choice(state.legal_actions, p=probabilities)
+            sigma[I] = {action: p for action in state.legal_actions}
+            logging.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {a}")
+        # Increment the action counter.
+        agent.strategy[I][a] += 1
+        logging.debug(f"Updated Strategy for {I}: {agent.strategy[I]}")
+        return
+    else:
+        return
+
+
 def calculate_strategy(
         regret: Dict[str, Dict[str, float]], I: str, state: ShortDeckPokerState,
 ):
@@ -178,18 +229,23 @@ def train(
     lcfr_threshold: int,
     discount_interval: int,
     n_players: int,
+    update_interval: int,
+    update_threshold: int,
 ):
     """Train agent."""
     utils.random.seed(38)
     agent = Agent()
 
     current_game_state = new_rt_game(3, offline_strategy, action_sequence, public_cards)
+    ph_test_node = current_game_state.player_i
     for t in trange(1, n_iterations + 1, desc="train iter"):
         if t == 2:
             logging.disable(logging.DEBUG)
         for i in range(n_players):  # fixed position i
             # Create a new state.
             state: ShortDeckPokerState = current_game_state.deal_bayes()
+            if t % update_interval == 0 and t > update_threshold:
+                update_strategy(agent, state, ph_test_node)
             cfr(agent, state, i, t)
         if t < lcfr_threshold & t % discount_interval == 0:
             d = (t / discount_interval) / ((t / discount_interval) + 1)

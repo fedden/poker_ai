@@ -11,6 +11,6 @@ if __name__ == "__main__":
     # we load a (trained) strategy
     agent1 = TrainedAgent("../blueprint_algo/results_2020_05_10_21_36_47_291425")
     action_sequence = ["raise", "call", "raise", "call", "call", "call"]
-    agent_output = train(agent1.offline_strategy, public_cards, action_sequence, 50, 20, 20, 3)
+    agent_output = train(agent1.offline_strategy, public_cards, action_sequence, 150, 20, 20, 3, 1, 50) # TODO: back to 50
     import ipdb;
     ipdb.set_trace()
