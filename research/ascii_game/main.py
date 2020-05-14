@@ -13,14 +13,14 @@ from player import Player
 
 
 def _compute_header_str(
-    state: ShortDeckPokerState, player_names: str, table_rotation: int
+    state: ShortDeckPokerState, player_names: List[str], table_rotation: int
 ) -> str:
     if state.is_terminal:
         player_winnings = []
         for player_i, chips_delta in state.payout.items():
             rotated_i = (player_i + table_rotation) % len(state.players)
             player_winnings.append((player_names[rotated_i], chips_delta))
-        player_winnings.sort(key=itemgetter(1))
+        player_winnings.sort(key=itemgetter(1), desc=True)
         strings = [
             f"{n} {'wins' if x > 0 else 'loses'} {x} chips" for n, x in player_winnings
         ]
@@ -30,8 +30,8 @@ def _compute_header_str(
     return header_str
 
 
-def print_header(state: ShortDeckPokerState, player_names: str, table_rotation: int):
-    header_str = _compute_header_str(state)
+def print_header(state: ShortDeckPokerState, player_names: List[str], table_rotation: int):
+    header_str = _compute_header_str(state, player_names, table_rotation)
     print(term.center(term.yellow(header_str)))
     print()
     print(f"{term.width * '-'}")
