@@ -11,8 +11,24 @@ from card_collection import CardCollection
 from player import Player
 
 
-def print_header(string: str):
-    print(term.center(term.yellow(string)))
+def _compute_header_str(state: ShortDeckPokerState) -> str:
+    if state.is_terminal:
+        winner_i = None
+        best_delta = -np.inf
+        for player_i, chips_delta in state.payout.items():
+            if chips_delta > best_delta:
+                best_delta = chips_delta
+                winner_i = player_i
+        winner = state.players[winner_i]
+        header_str = f"{state.betting_stage} - {winner.name} wins {best_delta} chips"
+    else:
+        header_str = state.betting_stage
+    return header_str
+
+
+def print_header(state: ShortDeckPokerState):
+    header_str = _compute_header_str(state)
+    print(term.center(term.yellow(header_str)))
     print()
     print(f"{term.width * '-'}")
     print()
@@ -32,21 +48,21 @@ def print_footer(selected_action_i: int, legal_actions: List[str]):
 
 
 def print_table(players: List[Player], public_cards: CardCollection):
-    for line in players[0].lines:
+    for line in players[2].lines:
         print(term.center(line))
     for line_a, line_b in zip(players[1].lines, public_cards.lines):
         print(line_a + " " + line_b)
-    for line in players[2].lines:
+    for line in players[0].lines:
         print(term.center(line))
 
 
 term = Terminal()
 
-table_position_to_orientation: Dict[int, str] = {0: "bottom", 1: "right", 2: "top"}
+table_position_to_orientation: Dict[int, str] = {0: "top", 1: "right", 2: "bottom"}
 n_players: int = 3
 pickle_dir: str = "/home/tollie/dev/pluribus/research/blueprint_algo"
 state: ShortDeckPokerState = new_game(n_players, pickle_dir=pickle_dir)
-is_bot: List[bool] = [True, True, False]
+is_bot: List[bool] = [False, True, True]
 selected_action_i: int = 0
 agent: str = "offline"
 strategy_path: str = (
@@ -68,26 +84,18 @@ with term.cbreak(), term.hidden_cursor():
                 is_turn=player_i == state.player_i,
                 chips_in_pot=state_player.n_bet_chips,
                 chips_in_bank=state_player.n_chips,
+                is_small_blind=state_player.is_small_blind,
+                is_big_blind=state_player.is_big_blind,
+                is_dealer=state_player.is_dealer,
             )
             players.append(ascii_player)
         public_cards = CardCollection(*state.community_cards)
         if state.is_terminal:
             legal_actions = ["quit", "new game"]
-            winner_i = None
-            best_delta = -np.inf
-            for player_i, chips_delta in state.payout.items():
-                if chips_delta > best_delta:
-                    best_delta = chips_delta
-                    winner_i = player_i
-            winner = state.players[winner_i]
-            header_str = (
-                f"{state.betting_stage} - {winner.name} wins {best_delta} chips"
-            )
         else:
             legal_actions = [] if is_bot[state.player_i] else state.legal_actions
-            header_str = state.betting_stage
         print(term.home + term.white + term.clear)
-        print_header(header_str)
+        print_header(state)
         print_table(players, public_cards)
         print_footer(selected_action_i, legal_actions)
         if not is_bot[state.player_i] or state.is_terminal:

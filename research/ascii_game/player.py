@@ -14,6 +14,9 @@ class Player:
         info_position: str = "right",
         folded: bool = False,
         is_turn: bool = False,
+        is_small_blind: bool = False,
+        is_big_blind: bool = False,
+        is_dealer: bool = False,
         **card_collection_kwargs,
     ):
         self.cards = cards
@@ -25,13 +28,18 @@ class Player:
         self.folded = folded
         self.is_turn = is_turn
         self.info_position = info_position
+        self.is_small_blind = is_small_blind
+        self.is_big_blind = is_big_blind
+        self.is_dealer = is_dealer
         self.update()
 
-    def stylise_name(self, name: str) -> str:
+    def stylise_name(self, name: str, extra: str) -> str:
         if self.folded:
             name = f"{name} (folded)"
         if self.is_turn:
             name = self.term.orangered(f"{name} {self.term.blink_bold('turn')}")
+        if extra:
+            name = f"{name} ({extra})"
         return name
 
     def update(self):
@@ -39,8 +47,16 @@ class Player:
             *self.cards, term=self.term, **self.card_collection_kwargs
         )
         self.lines = card_collection.lines
+        if self.is_small_blind:
+            extra = "SB"
+        elif self.is_big_blind:
+            extra = "BB"
+        elif self.is_dealer:
+            extra = "D"
+        else:
+            extra = ""
         info = [
-            self.stylise_name(self.name),
+            self.stylise_name(self.name, extra),
             f"bet chips: {self.chips_in_pot}",
             f"bank roll: {self.chips_in_bank}",
         ]
