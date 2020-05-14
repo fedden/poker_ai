@@ -61,10 +61,10 @@ def print_table(players: List[Player], public_cards: CardCollection):
         print(term.center(line))
 
 
-def rotate(l: List[Any], rotate_amount: int):
-    if rotate_amount > len(l):
+def rotate(l: List[Any], n: int):
+    if n > len(l):
         raise ValueError
-    return l[rotate_amount:] + l[:rotate_amount]
+    return l[-n:] + l[:-n]
 
 
 term = Terminal()
