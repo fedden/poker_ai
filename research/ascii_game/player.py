@@ -1,9 +1,9 @@
 from blessed import Terminal
 
-from card_collection import CardCollection
+from card_collection import AsciiCardCollection
 
 
-class Player:
+class AsciiPlayer:
     def __init__(
         self,
         *cards,
@@ -43,7 +43,7 @@ class Player:
         return name
 
     def update(self):
-        card_collection = CardCollection(
+        card_collection = AsciiCardCollection(
             *self.cards, term=self.term, **self.card_collection_kwargs
         )
         self.lines = card_collection.lines

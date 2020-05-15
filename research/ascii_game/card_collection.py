@@ -3,7 +3,7 @@ from typing import Tuple
 from blessed import Terminal
 
 
-class CardCollection:
+class AsciiCardCollection:
     def __init__(self, *cards, hide_cards: bool = False, term: Terminal = None):
         """"""
         self.term = term

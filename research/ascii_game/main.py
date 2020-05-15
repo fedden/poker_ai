@@ -10,8 +10,8 @@ import numpy as np
 from blessed import Terminal
 
 from pluribus.games.short_deck.state import new_game, ShortDeckPokerState
-from card_collection import CardCollection
-from player import Player
+from card_collection import AsciiCardCollection
+from player import AsciiPlayer
 
 
 class AsciiLogger:
@@ -80,12 +80,17 @@ def print_footer(selected_action_i: int, legal_actions: List[str]):
     print(term.center("    ".join(actions)))
 
 
-def print_table(players: List[Player], public_cards: CardCollection):
-    for line in players[2].lines:
+def print_table(
+    players: List[AsciiPlayer], public_cards: AsciiCardCollection, table_rotation: int
+):
+    top_player_i = rotate_int(2, -table_rotation, len(players))
+    left_player_i = rotate_int(1, -table_rotation, len(players))
+    bottom_player_i = rotate_int(0, -table_rotation, len(players))
+    for line in players[top_player_i].lines:
         print(term.center(line))
-    for line_a, line_b in zip(players[1].lines, public_cards.lines):
+    for line_a, line_b in zip(players[left_player_i].lines, public_cards.lines):
         print(line_a + " " + line_b)
-    for line in players[0].lines:
+    for line in players[bottom_player_i].lines:
         print(term.center(line))
 
 
@@ -97,16 +102,23 @@ def print_log(log: AsciiLogger):
     print(log)
 
 
-def rotate(l: List[Any], n: int):
+def rotate_list(l: List[Any], n: int):
     if n > len(l):
         raise ValueError
-    return l[-n:] + l[:-n]
+    return l[n:] + l[:n]
+
+
+def rotate_int(x, dx, mod):
+    x = (x + dx) % mod
+    while x < 0:
+        x += mod
+    return x
 
 
 term = Terminal()
 log = AsciiLogger(term)
 debug_quick_start = True
-table_position_to_orientation: Dict[int, str] = {0: "top", 1: "right", 2: "bottom"}
+table_pos_to_alignment: List[str] = ["top", "right", "bottom"]
 n_players: int = 3
 pickle_dir: str = "/home/tollie/dev/pluribus/research/blueprint_algo"
 if debug_quick_start:
@@ -116,7 +128,7 @@ else:
 is_bot: List[bool] = [False, True, True]
 player_names: List[str] = ["human", "bot 1", "bot 2"]
 selected_action_i: int = 0
-table_rotation: int = 0
+table_rotation: int = 2
 agent: str = "offline"
 strategy_path: str = (
     "/home/tollie/dev/pluribus/research/blueprint_algo/offline_strategy_285800.gz"
@@ -127,27 +139,28 @@ elif debug_quick_start and agent in {"offline", "online"}:
     offline_strategy = {}
 with term.cbreak(), term.hidden_cursor():
     while True:
+        rotated_player_names = rotate_list(player_names, table_rotation)
+        rotate_is_bot = rotate_list(is_bot, table_rotation)
+        rotated_table_pos_to_alignment = rotate_list(table_pos_to_alignment, table_rotation)
         # Construct ascii objects to be rendered later.
-        players: List[Player] = []
-        player_indices = rotate(list(range(n_players)), table_rotation)
-        state_players = rotate(state.players, table_rotation)
-        for i, (rotated_i, state_player) in enumerate(zip(player_indices, state_players)):
-            ascii_player = Player(
-                *state_player.cards,
-                name=player_names[i],
+        ascii_players: List[AsciiPlayer] = []
+        for player_i, player in enumerate(state.players):
+            ascii_player = AsciiPlayer(
+                *player.cards,
+                name=rotated_player_names[player_i],
                 term=term,
-                info_position=table_position_to_orientation[i],
-                hide_cards=is_bot[i] and not state.is_terminal,
-                folded=not state.players[i].is_active,
-                is_turn=i == state.player_i,
-                chips_in_pot=state_player.n_bet_chips,
-                chips_in_bank=state_player.n_chips,
-                is_small_blind=state_player.is_small_blind,
-                is_big_blind=state_player.is_big_blind,
-                is_dealer=state_player.is_dealer,
+                info_position=rotated_table_pos_to_alignment[player_i],
+                hide_cards=rotate_is_bot[player_i] and not state.is_terminal,
+                folded=not player.is_active,
+                is_turn=player_i == state.player_i,
+                chips_in_pot=player.n_bet_chips,
+                chips_in_bank=player.n_chips,
+                is_small_blind=player.is_small_blind,
+                is_big_blind=player.is_big_blind,
+                is_dealer=player.is_dealer,
             )
-            players.append(ascii_player)
-        public_cards = CardCollection(*state.community_cards)
+            ascii_players.append(ascii_player)
+        public_cards = AsciiCardCollection(*state.community_cards)
         if state.is_terminal:
             legal_actions = ["quit", "new game"]
         else:
@@ -155,11 +168,15 @@ with term.cbreak(), term.hidden_cursor():
         # Render game.
         print(term.home + term.white + term.clear)
         print_header(state, player_names, table_rotation)
-        print_table(players, public_cards)
+        print_table(ascii_players, public_cards, table_rotation)
         print_footer(selected_action_i, legal_actions)
         print_log(log)
+        import ipdb; ipdb.set_trace()
         # Make action of some kind.
         if not is_bot[state.player_i] or state.is_terminal:
+            # Incase the legal_actions went from length 3 to 2 and we had
+            # previously picked the last one.
+            selected_action_i %= len(legal_actions)
             key = term.inkey(timeout=None)
             if key.name == "KEY_LEFT":
                 selected_action_i -= 1
@@ -169,7 +186,6 @@ with term.cbreak(), term.hidden_cursor():
                 selected_action_i = (selected_action_i + 1) % len(legal_actions)
             elif key.name == "KEY_ENTER":
                 action = legal_actions[selected_action_i]
-                selected_action_i = 0
                 if action == "quit":
                     log.info(term.pink("quit"))
                     break
