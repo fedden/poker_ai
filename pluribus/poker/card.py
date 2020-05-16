@@ -67,7 +67,7 @@ class Card:
         return int(self) == int(other)
 
     def __ne__(self, other):
-        return int(self) != int(self)
+        return int(self) != int(other)
 
     @property
     def eval_card(self) -> EvaluationCard:
