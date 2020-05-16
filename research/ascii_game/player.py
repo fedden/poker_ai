@@ -7,6 +7,7 @@ class AsciiPlayer:
     def __init__(
         self,
         *cards,
+        player,
         term: Terminal,
         name: str = "",
         chips_in_pot: int = 0,
@@ -23,6 +24,7 @@ class AsciiPlayer:
         self.card_collection_kwargs = card_collection_kwargs
         self.chips_in_pot = chips_in_pot
         self.chips_in_bank = chips_in_bank
+        self.player = player
         self.name = name
         self.term = term
         self.folded = folded
@@ -31,7 +33,14 @@ class AsciiPlayer:
         self.is_small_blind = is_small_blind
         self.is_big_blind = is_big_blind
         self.is_dealer = is_dealer
-        self.update()
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, n):
+        self._name = self.player.name = n
 
     def stylise_name(self, name: str, extra: str) -> str:
         if self.folded:
