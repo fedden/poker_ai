@@ -109,6 +109,9 @@ class ShortDeckPokerState:
         self._skip_counter = 0
         self._first_move_of_current_round = True
         self._reset_betting_round_state()
+        for player in self.players:
+            player.is_turn = False
+        self.current_player.is_turn = True
 
     def __repr__(self):
         """Return a helpful description of object in strings and debugger."""
@@ -201,6 +204,9 @@ class ShortDeckPokerState:
                     # Distribute winnings.
                     new_state._poker_engine.compute_winners()
                 break
+        for player in self.players:
+            player.is_turn = False
+        self.current_player.is_turn = True
         return new_state
 
     @staticmethod
