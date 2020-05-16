@@ -144,7 +144,6 @@ class Worker(mp.Process):
         server_state["agent_path"] = agent_path
         server_state["start_timestep"] = t + 1
         joblib.dump(server_state, server_path)
-        log.info(f"saved agent and server to {self._save_path}")
 
     def _update_status(self, status, log_status: bool = False):
         """Update the status of this worker by posting it to the server."""
