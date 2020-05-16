@@ -393,7 +393,7 @@ class ShortDeckPokerState:
                 self._poker_engine.table.dealer.deal_flop(self._table)
             self._public_information[
                 self.betting_stage
-            ] = self._table.community_cards
+            ] = self._table.community_cards.copy()
         elif self._betting_stage == "flop":
             # Progress from flop to turn.
             self._betting_stage = "turn"
@@ -405,7 +405,7 @@ class ShortDeckPokerState:
                 self._poker_engine.table.dealer.deal_turn(self._table)
             self._public_information[
                 self.betting_stage
-            ] = self._table.community_cards
+            ] = self._table.community_cards.copy()
         elif self._betting_stage == "turn":
             # Progress from turn to river.
             self._betting_stage = "river"
@@ -413,10 +413,11 @@ class ShortDeckPokerState:
             if len(self._public_cards) == 5:
                     community_cards = self._public_cards[4:]
                     self._poker_engine.table.community_cards += community_cards
-            self._poker_engine.table.dealer.deal_river(self._table)
+            else:
+                self._poker_engine.table.dealer.deal_river(self._table)
             self._public_information[
                 self.betting_stage
-            ] = self._table.community_cards
+            ] = self._table.community_cards.copy()
         elif self._betting_stage == "river":
             # Progress to the showdown.
             self._betting_stage = "show_down"
@@ -458,6 +459,9 @@ class ShortDeckPokerState:
                         # else:
                         #     betting_stage = betting_round
                         action = self._history[betting_stage][i]
+                        while action == 'skip':
+                            i += 1  # should be ok, action sequences don't end in skip
+                            action = self._history[betting_stage][i]
                         # TODO: maybe a method already exists for this?
                         if betting_stage == "pre_flop":
                             ph = (i + 2) % n_players
@@ -495,9 +499,9 @@ class ShortDeckPokerState:
                                     # TODO: is this hacky? problem with defaulting to 1 / 3, is that it
                                     #  doesn't work for calculations that need to be made with the object's values
 
-                                    if self._offline_strategy[infoset].keys():
+                                    try: # TODO: with or without keys
                                         prob = self._offline_strategy[infoset][action]
-                                    else:
+                                    except KeyError:
                                         prob = 1 / len(self.legal_actions)
                                 prob_reach_all_hands.append(prob)
                             # import ipdb;
@@ -529,9 +533,9 @@ class ShortDeckPokerState:
                                 except:
                                     import ipdb;
                                     ipdb.set_trace()
-                                if self._offline_strategy[infoset].keys():
+                                try:
                                     prob = self._offline_strategy[infoset][action]
-                                else:
+                                except KeyError:
                                     prob = 1 / len(self.legal_actions)
                             # import ipdb;
                             # ipdb.set_trace()
