@@ -233,12 +233,13 @@ def train(
     update_threshold: int,
 ):
     """Train agent."""
-    utils.random.seed(38)
+    utils.random.seed(36)
     agent = Agent()
 
     current_game_state = new_rt_game(3, offline_strategy, action_sequence, public_cards)
     ph_test_node = current_game_state.player_i
     for t in trange(1, n_iterations + 1, desc="train iter"):
+        print(t)
         if t == 2:
             logging.disable(logging.DEBUG)
         for i in range(n_players):  # fixed position i

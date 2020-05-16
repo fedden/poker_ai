@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import joblib
 from itertools import combinations
 import random
+import time
 
 import dill as pickle
 import numpy as np
@@ -541,12 +542,17 @@ class ShortDeckPokerState:
                         action_sequence[betting_stage].append(action)
                 self._starting_hand_probs[p_i][tuple(starting_hand)] = p_reach
         self._normalize_bayes()
+        # TODO: delete this? at least for our purposes we don't need it again
+        del self._offline_strategy
 
     def deal_bayes(self):
+        start = time.time()
         lut = self.info_set_lut
         self.info_set_lut = {}
         new_state = copy.deepcopy(self)
         new_state.info_set_lut = self.info_set_lut = lut
+        end = time.time()
+        print(f"Took {start - end} to load")
 
         players = list(range(len(self.players)))
         random.shuffle(players)
