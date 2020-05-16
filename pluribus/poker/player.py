@@ -37,6 +37,9 @@ class Player:
         self.id = int(uuid.uuid4().hex, 16)
         self.pot = pot
         self.order = None
+        self.is_small_blind = False
+        self.is_big_blind = False
+        self.is_dealer = False
 
     def __repr__(self):
         """"""

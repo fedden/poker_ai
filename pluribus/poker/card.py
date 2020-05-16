@@ -48,23 +48,26 @@ class Card:
         suit_char = self.suit.lower()[0]
         self._eval_card = EvaluationCard.new(f"{rank_char}{suit_char}")
 
+    def __int__(self):
+        return self._eval_card
+
     def __lt__(self, other):
-        return self.rank_int < other.rank_int
+        raise NotImplementedError("Boolean operations not supported")
 
     def __le__(self, other):
-        return self.rank_int <= other.rank_int
+        raise NotImplementedError("Boolean operations not supported")
 
     def __gt__(self, other):
-        return self.rank_int > other.rank_int
+        raise NotImplementedError("Boolean operations not supported")
 
     def __ge__(self, other):
-        return self.rank_int >= other.rank_int
+        raise NotImplementedError("Boolean operations not supported")
 
     def __eq__(self, other):
-        return self.rank_int == other.rank_int
+        return int(self) == int(other)
 
     def __ne__(self, other):
-        return self.rank_int != other.rank_int
+        return int(self) != int(other)
 
     @property
     def eval_card(self) -> EvaluationCard:

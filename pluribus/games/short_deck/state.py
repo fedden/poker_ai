@@ -22,7 +22,7 @@ InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
 
 
 def new_game(
-    n_players: int, info_set_lut: InfoSetLookupTable = {}
+    n_players: int, info_set_lut: InfoSetLookupTable = {}, **kwargs
 ) -> ShortDeckPokerState:
     """Create a new game of short deck poker."""
     pot = Pot()
@@ -32,11 +32,11 @@ def new_game(
     ]
     if info_set_lut:
         # Don't reload massive files, it takes ages.
-        state = ShortDeckPokerState(players=players, load_pickle_files=False)
+        state = ShortDeckPokerState(players=players, load_pickle_files=False, **kwargs)
         state.info_set_lut = info_set_lut
     else:
         # Load massive files.
-        state = ShortDeckPokerState(players=players)
+        state = ShortDeckPokerState(players=players, **kwargs)
     return state
 
 
@@ -95,6 +95,9 @@ class ShortDeckPokerState:
         # Rotate the big and small blind to the final positions for the pre
         # flop round only.
         player_i_order: List[int] = [p_i for p_i in range(n_players)]
+        self.players[0].is_small_blind = True
+        self.players[1].is_big_blind = True
+        self.players[-1].is_dealer = True
         self._player_i_lut: Dict[str, List[int]] = {
             "pre_flop": player_i_order[2:] + player_i_order[:2],
             "flop": player_i_order,
@@ -106,6 +109,9 @@ class ShortDeckPokerState:
         self._skip_counter = 0
         self._first_move_of_current_round = True
         self._reset_betting_round_state()
+        for player in self.players:
+            player.is_turn = False
+        self.current_player.is_turn = True
 
     def __repr__(self):
         """Return a helpful description of object in strings and debugger."""
@@ -198,6 +204,9 @@ class ShortDeckPokerState:
                     # Distribute winnings.
                     new_state._poker_engine.compute_winners()
                 break
+        for player in self.players:
+            player.is_turn = False
+        self.current_player.is_turn = True
         return new_state
 
     @staticmethod
@@ -337,12 +346,7 @@ class ShortDeckPokerState:
         try:
             cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
         except KeyError:
-            if not self.info_set_lut:
-                raise ValueError("Pickle luts must be loaded for info set.")
-            elif eval_cards not in self.info_set_lut[self._betting_stage]:
-                raise ValueError("Cards {cards} not in pickle files.")
-            else:
-                raise ValueError("Unrecognised betting stage in pickle files.")
+            return "default info set, please ensure you load it correctly"
         # Convert history from a dict of lists to a list of dicts as I'm
         # paranoid about JSON's lack of care with insertion order.
         info_set_dict = {

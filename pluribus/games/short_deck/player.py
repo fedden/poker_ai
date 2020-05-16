@@ -15,3 +15,4 @@ class ShortDeckPokerPlayer(Player):
         super().__init__(
             name=f"player_{player_i}", initial_chips=initial_chips, pot=pot,
         )
+        self.is_turn = False
