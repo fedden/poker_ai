@@ -85,9 +85,11 @@ for action in state.legal_actions:
 We also have some code to play a round of poker against the AI agents, inside your terminal.
 
 The characters are a little broken when captured in `asciinema`, but you'll get the idea by watching this video below. Results should be better in your actual terminal!
-[![asciicast](https://asciinema.org/a/331234.png)](https://asciinema.org/a/331234)
+
+<a href="https://asciinema.org/a/331234" target="_blank"><img src="https://asciinema.org/a/331234.svg" width="300" /></a>
 
 To invoke the code, either call the `run_terminal_app` method directly from the `pluribus.terminal.runner` module, or call from python like so:
+
 ```bash
 cd /path/to/pluribus/dir
 python -m pluribus.terminal.runner       \
