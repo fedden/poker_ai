@@ -7,11 +7,11 @@ import joblib
 import numpy as np
 from blessed import Terminal
 
-from ascii_objects.card_collection import AsciiCardCollection
-from ascii_objects.player import AsciiPlayer
-from ascii_objects.logger import AsciiLogger
-from render import print_footer, print_header, print_log, print_table
 from pluribus.games.short_deck.state import new_game, ShortDeckPokerState
+from pluribus.terminal.ascii_objects.card_collection import AsciiCardCollection
+from pluribus.terminal.ascii_objects.player import AsciiPlayer
+from pluribus.terminal.ascii_objects.logger import AsciiLogger
+from pluribus.terminal.render import print_footer, print_header, print_log, print_table
 from pluribus.utils.algos import rotate_list
 
 
@@ -34,7 +34,7 @@ def run_terminal_app(
     Call this method from this module directly from python.
 
     ```bash
-    python -m pluribus.terminal.runner.run_terminal_app                      \
+    python -m pluribus.terminal.runner                                       \
         --agent offline                                                      \
         --pickle_dir ./research/blueprint_algo                               \
         --strategy_path ./research/blueprint_algo/offline_strategy_285800.gz \

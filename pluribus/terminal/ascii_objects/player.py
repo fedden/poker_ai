@@ -1,6 +1,6 @@
 from blessed import Terminal
 
-from card_collection import AsciiCardCollection
+from pluribus.terminal.ascii_objects.card_collection import AsciiCardCollection
 
 
 class AsciiPlayer:

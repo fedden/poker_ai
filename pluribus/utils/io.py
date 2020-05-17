@@ -27,7 +27,7 @@ class NumpyJSONEncoder(json.JSONEncoder):
             return super(NumpyJSONEncoder, self).default(obj)
 
 
-def load_info_set_lut(path: str) -> state.InfoSetLookupTable:
+def load_info_set_lut(path: str):
     """Load the info set abstraction lookup table."""
     info_set_lut = state.ShortDeckPokerState.load_pickle_files(path)
     return info_set_lut

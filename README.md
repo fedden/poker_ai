@@ -50,6 +50,7 @@ Below is a rough structure of the repository.
 │   ├── games      # Implementations of poker games as node based objects that
 │   │              # can be traversed in a depth-first recursive manner.
 │   ├── poker      # WIP general code for managing a hand of poker.
+│   ├── terminal   # Code to play against the AI from your console.
 │   └── utils      # Utility code like seed setting.
 ├── research       # A directory for research/development scripts 
 │                  # to help formulate understanding and ideas.
@@ -79,7 +80,23 @@ for action in state.legal_actions:
     new_state: ShortDeckPokerState = state.apply_action(action)
 ```
 
-### Visualisation code
+### Playing against AI in your terminal
+
+We also have some code to play a round of poker against the AI agents, inside your terminal.
+
+The characters are a little broken when captured in `asciinema`, but you'll get the idea by watching this video below. Results should be better in your actual terminal!
+[![asciicast](https://asciinema.org/a/331234.png)](https://asciinema.org/a/331234)
+
+To invoke the code, either call the `run_terminal_app` method directly from the `pluribus.terminal.runner` module, or call from python like so:
+```bash
+cd /path/to/pluribus/dir
+python -m pluribus.terminal.runner       \
+  --agent offline                        \ 
+  --pickle_dir ./research/blueprint_algo \
+  --strategy_path ./research/blueprint_algo/offline_strategy_285800.gz 
+```
+
+### Web visualisation code
 
 We are also working on code to visualise a given instance of the `ShortDeckPokerState`, which looks like this:
 <p align="center">

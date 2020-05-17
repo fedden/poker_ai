@@ -2,6 +2,8 @@ from typing import Dict, Any
 
 import yaml
 
+from pluribus.games.short_deck.state import ShortDeckPokerState
+
 
 class UserResults:
     """"""

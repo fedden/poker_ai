@@ -4,10 +4,10 @@ from typing import Dict, List
 
 from blessed import Terminal
 
-from ascii_objects.card_collection import AsciiCardCollection
-from ascii_objects.logger import AsciiLogger
-from ascii_objects.player import AsciiPlayer
 from pluribus.games.short_deck.state import ShortDeckPokerState
+from pluribus.terminal.ascii_objects.card_collection import AsciiCardCollection
+from pluribus.terminal.ascii_objects.logger import AsciiLogger
+from pluribus.terminal.ascii_objects.player import AsciiPlayer
 
 
 def _compute_header_lines(
