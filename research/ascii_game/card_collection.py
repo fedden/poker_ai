@@ -4,7 +4,12 @@ from blessed import Terminal
 
 
 class AsciiCardCollection:
-    def __init__(self, *cards, hide_cards: bool = False, term: Terminal = None):
+    def __init__(
+        self,
+        *cards,
+        hide_cards: bool = False,
+        term: Terminal = None,
+    ):
         """"""
         self.term = term
         self.cards = cards

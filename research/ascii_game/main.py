@@ -43,26 +43,40 @@ class AsciiLogger:
         return "\n".join(lines)
 
 
-def _compute_header_str(state: ShortDeckPokerState) -> str:
+def _compute_header_lines(
+    state: ShortDeckPokerState, og_name_to_name: Dict[str, str]
+) -> List[str]:
     if state.is_terminal:
         player_winnings = []
         for player_i, chips_delta in state.payout.items():
-            name = state.players[player_i].name
-            player_winnings.append((name, chips_delta))
+            p = state.players[player_i]
+            player_winnings.append((p, chips_delta))
         player_winnings.sort(key=itemgetter(1), reverse=True)
-        player_desc_strings = [
-            f"{n} {'wins' if x > 0 else 'loses'} {x} chips" for n, x in player_winnings
+        winnings_desc_strings = [
+            f"{og_name_to_name[p.name]} {'wins' if x > 0 else 'loses'} {x} chips"
+            for p, x in player_winnings
         ]
-        player_desc: str = ", ".join(player_desc_strings)
-        header_str: str = f"{state.betting_stage} - {player_desc}"
-    else:
-        header_str = state.betting_stage
-    return header_str
+        winnings_desc: str = ", ".join(winnings_desc_strings)
+        winning_player = player_winnings[0][0]
+        winning_rank: int = state._poker_engine.evaluator.evaluate(
+            state.community_cards, winning_player.cards
+        )
+        winning_hand_class: int = state._poker_engine.evaluator.get_rank_class(
+            winning_rank
+        )
+        winning_hand_desc: str = state._poker_engine.evaluator.class_to_string(
+            winning_hand_class
+        ).lower()
+        return [
+            f"{og_name_to_name[winning_player.name]} won with a {winning_hand_desc}",
+            winnings_desc,
+        ]
+    return ["", state.betting_stage]
 
 
-def print_header(state: ShortDeckPokerState):
-    header_str = _compute_header_str(state)
-    print(term.center(term.yellow(header_str)))
+def print_header(state: ShortDeckPokerState, og_name_to_name: Dict[str, str]):
+    for line in _compute_header_lines(state, og_name_to_name):
+        print(term.center(term.yellow(line)))
     print(f"\n{term.width * '-'}\n")
 
 
@@ -82,23 +96,15 @@ def print_table(
     public_cards: AsciiCardCollection,
     n_table_rotations: int,
     n_spaces_between_cards: int = 4,
+    n_chips_in_pot: int = 0,
 ):
     left_player = players["left"]
     middle_player = players["middle"]
     right_player = players["right"]
-
-    left_player.name = "a"
-    left_player.update()
-
-    middle_player.name = "b"
-    middle_player.update()
-
-    right_player.name = "h"
-    right_player.update()
-
     for line in public_cards.lines:
         print(term.center(line))
-
+    print(term.center(f"chips in pot: {n_chips_in_pot}"))
+    print("\n\n")
     spacing = " " * n_spaces_between_cards
     for l, m, r in zip(left_player.lines, middle_player.lines, right_player.lines):
         print(term.center(f"{l}{spacing}{m}{spacing}{r}"))
@@ -127,7 +133,7 @@ def rotate_int(x, dx, mod):
 
 term = Terminal()
 log = AsciiLogger(term)
-debug_quick_start = True
+debug_quick_start = False
 n_players: int = 3
 pickle_dir: str = "/home/tollie/dev/pluribus/research/blueprint_algo"
 if debug_quick_start:
@@ -137,27 +143,30 @@ else:
 n_table_rotations: int = 0
 human_i: int = 2
 selected_action_i: int = 0
+positions = ["left", "middle", "right"]
+names = {"left": "BOT 1", "middle": "BOT 2", "right": "HUMAN"}
 agent: str = "offline"
 strategy_path: str = (
     "/home/tollie/dev/pluribus/research/blueprint_algo/offline_strategy_285800.gz"
 )
 if not debug_quick_start and agent in {"offline", "online"}:
     offline_strategy = joblib.load(strategy_path)
-elif debug_quick_start and agent in {"offline", "online"}:
+else:
     offline_strategy = {}
 with term.cbreak(), term.hidden_cursor():
     while True:
         # Construct ascii objects to be rendered later.
         ascii_players: Dict[str, AsciiPlayer] = {}
         state_players = rotate_list(state.players[::-1], n_table_rotations)
-        positions = ["left", "middle", "right"]
-        name_to_position = {}
+        og_name_to_position = {}
+        og_name_to_name = {}
         for player_i, player in enumerate(state_players):
             position = positions[player_i]
-            is_human = position == "right"
+            is_human = names[position].lower() == "human"
             ascii_players[position] = AsciiPlayer(
                 *player.cards,
                 term=term,
+                name=names[position],
                 og_name=player.name,
                 hide_cards=not is_human and not state.is_terminal,
                 folded=not player.is_active,
@@ -168,22 +177,30 @@ with term.cbreak(), term.hidden_cursor():
                 is_big_blind=player.is_big_blind,
                 is_dealer=player.is_dealer,
             )
-            name_to_position[player.name] = position
+            og_name_to_position[player.name] = position
+            og_name_to_name[player.name] = names[position]
+            if player.is_turn:
+                current_player_name = names[position]
         public_cards = AsciiCardCollection(*state.community_cards)
         if state.is_terminal:
             legal_actions = ["quit", "new game"]
             is_human_turn = True
         else:
-            current_name = state.current_player.name
-            is_human_turn = name_to_position[current_name] == "right"
+            og_current_name = state.current_player.name
+            is_human_turn = og_name_to_position[og_current_name] == "right"
             if is_human_turn:
                 legal_actions = state.legal_actions
             else:
                 legal_actions = []
         # Render game.
         print(term.home + term.white + term.clear)
-        print_header(state)
-        print_table(ascii_players, public_cards, n_table_rotations)
+        print_header(state, og_name_to_name)
+        print_table(
+            ascii_players,
+            public_cards,
+            n_table_rotations,
+            n_chips_in_pot=state._table.pot.total,
+        )
         print_footer(selected_action_i, legal_actions)
         print_log(log)
         # import ipdb; ipdb.set_trace()
@@ -218,8 +235,7 @@ with term.cbreak(), term.hidden_cursor():
                     if n_table_rotations < 0:
                         n_table_rotations = n_players - 1
                 else:
-                    name = state.current_player.name
-                    log.info(term.green(f"> {name} chose {action}"))
+                    log.info(term.green(f"{current_player_name} chose {action}"))
                     state: ShortDeckPokerState = state.apply_action(action)
         else:
             if agent == "random":
@@ -235,6 +251,5 @@ with term.cbreak(), term.hidden_cursor():
                 actions = list(this_state_strategy.keys())
                 probabilties = list(this_state_strategy.values())
                 action = np.random.choice(actions, p=probabilties)
-            name = state.current_player.name
-            log.info(f"{name} chose {action}")
+            log.info(f"{current_player_name} chose {action}")
             state: ShortDeckPokerState = state.apply_action(action)

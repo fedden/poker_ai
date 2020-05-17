@@ -31,9 +31,9 @@ class AsciiPlayer:
         self.is_small_blind = is_small_blind
         self.is_big_blind = is_big_blind
         self.is_dealer = is_dealer
+        self.update()
 
     def stylise_name(self, name: str, extra: str) -> str:
-        name = f"{self.og_name} - {name}"
         if self.folded:
             name = f"{name} (folded)"
         if self.is_turn:
