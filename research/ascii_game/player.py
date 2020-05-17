@@ -7,12 +7,11 @@ class AsciiPlayer:
     def __init__(
         self,
         *cards,
-        player,
         term: Terminal,
         name: str = "",
+        og_name: str = "",
         chips_in_pot: int = 0,
         chips_in_bank: int = 0,
-        info_position: str = "right",
         folded: bool = False,
         is_turn: bool = False,
         is_small_blind: bool = False,
@@ -24,29 +23,21 @@ class AsciiPlayer:
         self.card_collection_kwargs = card_collection_kwargs
         self.chips_in_pot = chips_in_pot
         self.chips_in_bank = chips_in_bank
-        self.player = player
         self.name = name
+        self.og_name = og_name
         self.term = term
         self.folded = folded
         self.is_turn = is_turn
-        self.info_position = info_position
         self.is_small_blind = is_small_blind
         self.is_big_blind = is_big_blind
         self.is_dealer = is_dealer
 
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, n):
-        self._name = self.player.name = n
-
     def stylise_name(self, name: str, extra: str) -> str:
+        name = f"{self.og_name} - {name}"
         if self.folded:
             name = f"{name} (folded)"
         if self.is_turn:
-            name = self.term.orangered(f"{name} {self.term.blink_bold('turn')}")
+            name = f"**{name}**"
         if extra:
             name = f"{name} ({extra})"
         return name
@@ -69,21 +60,8 @@ class AsciiPlayer:
             f"bet chips: {self.chips_in_pot}",
             f"bank roll: {self.chips_in_bank}",
         ]
-        if self.info_position == "right":
-            max_len = max(len(i) for i in info)
-            for line_i, line in enumerate(info):
-                self.lines[1 + line_i] += f" {line}"
-            max_len = max(len(l) for l in self.lines)
-            for line_i, line in enumerate(self.lines):
-                n_spaces = max_len - len(line)
-                self.lines[line_i] += f" {n_spaces * ' '}"
-        elif self.info_position == "top":
-            self.lines = info + self.lines
-        elif self.info_position == "bottom":
-            self.lines = self.lines + info
-        else:
-            raise NotImplementedError(
-                f"info position {self.info_position} not supported")
+        card_width = len(self.lines[0])
+        self.lines = [i + (card_width - len(i)) * " " for i in info] + self.lines
         self.width = max(len(line) for line in self.lines)
         self.height = len(self.lines)
 

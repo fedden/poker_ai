@@ -78,26 +78,30 @@ def print_footer(selected_action_i: int, legal_actions: List[str]):
 
 
 def print_table(
-    players: List[AsciiPlayer], public_cards: AsciiCardCollection, human_i: int
+    players: Dict[str, AsciiPlayer],
+    public_cards: AsciiCardCollection,
+    n_table_rotations: int,
+    n_spaces_between_cards: int = 4,
 ):
-    top_player_i = rotate_int(0, human_i, len(players))
-    left_player_i = rotate_int(1, human_i, len(players))
-    bottom_player_i = rotate_int(2, human_i, len(players))
-    players[top_player_i].info_position = "bottom"
-    players[top_player_i].name = "bot a"
-    players[top_player_i].update()
-    for line in players[top_player_i].lines:
+    left_player = players["left"]
+    middle_player = players["middle"]
+    right_player = players["right"]
+
+    left_player.name = "a"
+    left_player.update()
+
+    middle_player.name = "b"
+    middle_player.update()
+
+    right_player.name = "h"
+    right_player.update()
+
+    for line in public_cards.lines:
         print(term.center(line))
-    players[left_player_i].info_position = "right"
-    players[left_player_i].name = "bot b"
-    players[left_player_i].update()
-    for line_a, line_b in zip(players[left_player_i].lines, public_cards.lines):
-        print(line_a + " " + line_b)
-    players[bottom_player_i].info_position = "top"
-    players[bottom_player_i].name = "human"
-    players[bottom_player_i].update()
-    for line in players[bottom_player_i].lines:
-        print(term.center(line))
+
+    spacing = " " * n_spaces_between_cards
+    for l, m, r in zip(left_player.lines, middle_player.lines, right_player.lines):
+        print(term.center(f"{l}{spacing}{m}{spacing}{r}"))
 
 
 def print_log(log: AsciiLogger):
@@ -130,7 +134,8 @@ if debug_quick_start:
     state: ShortDeckPokerState = new_game(n_players, {}, load_pickle_files=False)
 else:
     state: ShortDeckPokerState = new_game(n_players, pickle_dir=pickle_dir)
-human_i = 0
+n_table_rotations: int = 0
+human_i: int = 2
 selected_action_i: int = 0
 agent: str = "offline"
 strategy_path: str = (
@@ -143,13 +148,18 @@ elif debug_quick_start and agent in {"offline", "online"}:
 with term.cbreak(), term.hidden_cursor():
     while True:
         # Construct ascii objects to be rendered later.
-        ascii_players: List[AsciiPlayer] = []
-        for player_i, player in enumerate(state.players):
-            ascii_player = AsciiPlayer(
+        ascii_players: Dict[str, AsciiPlayer] = {}
+        state_players = rotate_list(state.players[::-1], n_table_rotations)
+        positions = ["left", "middle", "right"]
+        name_to_position = {}
+        for player_i, player in enumerate(state_players):
+            position = positions[player_i]
+            is_human = position == "right"
+            ascii_players[position] = AsciiPlayer(
                 *player.cards,
-                player=player,
                 term=term,
-                hide_cards=human_i != player_i and not state.is_terminal,
+                og_name=player.name,
+                hide_cards=not is_human and not state.is_terminal,
                 folded=not player.is_active,
                 is_turn=player.is_turn,
                 chips_in_pot=player.n_bet_chips,
@@ -158,22 +168,27 @@ with term.cbreak(), term.hidden_cursor():
                 is_big_blind=player.is_big_blind,
                 is_dealer=player.is_dealer,
             )
-            ascii_players.append(ascii_player)
+            name_to_position[player.name] = position
         public_cards = AsciiCardCollection(*state.community_cards)
         if state.is_terminal:
             legal_actions = ["quit", "new game"]
+            is_human_turn = True
         else:
-            legal_actions = state.legal_actions if state.player_i == human_i else []
+            current_name = state.current_player.name
+            is_human_turn = name_to_position[current_name] == "right"
+            if is_human_turn:
+                legal_actions = state.legal_actions
+            else:
+                legal_actions = []
         # Render game.
         print(term.home + term.white + term.clear)
         print_header(state)
-        print_table(ascii_players, public_cards, human_i)
+        print_table(ascii_players, public_cards, n_table_rotations)
         print_footer(selected_action_i, legal_actions)
         print_log(log)
         # import ipdb; ipdb.set_trace()
         # Make action of some kind.
-        log.info(human_i, "==", state.player_i, "or", state.is_terminal)
-        if human_i == state.player_i or state.is_terminal:
+        if is_human_turn:
             # Incase the legal_actions went from length 3 to 2 and we had
             # previously picked the last one.
             selected_action_i %= len(legal_actions)
@@ -199,7 +214,9 @@ with term.cbreak(), term.hidden_cursor():
                         state: ShortDeckPokerState = new_game(
                             n_players, state.info_set_lut,
                         )
-                    human_i = (human_i + 1) % n_players
+                    n_table_rotations -= 1
+                    if n_table_rotations < 0:
+                        n_table_rotations = n_players - 1
                 else:
                     name = state.current_player.name
                     log.info(term.green(f"> {name} chose {action}"))
