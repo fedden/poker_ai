@@ -86,8 +86,11 @@ We also have some code to play a round of poker against the AI agents, inside yo
 
 The characters are a little broken when captured in `asciinema`, but you'll get the idea by watching this video below. Results should be better in your actual terminal!
 
-<a href="https://asciinema.org/a/331234" target="_blank"><img src="https://asciinema.org/a/331234.svg" width="300" /></a>
-
+<p align="center">
+  <a href="https://asciinema.org/a/331234" target="_blank">
+    <img src="https://asciinema.org/a/331234.svg" width="500" />
+  </a>
+</p>
 To invoke the code, either call the `run_terminal_app` method directly from the `pluribus.terminal.runner` module, or call from python like so:
 
 ```bash
