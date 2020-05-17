@@ -204,9 +204,9 @@ class ShortDeckPokerState:
                     # Distribute winnings.
                     new_state._poker_engine.compute_winners()
                 break
-        for player in self.players:
+        for player in new_state.players:
             player.is_turn = False
-        self.current_player.is_turn = True
+        new_state.current_player.is_turn = True
         return new_state
 
     @staticmethod
