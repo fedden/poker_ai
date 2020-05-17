@@ -12,6 +12,7 @@ from pluribus.terminal.ascii_objects.card_collection import AsciiCardCollection
 from pluribus.terminal.ascii_objects.player import AsciiPlayer
 from pluribus.terminal.ascii_objects.logger import AsciiLogger
 from pluribus.terminal.render import print_footer, print_header, print_log, print_table
+from pluribus.terminal.results import UserResults
 from pluribus.utils.algos import rotate_list
 
 
@@ -56,6 +57,7 @@ def run_terminal_app(
         offline_strategy = joblib.load(strategy_path)
     else:
         offline_strategy = {}
+    user_results: UserResults = UserResults()
     with term.cbreak(), term.hidden_cursor():
         while True:
             # Construct ascii objects to be rendered later.
@@ -88,6 +90,7 @@ def run_terminal_app(
             if state.is_terminal:
                 legal_actions = ["quit", "new game"]
                 human_should_interact = True
+                user_results.add_result(strategy_path, agent, state, og_name_to_name)
             else:
                 og_current_name = state.current_player.name
                 human_should_interact = og_name_to_position[og_current_name] == "right"

@@ -1,4 +1,4 @@
-from typing import List, Set, Union
+from typing import Dict, List, Set, Union
 
 from pluribus.poker.evaluation.eval_card import EvaluationCard
 
@@ -47,6 +47,11 @@ class Card:
         rank_char = self._rank_to_char(rank)
         suit_char = self.suit.lower()[0]
         self._eval_card = EvaluationCard.new(f"{rank_char}{suit_char}")
+
+    def __repr__(self):
+        """Pretty printing the object."""
+        icon = self._suit_to_icon(self.suit)
+        return f"<Card card=[{self.rank} of {self.suit} {icon}]>"
 
     def __int__(self):
         return self._eval_card
@@ -152,7 +157,25 @@ class Card:
         """Icons for pretty printing."""
         return {"hearts": "♥", "diamonds": "♦", "clubs": "♣", "spades": "♠"}[suit]
 
-    def __repr__(self):
-        """Pretty printing the object."""
-        icon = self._suit_to_icon(self.suit)
-        return f"<Card card=[{self.rank} of {self.suit} {icon}]>"
+    def to_dict(self) -> Dict[str, Union[int, str]]:
+        """Turn into dict."""
+        return dict(rank=self._rank, suit=self._suit)
+
+    @staticmethod
+    def from_dict(x: Dict[str, Union[int, str]]):
+        """From dict turn into class."""
+        if set(x) != {"rank", "suit"}:
+            raise NotImplementedError(f"Unrecognised dict {x}")
+        return Card(rank=x["rank"], suit=x["suit"])
+
+    def to_dict(self) -> Dict[str, Union[int, str]]:
+        """Turn into dict."""
+        return dict(rank=self._rank, suit=self._suit)
+
+    @staticmethod
+    def from_dict(x: Dict[str, Union[int, str]]):
+        """From dict turn into class."""
+        if set(x) != {"rank", "suit"}:
+            raise NotImplementedError(f"Unrecognised dict {x}")
+        return Card(rank=x["rank"], suit=x["suit"])
+
