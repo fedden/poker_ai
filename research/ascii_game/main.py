@@ -1,5 +1,6 @@
 import copy
 import random
+import time
 from collections import deque
 from datetime import datetime
 from operator import itemgetter
@@ -245,6 +246,7 @@ with term.cbreak(), term.hidden_cursor():
         else:
             if agent == "random":
                 action = random.choice(state.legal_actions)
+                time.sleep(0.8)
             elif agent == "offline":
                 default_strategy = {
                     action: 1 / len(state.legal_actions)
@@ -256,5 +258,6 @@ with term.cbreak(), term.hidden_cursor():
                 actions = list(this_state_strategy.keys())
                 probabilties = list(this_state_strategy.values())
                 action = np.random.choice(actions, p=probabilties)
+                time.sleep(0.8)
             log.info(f"{current_player_name} chose {action}")
             state: ShortDeckPokerState = state.apply_action(action)
