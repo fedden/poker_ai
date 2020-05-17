@@ -23,6 +23,10 @@ class AsciiLogger:
         self._term = term
         self.height = None
 
+    def clear(self):
+        """"""
+        self._log_queue: deque = deque()
+
     def info(self, *args):
         """"""
         if self.height is None:
@@ -222,6 +226,7 @@ with term.cbreak(), term.hidden_cursor():
                     log.info(term.pink("quit"))
                     break
                 elif action == "new game":
+                    log.clear()
                     log.info(term.green("new game"))
                     if debug_quick_start:
                         state: ShortDeckPokerState = new_game(
