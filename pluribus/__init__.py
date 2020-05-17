@@ -16,4 +16,5 @@ logging.basicConfig(
 from . import ai
 from . import games
 from . import poker
+from . import terminal
 from . import utils
