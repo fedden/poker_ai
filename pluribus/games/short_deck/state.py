@@ -584,8 +584,20 @@ class ShortDeckPokerState:
         # import ipdb;
         # ipdb.set_trace()
         return new_state
-
     # TODO add convenience method to supply public cards
+
+    def get_game_state(self, action_sequence: list):
+        """
+        Follow through the action sequence provided to get current node.
+        :param action_sequence: List of actions without 'skip'
+        """
+        if not action_sequence:
+            return self
+        a = action_sequence.pop(0)
+        if a == "skip":
+            a = action_sequence.pop(0)
+        new_state = self.apply_action(a)
+        return new_state.get_game_state(action_sequence)
 
     def _get_starting_hand(self, player_idx: int):
         """Get starting hand based on probability of reach"""

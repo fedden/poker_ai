@@ -149,7 +149,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             logging.debug(f"Got EV for {a}: {voa[a]}")
             vo += sigma[I][a] * voa[a]
             logging.debug(
-                f"""Added to Node EV for ACTION: {a} INFOSET: {I} 
+                f"""Added to Node EV for ACTION: {a} INFOSET: {I}
                 STRATEGY: {sigma[I][a]}: {sigma[I][a] * voa[a]}"""
             )
         logging.debug(f"Updated EV at {I}: {vo}")
@@ -189,8 +189,6 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         return cfr(agent, new_state, i, t)
 
 
-# this is a decent function for loading up a particular action sequence
-def get_game_state(state: ShortDeckPokerState, action_sequence: list):
     """Follow through the action sequence provided to get current node"""
     if not action_sequence:
         return state
@@ -200,7 +198,6 @@ def get_game_state(state: ShortDeckPokerState, action_sequence: list):
     print(a)
     new_state = state.apply_action(a)
     return get_game_state(new_state, action_sequence)
-
 
 # added some flags for RT
 def new_rt_game(
@@ -215,7 +212,7 @@ def new_rt_game(
     state = ShortDeckPokerState(
         players=players, offline_strategy=offline_strategy, real_time_test=real_time_test, public_cards=public_cards
     )
-    current_game_state = get_game_state(state, action_sequence)
+    current_game_state = state.get_game_state(action_sequence)
     # decided to make this a one time method rather than something that always updates
     # reason being: we won't need it except for a few choice nodes
     current_game_state.update_hole_cards_bayes()
