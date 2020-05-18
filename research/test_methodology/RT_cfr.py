@@ -188,17 +188,6 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfr(agent, new_state, i, t)
 
-
-    """Follow through the action sequence provided to get current node"""
-    if not action_sequence:
-        return state
-    a = action_sequence.pop(0)
-    if a == "skip":
-        a = action_sequence.pop(0)
-    print(a)
-    new_state = state.apply_action(a)
-    return get_game_state(new_state, action_sequence)
-
 # added some flags for RT
 def new_rt_game(
     n_players: int, offline_strategy: Dict, action_sequence, public_cards=[], real_time_test=True
