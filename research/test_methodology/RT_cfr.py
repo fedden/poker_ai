@@ -9,7 +9,7 @@ logging.basicConfig(filename="test.txt", level=logging.DEBUG)
 from tqdm import trange
 
 from pluribus.games.short_deck.state import *
-
+from pluribus.games.short_deck.agent import *
 
 def update_strategy(agent: Agent, state: ShortDeckPokerState, ph_test_node: int):
     """
