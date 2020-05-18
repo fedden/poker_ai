@@ -7,7 +7,6 @@ import logging
 import operator
 import os
 from typing import Any, Dict, List, Optional, Tuple
-import joblib
 from itertools import combinations
 import random
 import time
@@ -37,107 +36,13 @@ def new_game(
     ]
     if info_set_lut:
         # Don't reload massive files, it takes ages.
-        state = ShortDeckPokerState(players=players, load_pickle_files=False, **kwargs)
+        state = ShortDeckPokerState(players=players,
+                                    load_pickle_files=False, **kwargs)
         state.info_set_lut = info_set_lut
     else:
         # Load massive files.
         state = ShortDeckPokerState(players=players, **kwargs)
     return state
-
-
-# TODO: there is probably a better place for agent related items
-class Agent:
-    # TODO(fedden): Note from the supplementary material, the data here will
-    #               need to be lower precision: "To save memory, regrets were
-    #               stored using 4-byte integers rather than 8-byte doubles.
-    #               There was also a ﬂoor on regret at -310,000,000 for every
-    #               action. This made it easier to unprune actions that were
-    #               initially pruned but later improved. This also prevented
-    #               integer overﬂows".
-    def __init__(self):
-        self.strategy = collections.defaultdict(
-            lambda: collections.defaultdict(lambda: 0)
-        )
-        self.regret = collections.defaultdict(
-            lambda: collections.defaultdict(lambda: 0)
-        )
-
-
-# TODO: Change to Leon's newest iteration on this method
-class TrainedAgent(Agent):
-    """
-    Agent who has been trained
-    Points to a folder whose strategies is calculated from regret and then averaged
-    """
-
-    def __init__(self, directory: str):
-        super().__init__()
-        self.offline_strategy = self._load_regret(directory)
-
-    # TODO: the following could use a refactor, just getting through this rather quickly
-    def _calculate_strategy(
-        self,
-        regret: Dict[str, Dict[str, float]],
-        sigma: Dict[int, Dict[str, Dict[str, float]]],
-        I: str,
-    ):
-        """
-        Get strategy from regret
-        """
-        rsum = sum([max(x, 0) for x in regret[I].values()])
-        ACTIONS = regret[I].keys()  # TODO: this is hacky, might be a better way
-        for a in ACTIONS:
-            if rsum > 0:
-                sigma[I][a] = max(regret[I][a], 0) / rsum
-            else:
-                sigma[I][a] = 1 / len(ACTIONS)
-        return sigma
-
-    def _average_strategy(self, directory: str):
-        files = [
-            x
-            for x in os.listdir(directory)
-            if os.path.isfile(os.path.join(directory, x))
-        ]
-
-        offline_strategy = collections.defaultdict(
-            lambda: collections.defaultdict(lambda: 0)
-        )
-        strategy_tmp = collections.defaultdict(
-            lambda: collections.defaultdict(lambda: 0)
-        )
-
-        for idx, f in enumerate(files):
-            if f in ["config.yaml", "strategy.gz"]:
-                continue
-
-            regret_dict = joblib.load(directory + "/" + f)["regret"]
-            sigma = collections.defaultdict(
-                lambda: collections.defaultdict(lambda: 1 / 3)
-            )
-
-            for info_set, regret in sorted(regret_dict.items()):
-                sigma = self._calculate_strategy(regret_dict, sigma, info_set)
-
-            for info_set, strategy in sigma.items():
-                for action, probability in strategy.items():
-                    try:
-                        strategy_tmp[info_set][action] += probability
-                    except KeyError:
-                        strategy_tmp[info_set][action] = probability
-
-        for info_set, strategy in sorted(strategy_tmp.items()):
-            norm = sum(list(strategy.values()))
-            for action, probability in strategy.items():
-                try:
-                    offline_strategy[info_set][action] += probability / norm
-                except KeyError:
-                    offline_strategy[info_set][action] = probability / norm
-
-        return offline_strategy
-
-    def _load_regret(self, directory: str):
-        return self._average_strategy(directory)
 
 
 class ShortDeckPokerState:
@@ -219,7 +124,8 @@ class ShortDeckPokerState:
         for player in self.players:
             player.is_turn = False
         self.current_player.is_turn = True
-        # TODO add attribute of public_cards, that can be supplied by convenience method
+        # TODO add attribute of public_cards, that can be supplied by
+        #   convenience method
         self._public_cards = public_cards
         if public_cards:
             assert len(public_cards) in {3, 4, 5}
@@ -329,11 +235,7 @@ class ShortDeckPokerState:
                 # Now check if the game is terminal.
                 if new_state._betting_stage in {"terminal", "show_down"}:
                     # Distribute winnings.
-                    try:
-                        new_state._poker_engine.compute_winners()
-                    except:
-                        import ipdb;
-                        ipdb.set_trace()
+                    new_state._poker_engine.compute_winners()
                 break
         for player in new_state.players:
             player.is_turn = False
@@ -387,8 +289,8 @@ class ShortDeckPokerState:
             self._betting_stage = "flop"
             self._previous_betting_stage = "pre_flop"
             if len(self._public_cards) >= 3:
-                    community_cards = self._public_cards[:3]
-                    self._poker_engine.table.community_cards += community_cards
+                community_cards = self._public_cards[:3]
+                self._poker_engine.table.community_cards += community_cards
             else:
                 self._poker_engine.table.dealer.deal_flop(self._table)
             self._public_information[
@@ -399,8 +301,8 @@ class ShortDeckPokerState:
             self._betting_stage = "turn"
             self._previous_betting_stage = "flop"
             if len(self._public_cards) >= 4:
-                    community_cards = self._public_cards[3:4]
-                    self._poker_engine.table.community_cards += community_cards
+                community_cards = self._public_cards[3:4]
+                self._poker_engine.table.community_cards += community_cards
             else:
                 self._poker_engine.table.dealer.deal_turn(self._table)
             self._public_information[
@@ -411,8 +313,8 @@ class ShortDeckPokerState:
             self._betting_stage = "river"
             self._previous_betting_stage = "turn"
             if len(self._public_cards) == 5:
-                    community_cards = self._public_cards[4:]
-                    self._poker_engine.table.community_cards += community_cards
+                community_cards = self._public_cards[4:]
+                self._poker_engine.table.community_cards += community_cards
             else:
                 self._poker_engine.table.dealer.deal_river(self._table)
             self._public_information[
@@ -460,7 +362,7 @@ class ShortDeckPokerState:
                         #     betting_stage = betting_round
                         action = self._history[betting_stage][i]
                         while action == 'skip':
-                            i += 1  # should be ok, action sequences don't end in skip
+                            i += 1  # action sequences don't end in skip
                             action = self._history[betting_stage][i]
                         # TODO: maybe a method already exists for this?
                         if betting_stage == "pre_flop":
@@ -499,7 +401,7 @@ class ShortDeckPokerState:
                                     # TODO: is this hacky? problem with defaulting to 1 / 3, is that it
                                     #  doesn't work for calculations that need to be made with the object's values
 
-                                    try: # TODO: with or without keys
+                                    try:  # TODO: with or without keys
                                         prob = self._offline_strategy[infoset][action]
                                     except KeyError:
                                         prob = 1 / len(self.legal_actions)
@@ -523,22 +425,17 @@ class ShortDeckPokerState:
                             else:
                                 public_cards = self._public_information[betting_stage]
                                 public_cards_evals = [c.eval_card for c in public_cards]
-                                try:
-                                    infoset = self._info_set_helper(
-                                        starting_hand,
-                                        public_cards_evals,
-                                        action_sequence,
-                                        betting_stage,
-                                    )
-                                except:
-                                    import ipdb;
-                                    ipdb.set_trace()
+                                infoset = self._info_set_helper(
+                                    starting_hand,
+                                    public_cards_evals,
+                                    action_sequence,
+                                    betting_stage,
+                                )
+                                #  TODO: Check this
                                 try:
                                     prob = self._offline_strategy[infoset][action]
                                 except KeyError:
                                     prob = 1 / len(self.legal_actions)
-                            # import ipdb;
-                            # ipdb.set_trace()
                             if "p_reach" not in locals():
                                 p_reach = prob
                             else:
@@ -581,8 +478,6 @@ class ShortDeckPokerState:
         cards_selected += new_state._public_cards
         for card in cards_selected:
             new_state._table.dealer.deck.remove(card)
-        # import ipdb;
-        # ipdb.set_trace()
         return new_state
     # TODO add convenience method to supply public cards
 
