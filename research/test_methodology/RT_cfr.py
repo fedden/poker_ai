@@ -8,8 +8,10 @@ logging.basicConfig(filename="test.txt", level=logging.DEBUG)
 
 from tqdm import trange
 
+from pluribus import utils
 from pluribus.games.short_deck.state import *
 from pluribus.games.short_deck.agent import *
+
 
 def update_strategy(agent: Agent, state: ShortDeckPokerState, ph_test_node: int):
     """
@@ -37,7 +39,8 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, ph_test_node: int)
         try:
             I = state.info_set
         except:
-            import ipdb;
+            import ipdb
+
             ipdb.set_trace()
         # calculate regret
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
@@ -63,7 +66,7 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, ph_test_node: int)
 
 
 def calculate_strategy(
-        regret: Dict[str, Dict[str, float]], I: str, state: ShortDeckPokerState,
+    regret: Dict[str, Dict[str, float]], I: str, state: ShortDeckPokerState,
 ):
     """
 
@@ -130,7 +133,8 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         try:
             I = state.info_set
         except:
-            import ipdb;
+            import ipdb
+
             ipdb.set_trace()
         # calculate strategy
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[I]}")
@@ -165,7 +169,8 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         try:
             Iph = state.info_set
         except:
-            import ipdb;
+            import ipdb
+
             ipdb.set_trace()
         logging.debug(f"About to Calculate Strategy, Regret: {agent.regret[Iph]}")
         logging.debug(f"Current regret: {agent.regret[Iph]}")
@@ -188,29 +193,10 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfr(agent, new_state, i, t)
 
-# added some flags for RT
-def new_rt_game(
-    n_players: int, offline_strategy: Dict, action_sequence, public_cards=[], real_time_test=True
-) -> ShortDeckPokerState:
-    """Create a new game of short deck poker."""
-    pot = Pot()
-    players = [
-        ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
-        for player_i in range(n_players)
-    ]
-    state = ShortDeckPokerState(
-        players=players, offline_strategy=offline_strategy, real_time_test=real_time_test, public_cards=public_cards
-    )
-    current_game_state = state.get_game_state(action_sequence)
-    # decided to make this a one time method rather than something that always updates
-    # reason being: we won't need it except for a few choice nodes
-    current_game_state.update_hole_cards_bayes()
-    return current_game_state
-
 
 def train(
     offline_strategy: Dict,
-    public_cards,
+    public_cards: list,
     action_sequence: list,
     n_iterations: int,
     lcfr_threshold: int,
@@ -223,7 +209,12 @@ def train(
     utils.random.seed(36)
     agent = Agent()
 
-    current_game_state = new_rt_game(3, offline_strategy, action_sequence, public_cards)
+    state: ShortDeckPokerState = new_game(3, real_time_test=True, public_cards=public_cards)
+    current_game_state: ShortDeckPokerState = state.load_game_state(
+        offline_strategy,
+        action_sequence
+    )
+    del offline_strategy
     ph_test_node = current_game_state.player_i
     for t in trange(1, n_iterations + 1, desc="train iter"):
         print(t)

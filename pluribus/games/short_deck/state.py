@@ -60,7 +60,6 @@ class ShortDeckPokerState:
         pickle_dir: str = ".",
         load_pickle_files: bool = True,
         real_time_test: bool = False,
-        offline_strategy: Dict = None,
         public_cards: List[Card] = []
     ):
         """Initialise state."""
@@ -133,8 +132,6 @@ class ShortDeckPokerState:
         # only want to do these actions in real game play, as they are slow
         if self.real_time_test:
             # must have offline strategy loaded up
-            assert offline_strategy
-            self._offline_strategy = offline_strategy
             self._starting_hand_probs = self._initialize_starting_hands()
             # TODO: We might not need this
             cards_in_deck = self._table.dealer.deck._cards_in_deck
@@ -337,7 +334,7 @@ class ShortDeckPokerState:
             for starting_hand, prob in self._starting_hand_probs[player].items():
                 self._starting_hand_probs[player][starting_hand] = prob / total_prob
 
-    def update_hole_cards_bayes(self):
+    def _update_hole_cards_bayes(self, offline_strategy: Dict):
         """Get probability of reach for each pair of hole cards for each player"""
         n_players = len(self._table.players)
         player_indices: List[int] = [p_i for p_i in range(n_players)]
@@ -402,7 +399,7 @@ class ShortDeckPokerState:
                                     #  doesn't work for calculations that need to be made with the object's values
 
                                     try:  # TODO: with or without keys
-                                        prob = self._offline_strategy[infoset][action]
+                                        prob = offline_strategy[infoset][action]
                                     except KeyError:
                                         prob = 1 / len(self.legal_actions)
                                 prob_reach_all_hands.append(prob)
@@ -433,7 +430,7 @@ class ShortDeckPokerState:
                                 )
                                 #  TODO: Check this
                                 try:
-                                    prob = self._offline_strategy[infoset][action]
+                                    prob = offline_strategy[infoset][action]
                                 except KeyError:
                                     prob = 1 / len(self.legal_actions)
                             if "p_reach" not in locals():
@@ -444,7 +441,6 @@ class ShortDeckPokerState:
                 self._starting_hand_probs[p_i][tuple(starting_hand)] = p_reach
         self._normalize_bayes()
         # TODO: delete this? at least for our purposes we don't need it again
-        del self._offline_strategy
 
     def deal_bayes(self):
         start = time.time()
@@ -481,18 +477,24 @@ class ShortDeckPokerState:
         return new_state
     # TODO add convenience method to supply public cards
 
-    def get_game_state(self, action_sequence: list):
+    def load_game_state(self, offline_strategy: Dict, action_sequence: list):
         """
         Follow through the action sequence provided to get current node.
         :param action_sequence: List of actions without 'skip'
         """
         if not action_sequence:
-            return self
+            # TODO: not 100 percent sure I need to deep copy
+            lut = self.info_set_lut
+            self.info_set_lut = {}
+            new_state = copy.deepcopy(self)
+            new_state.info_set_lut = self.info_set_lut = lut
+            new_state._update_hole_cards_bayes(offline_strategy)
+            return new_state
         a = action_sequence.pop(0)
         if a == "skip":
             a = action_sequence.pop(0)
         new_state = self.apply_action(a)
-        return new_state.get_game_state(action_sequence)
+        return new_state.load_game_state(offline_strategy, action_sequence)
 
     def _get_starting_hand(self, player_idx: int):
         """Get starting hand based on probability of reach"""
