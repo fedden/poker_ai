@@ -11,9 +11,10 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 class UserResults:
     """"""
 
-    def __init__(self, file_path: str = "results.yaml"):
+    def __init__(self):
         """"""
-        self._file_path = file_path
+        save_dir = os.path.expanduser("~/.poker")
+        self._file_path = os.path.join(save_dir, "results.yaml")
         try:
             with open(self._file_path, "r") as stream:
                 self._results: Dict[str, Any] = yaml.safe_load(stream=stream)
