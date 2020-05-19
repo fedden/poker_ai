@@ -14,6 +14,7 @@ class UserResults:
     def __init__(self):
         """"""
         save_dir = os.path.expanduser("~/.poker")
+        os.makedirs(save_dir, exist_ok=True)
         self._file_path = os.path.join(save_dir, "results.yaml")
         try:
             with open(self._file_path, "r") as stream:
