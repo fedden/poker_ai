@@ -2,7 +2,8 @@ import collections
 import glob
 import os
 import re
-from typing import Dict, List, Union
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import Dict, List, Tuple, Union
 
 import click
 import joblib
@@ -35,26 +36,35 @@ def natural_key(text):
     return [try_to_int(c) for c in re.split(r"(\d+)", text)]
 
 
-def average_strategy(all_file_paths: List[str]) -> Dict[str, Dict[str, float]]:
+def _load_regret_from_file(dump_path: str) -> Tuple[Dict[str, Dict[str, float]], str]:
+    try:
+        agent = joblib.load(dump_path)
+    except Exception as e:
+        tqdm.write(f"Failed to load file at {dump_path} because:{e}")
+        agent = {}
+    regret = agent.get("regret", {})
+    return regret, dump_path
+
+
+def average_strategy(
+    all_file_paths: List[str], n_jobs: int = 1
+) -> Dict[str, Dict[str, float]]:
     """Compute the mean strategy over all timesteps."""
     # The offline strategy for all information sets.
     offline_strategy: Dict[str, Dict[str, float]] = collections.defaultdict(
         lambda: collections.defaultdict(lambda: 0.0)
     )
     # Sum up all strategies.
-    for dump_path in tqdm(all_file_paths, desc="loading dumps"):
-        # Load file.
-        try:
-            agent = joblib.load(dump_path)
-        except Exception as e:
-            tqdm.write(f"Failed to load file at {dump_path} because:{e}")
-            agent = {}
-        regret = agent.get("regret", {})
-        # Sum probabilities from computed strategy..
-        for info_set, this_info_sets_regret in sorted(regret.items()):
-            strategy = calculate_strategy(this_info_sets_regret)
-            for action, probability in strategy.items():
-                offline_strategy[info_set][action] += probability
+    tqdm.write("starting regret averaging")
+    with ProcessPoolExecutor(max_workers=n_jobs) as pool:
+        futures = [pool.submit(_load_regret_from_file, f) for f in all_file_paths]
+        for regret, file_path in tqdm(as_completed(futures), total=len(futures)):
+            tqdm.write("loaded regret from: {file_path}")
+            # Sum probabilities from computed strategy..
+            for info_set, this_info_sets_regret in sorted(regret.items()):
+                strategy = calculate_strategy(this_info_sets_regret)
+                for action, probability in strategy.items():
+                    offline_strategy[info_set][action] += probability
     # Normalise summed probabilities.
     for info_set, this_info_sets_strategy in offline_strategy.items():
         norm = sum(this_info_sets_strategy.values())
@@ -71,7 +81,8 @@ def average_strategy(all_file_paths: List[str]) -> Dict[str, Dict[str, float]]:
 @click.option(
     "--write_dir_path", default=".", help="where to save the offline strategy"
 )
-def cli(results_dir_path: str, write_dir_path: str):
+@click.option("--n_jobs", default=1, help="How many parallel processes to read files")
+def cli(results_dir_path: str, write_dir_path: str, n_jobs: int):
     """Compute the strategy and write to file."""
     # Find all files to load.
     all_file_paths = glob.glob(os.path.join(results_dir_path, "agent*.gz"))
@@ -79,7 +90,7 @@ def cli(results_dir_path: str, write_dir_path: str):
         raise ValueError(f"No agent dumps could be found at: {results_dir_path}")
     # Sort the file paths in the order they were created.
     all_file_paths = sorted(all_file_paths, key=natural_key)
-    offline_strategy = average_strategy(all_file_paths)
+    offline_strategy = average_strategy(all_file_paths, n_jobs)
     # Save dictionary to compressed file.
     latest_file = os.path.basename(all_file_paths[-1])
     latest_iteration: int = int(re.findall(r"\d+", latest_file)[0])
