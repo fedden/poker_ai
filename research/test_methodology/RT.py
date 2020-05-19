@@ -21,8 +21,7 @@ if __name__ == "__main__":
     agent_output = train(
         agent1.offline_strategy, public_cards, action_sequence, 40, 6, 6, 3, 2, 6
     )  # TODO: back to 50
-    with open("realtime-strategy-refactor-game-state.pkl", "wb") as file:
+    with open("realtime-strategy-refactor-deck.pkl", "wb") as file:
         pickle.dump(agent_output, file)
     import ipdb
-
     ipdb.set_trace()

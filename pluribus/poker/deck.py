@@ -64,10 +64,6 @@ class Deck:
 
     def remove(self, card):
         """Remove a specific card from the deck"""
-        # TODO: is there any reason for them to be?
-        #  Maybe better to assert it's not
-        c = card.eval_card
-        cards_in_deck = [x.eval_card for x in self._cards_in_deck]
-        if c in cards_in_deck:
-            index = cards_in_deck.index(c)
-            self._dealt_cards.append(self._cards_in_deck.pop(index))
+        if card in self._cards_in_deck:
+            self._cards_in_deck.remove(card)
+            self._dealt_cards.append(card)

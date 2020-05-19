@@ -74,6 +74,9 @@ class Card:
     def __ne__(self, other):
         return int(self) != int(other)
 
+    def __hash__(self):
+        return hash(int(self))
+
     @property
     def eval_card(self) -> EvaluationCard:
         """Return an `EvaluationCard` for use in the `Evaluator`."""
@@ -178,4 +181,3 @@ class Card:
         if set(x) != {"rank", "suit"}:
             raise NotImplementedError(f"Unrecognised dict {x}")
         return Card(rank=x["rank"], suit=x["suit"])
-
