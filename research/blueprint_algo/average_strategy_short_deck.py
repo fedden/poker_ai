@@ -19,7 +19,12 @@ def calculate_strategy(this_info_sets_regret: Dict[str, float]) -> Dict[str, flo
             action: max(this_info_sets_regret[action], 0) / regret_sum
             for action in actions
         }
-    else:
+    elif this_info_sets_regret == {}:
+        # Don't return strategy if no strategy was made
+        # during training
+        strategy: Dict[str, float] = {}
+    elif regret_sum == 0:
+        # Regret is negative, we learned something
         default_probability = 1 / len(actions)
         strategy: Dict[str, float] = {action: default_probability for action in actions}
     return strategy
@@ -53,6 +58,7 @@ def average_strategy(all_file_paths: List[str]) -> Dict[str, Dict[str, float]]:
         # Sum probabilities from computed strategy..
         for info_set, this_info_sets_regret in sorted(regret.items()):
             strategy = calculate_strategy(this_info_sets_regret)
+            # If strategy == {}, we do nothing
             for action, probability in strategy.items():
                 offline_strategy[info_set][action] += probability
     # Normalise summed probabilities.
@@ -74,7 +80,7 @@ def average_strategy(all_file_paths: List[str]) -> Dict[str, Dict[str, float]]:
 def cli(results_dir_path: str, write_dir_path: str):
     """Compute the strategy and write to file."""
     # Find all files to load.
-    all_file_paths = glob.glob(os.path.join(results_dir_path, "agent*.gz"))
+    all_file_paths = glob.glob(os.path.join(results_dir_path, "*_*"))
     if not all_file_paths:
         raise ValueError(f"No agent dumps could be found at: {results_dir_path}")
     # Sort the file paths in the order they were created.
