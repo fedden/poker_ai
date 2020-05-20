@@ -80,7 +80,7 @@ def average_strategy(all_file_paths: List[str]) -> Dict[str, Dict[str, float]]:
 def cli(results_dir_path: str, write_dir_path: str):
     """Compute the strategy and write to file."""
     # Find all files to load.
-    all_file_paths = glob.glob(os.path.join(results_dir_path, "*_*"))
+    all_file_paths = glob.glob(os.path.join(results_dir_path, "*.gz"))
     if not all_file_paths:
         raise ValueError(f"No agent dumps could be found at: {results_dir_path}")
     # Sort the file paths in the order they were created.
