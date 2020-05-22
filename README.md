@@ -99,6 +99,7 @@ python -m pluribus.terminal.runner       \
   --agent offline                        \ 
   --pickle_dir ./research/blueprint_algo \
   --strategy_path ./research/blueprint_algo/offline_strategy_285800.gz 
+  --debug_quick_start
 ```
 
 ### Web visualisation code
