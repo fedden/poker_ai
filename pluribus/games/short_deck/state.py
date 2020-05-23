@@ -387,7 +387,7 @@ class ShortDeckPokerState:
                 self._starting_hand_probs[p_i][starting_hand] = prob / total_prob
 
     def _update_hole_cards_bayes(self, offline_strategy: Dict[str, Dict[str,
-                                 float]]):
+        float]]):
         """Get probability of reach for each starting hand for each player"""
         n_players = len(self._table.players)
         player_indices: List[int] = [p_i for p_i in range(n_players)]
@@ -453,6 +453,9 @@ class ShortDeckPokerState:
 
                                     try:  # TODO: with or without keys
                                         prob = offline_strategy[infoset][action]
+                                        # Normalizing since offline_stregy is not
+                                        prob /= sum(offline_strategy[infoset]\
+                                                        .values())
                                     except KeyError:
                                         prob = 1 / len(self.legal_actions)
                                 prob_reach_all_hands.append(prob)
@@ -483,6 +486,9 @@ class ShortDeckPokerState:
                                 #  TODO: Check this
                                 try:
                                     total_prob = offline_strategy[infoset][action]
+                                    # Normalizing since offline_stregy is not
+                                    total_prob /= sum(offline_strategy[infoset]\
+                                                        .values())
                                 except KeyError:
                                     total_prob = 1 / len(self.legal_actions)
                             if "p_reach" not in locals():

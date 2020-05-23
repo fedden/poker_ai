@@ -12,13 +12,30 @@ class Agent:
     #               action. This made it easier to unprune actions that were
     #               initially pruned but later improved. This also prevented
     #               integer overﬂows".
-    def __init__(self):
+    def __init__(self, regret_dir=None):
         self.strategy = collections.defaultdict(
             lambda: collections.defaultdict(lambda: 0)
         )
-        self.regret = collections.defaultdict(
+        if regret_dir:
+            offline_strategy = joblib.load(regret_dir)
+            self.regret = collections.defaultdict(
+                lambda: collections.defaultdict(lambda: 0),
+                offline_strategy['regret']
+            )
+        else:
+            self.regret = collections.defaultdict(
+                lambda: collections.defaultdict(lambda: 0)
+            )
+        self.tmp_regret = collections.defaultdict(
             lambda: collections.defaultdict(lambda: 0)
         )
+
+        def reset_new_regret(self):
+            """Remove regret from temporary storage"""
+            del self.tmp_regret
+            self.tmp_regret = collections.defaultdict(
+                lambda: collections.defaultdict(lambda: 0)
+            )
 
 
 # TODO: Change to Leon's newest iteration on this method
