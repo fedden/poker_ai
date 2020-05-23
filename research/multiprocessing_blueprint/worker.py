@@ -47,7 +47,7 @@ class Worker(mp.Process):
         self._discount_interval = discount_interval
         self._update_threshold = update_threshold
         self._dump_iteration = dump_iteration
-        self._save_path = save_path
+        self._save_path = Path(save_path)
         self._info_set_lut: state.InfoSetLookupTable = info_set_lut
         self._setup_new_game()
 
