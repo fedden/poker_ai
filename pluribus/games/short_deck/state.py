@@ -163,7 +163,6 @@ class ShortDeckPokerState:
         new_state.info_set_lut = self.info_set_lut = lut
         # An action has been made, so alas we are not in the first move of the
         # current betting round.
-        # new_state._first_move_of_current_round = False
         if action_str is None:
             # Assert active player has folded already.
             assert (
@@ -207,7 +206,6 @@ class ShortDeckPokerState:
                 # stage of the game.
                 new_state._increment_stage()
                 new_state._reset_betting_round_state()
-                # new_state._first_move_of_current_round = True
             if not new_state.current_player.is_active:
                 new_state._skip_counter += 1
                 assert not new_state.current_player.is_active
@@ -234,7 +232,7 @@ class ShortDeckPokerState:
         :param action_sequence: List of actions without 'skip'
         """
         if not action_sequence:
-            # TODO: not 100 percent sure I need to deep copy
+            # TODO: Not sure if I need to deepcopy
             lut = self.info_set_lut
             self.info_set_lut = {}
             new_state = copy.deepcopy(self)
@@ -248,7 +246,7 @@ class ShortDeckPokerState:
         return new_state.load_game_state(offline_strategy, action_sequence)
 
     def deal_bayes(self):
-        # TODO: Not sure if I need this yet
+        # TODO: Not sure if I need to deepcopy
         lut = self.info_set_lut
         self.info_set_lut = {}
         new_state = copy.deepcopy(self)
@@ -256,7 +254,7 @@ class ShortDeckPokerState:
         players = list(range(len(self.players)))
         random.shuffle(players)
         cards_selected = []
-        # TODO: this might be made better by selecting the first player's
+        # TODO: This would be better by selecting the first player's
         # cards, then normalizing the second and third, etc..
         for p_i in players:
             starting_hand = new_state._get_starting_hand(p_i)
@@ -373,7 +371,6 @@ class ShortDeckPokerState:
                 ] = 1
         return starting_hand_probs
 
-
     def _get_card_combos(self, num_cards) -> List[Tuple[Any, ...]]:
         """Get combinations of cards"""
         return list(combinations(self.cards_in_deck, num_cards))
@@ -387,17 +384,17 @@ class ShortDeckPokerState:
                 self._starting_hand_probs[p_i][starting_hand] = prob / total_prob
 
     def _update_hole_cards_bayes(self, offline_strategy: Dict[str, Dict[str,
-        float]]):
+                                 float]]):
         """Get probability of reach for each starting hand for each player"""
         n_players = len(self._table.players)
         player_indices: List[int] = [p_i for p_i in range(n_players)]
         for p_i in player_indices:
-            # TODO: might make since to put starting hands in the deck class
+            # TODO: Might make since to put starting hands in the deck class
             for starting_hand in self._starting_hand_probs[p_i].keys():
                 starting_hand = list(
                     starting_hand
                 )
-                # TODO: is this bad?
+                # TODO: Is this bad?
                 if "p_reach" in locals():
                     del p_reach
                 action_sequence: Dict[str, List[str]] = collections.defaultdict(list)
@@ -406,9 +403,9 @@ class ShortDeckPokerState:
                     for i in range(n_actions_round):
                         action = self._history[betting_stage][i]
                         while action == 'skip':
-                            i += 1  # action sequences don't end in skip
+                            i += 1  # Action sequences don't end in skip
                             action = self._history[betting_stage][i]
-                        # TODO: maybe a method already exists for this?
+                        # TODO: Maybe a method already exists for this?
                         if betting_stage == "pre_flop":
                             ph = (i + 2) % n_players
                         else:
@@ -444,16 +441,15 @@ class ShortDeckPokerState:
                                         history=action_sequence,
                                         this_betting_stage=betting_stage,
                                     )
-                                    # check to see if the strategy exists,
+                                    # Check to see if the strategy exists,
                                     #    if not equal probability
                                     # TODO: is this overly hacky?
                                     # Problem with defaulting to 1 / 3, is that it
                                     #    it doesn't work for calculations that
                                     #    need to be made with the object's values
-
-                                    try:  # TODO: with or without keys
+                                    try:
                                         prob = offline_strategy[infoset][action]
-                                        # Normalizing since offline_stregy is not
+                                        # Normalizing unnormalized offline_stregy
                                         prob /= sum(offline_strategy[infoset]\
                                                         .values())
                                     except KeyError:
@@ -483,10 +479,9 @@ class ShortDeckPokerState:
                                     history=action_sequence,
                                     this_betting_stage=betting_stage,
                                 )
-                                #  TODO: Check this
                                 try:
                                     total_prob = offline_strategy[infoset][action]
-                                    # Normalizing since offline_stregy is not
+                                    # Normalizing unnormalized offline_stregy
                                     total_prob /= sum(offline_strategy[infoset]\
                                                         .values())
                                 except KeyError:
@@ -502,7 +497,6 @@ class ShortDeckPokerState:
     def _get_starting_hand(self, player_idx: int) -> List[Card]:
         """Get starting hand based on probability of reach"""
         starting_hands = list(self._starting_hand_probs[player_idx].keys())
-        # hacky for using tuples as keys
         starting_hands_idxs = list(range(len(starting_hands)))
         starting_hands_probs = list(self._starting_hand_probs[
             player_idx

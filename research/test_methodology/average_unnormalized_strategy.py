@@ -11,7 +11,6 @@ from tqdm import tqdm
 
 def calculate_strategy(this_info_sets_regret: Dict[str, float]) -> Dict[str, float]:
     """Calculate the strategy based on the current information sets regret."""
-    # TODO: Could we instanciate a state object from an info set?
     actions = this_info_sets_regret.keys()
     regret_sum = sum([max(regret, 0) for regret in this_info_sets_regret.values()])
     if regret_sum > 0:
