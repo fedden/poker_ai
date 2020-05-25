@@ -127,7 +127,7 @@ def rts(
         offline_strategy, action_sequence
     )
     # We don't need the offline strategy for search..
-    del offline_strategy
+    # del offline_strategy
     for t in trange(1, n_iterations + 1, desc="train iter"):
         print(t)
         for i in range(n_players):  # fixed position i
@@ -139,20 +139,28 @@ def rts(
             for I in agent.tmp_regret.keys():
                 for a in agent.tmp_regret[I].keys():
                     agent.tmp_regret[I][a] *= d
+        # Add the unnormalized strategy into the original
+        # Right now assumes dump_int is a multiple of n_iterations
+        if t % dump_int == 0:
+            # offline_strategy = joblib.load(offline_strategy_path)
+            # Adding the regret back to the regret dict, we'll build off for next RTS
+            for I in agent.tmp_regret.keys():
+                if agent.tmp_regret != {}:
+                    agent.regret[I] = agent.tmp_regret[I].copy()
+            for info_set, this_info_sets_regret in sorted(agent.tmp_regret.items()):
+                # If this_info_sets_regret == {}, we do nothing
+                strategy = normalize_strategy(this_info_sets_regret)
+                # Check if info_set exists..
+                no_info_set = info_set not in offline_strategy
+                if no_info_set or offline_strategy[info_set] == {}:
+                    offline_strategy[info_set] = {a: 0 for a in strategy.keys()}
+                for action, probability in strategy.items():
+                    try:
+                        offline_strategy[info_set][action] += probability
+                    except:
+                        import ipdb;
+                        ipdb.set_trace()
+            agent.reset_new_regret()
 
-    offline_strategy = joblib.load(offline_strategy_path)
-    # Adding the regret back to the regret dict, we'll build off for next RTS
-    for I in agent.tmp_regret.keys():
-        if agent.tmp_regret != {}:
-            agent.regret[I] = agent.tmp_regret[I].copy()
 
-    # Add the unnormalized strategy into the original
-    for info_set, this_info_sets_regret in sorted(agent.tmp_regret.items()):
-        # If this_info_sets_regret == {}, we do nothing
-        strategy = normalize_strategy(this_info_sets_regret)
-        # Check if info_set exists..
-        if info_set not in offline_strategy:
-            offline_strategy[info_set] = {a: 0 for a in strategy.keys()}
-        for action, probability in strategy.items():
-            offline_strategy[info_set][action] += t / dump_int * probability
     return agent, offline_strategy

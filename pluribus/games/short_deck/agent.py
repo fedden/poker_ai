@@ -21,9 +21,9 @@ class Agent:
             lambda: collections.defaultdict(lambda: 0)
         )
 
-        def reset_new_regret(self):
-            """Remove regret from temporary storage"""
-            del self.tmp_regret
-            self.tmp_regret = collections.defaultdict(
-                lambda: collections.defaultdict(lambda: 0)
-            )
+    def reset_new_regret(self):
+        """Remove regret from temporary storage"""
+        del self.tmp_regret
+        self.tmp_regret = collections.defaultdict(
+            lambda: collections.defaultdict(lambda: 0)
+        )
