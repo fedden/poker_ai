@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import logging
 import collections
 from typing import Dict
 import joblib
+from pathlib import Path
 
 from tqdm import trange
 import numpy as np
+import datetime
+import yaml
 
 from pluribus import utils
 from pluribus.games.short_deck.state import ShortDeckPokerState, new_game
@@ -51,6 +53,16 @@ def calculate_strategy(
     return sigma
 
 
+def _create_dir(folder_id: str) -> Path:
+    """Create and get a unique dir path to save to using a timestamp."""
+    time = str(datetime.datetime.now())
+    for char in ":- .":
+        time = time.replace(char, "_")
+    path: Path = Path(f"./{folder_id}_results_{time}")
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
     """
     CFR algo with the a temporary regret object for better strategy averaging
@@ -90,6 +102,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             a = np.random.choice(
                 list(sigma[Iph].keys()), 1, p=list(sigma[Iph].values()),
             )[0]
+
         except KeyError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
@@ -114,8 +127,12 @@ def rts(
     dump_int: int,
 ):
     """RTS."""
+    config: Dict[str, int] = {**locals()}
+    save_path: Path = _create_dir('RTS')
+    with open(save_path / "config.yaml", "w") as steam:
+        yaml.dump(config, steam)
     # TODO: fix the seed
-    utils.random.seed(36)
+    # utils.random.seed(36)
     agent = Agent(regret_path=regret_path)
     # Load unnormalized strategy to build off
     offline_strategy = joblib.load(offline_strategy_path)
@@ -129,7 +146,6 @@ def rts(
     # We don't need the offline strategy for search..
     # del offline_strategy
     for t in trange(1, n_iterations + 1, desc="train iter"):
-        print(t)
         for i in range(n_players):  # fixed position i
             # Deal hole cards based on bayesian updating of hole card probs
             state: ShortDeckPokerState = current_game_state.deal_bayes()
@@ -161,6 +177,5 @@ def rts(
                         import ipdb;
                         ipdb.set_trace()
             agent.reset_new_regret()
-
 
     return agent, offline_strategy

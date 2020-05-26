@@ -19,9 +19,6 @@ def _calculate_strategy(
         strategy: DefaultDict[str, DefaultDict[str, float]]
 ) -> str:
     sigma = collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
-    import ipdb;
-    ipdb.set_trace()
-
     try:
         # If strategy is empty, go to other block
         if sigma[I] == {}:
@@ -41,12 +38,12 @@ def _calculate_strategy(
     return a
 
 
-def _create_dir() -> Path:
+def _create_dir(folder_id: str) -> Path:
     """Create and get a unique dir path to save to using a timestamp."""
     time = str(datetime.datetime.now())
     for char in ":- .":
         time = time.replace(char, "_")
-    path: Path = Path(f"./results_{time}")
+    path: Path = Path(f"./{folder_id}_results_{time}")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -62,7 +59,7 @@ def agent_test(
     n_players: int = 3,
 ):
     config: Dict[str, int] = {**locals()}
-    save_path: Path = _create_dir()
+    save_path: Path = _create_dir('bt')
     with open(save_path / "config.yaml", "w") as steam:
         yaml.dump(config, steam)
 
@@ -85,7 +82,7 @@ def agent_test(
     # should be used with caution. It will work only if the probability of reach
     # is identical across strategies. Use the average strategy.
 
-    # Load current game state, either strategy should be identical for this
+    info_set_lut = {}
     EVs = np.array([])
     for _ in trange(1, n_outter_iters):
         EV = np.array([])  # Expected value for player 0 (hero)
@@ -95,7 +92,8 @@ def agent_test(
                     # Deal hole cards based on bayesian updating of hole card probs
                     state: ShortDeckPokerState = current_game_state.deal_bayes()
                 else:
-                    state: ShortDeckPokerState = new_game(n_players)
+                    state: ShortDeckPokerState = new_game(n_players, info_set_lut)
+                    info_set_lut = state.info_set_lut
                 while True:
                     player_not_in_hand = not state.players[p_i].is_active
                     if state.is_terminal or player_not_in_hand:
@@ -120,20 +118,22 @@ def agent_test(
     results_dict = {
         'Expected Value': float(EVs.mean()),
         'T Statistic': float(t_stat),
-        'P Value': float(p_val)
+        'P Value': float(p_val),
+        'Standard Deviation': float(EVs.std()),
+        'N': int(len(EVs))
     }
     with open(save_path / 'results.yaml', "w") as stream:
         yaml.safe_dump(results_dict, stream=stream, default_flow_style=False)
 
 
 if __name__ == "__main__":
-    strat_path = "test_strategy/unnormalized_output/"
+    strat_path = "test_strategy2/unnormalized_output/"
     agent_test(
-        hero_strategy_path=strat_path + "rts_output.gz",
-        opponent_strategy_path=strat_path + "offline_strategy_100.gz",
-        real_time_est=True,
-        public_cards=[Card("ace", "spades"), Card("queen", "spades"),
-                      Card("queen", "hearts")],
-        action_sequence=["raise", "call", "call", "call", "call"],
-        n_inner_iters=100
+        hero_strategy_path=strat_path + "offline_strategy_1500.gz",
+        opponent_strategy_path=strat_path + "random_strategy.gz",
+        real_time_est=False,
+        public_cards=[],
+        action_sequence=None,
+        n_inner_iters=25,
+        n_outter_iters=50,
     )
