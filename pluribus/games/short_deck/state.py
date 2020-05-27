@@ -126,6 +126,7 @@ class ShortDeckPokerState:
         if public_cards:
             assert len(public_cards) in {3, 4, 5}
         self._public_cards = public_cards
+        self._final_action = None
         # only want to do these actions in real game play, as they are slow
         if self.real_time_test:
             # must have offline strategy loaded up
@@ -231,27 +232,29 @@ class ShortDeckPokerState:
         Follow through the action sequence provided to get current node.
         :param action_sequence: List of actions without 'skip'
         """
-        if not action_sequence:
+        if 'skip' in set(action_sequence):
+            action_sequence = [a for a in action_sequence if a != 'skip']
+        if len(action_sequence) == 1:
             # TODO: Not sure if I need to deepcopy
             lut = self.info_set_lut
             self.info_set_lut = {}
             new_state = copy.deepcopy(self)
             new_state.info_set_lut = self.info_set_lut = lut
+            new_state._final_action = action_sequence.pop(0)
             new_state._update_hole_cards_bayes(offline_strategy)
             return new_state
         a = action_sequence.pop(0)
-        if a == "skip":
-            a = action_sequence.pop(0)
         new_state = self.apply_action(a)
         return new_state.load_game_state(offline_strategy, action_sequence)
 
     def deal_bayes(self):
-        # TODO: Not sure if I need to deepcopy
+        # Deep copy the parts of state that are needed that must be immutable
+        # from state to state.
         lut = self.info_set_lut
         self.info_set_lut = {}
         new_state = copy.deepcopy(self)
         new_state.info_set_lut = self.info_set_lut = lut
-        players = list(range(len(self.players)))
+        players = list(range(len(new_state.players)))
         random.shuffle(players)
         cards_selected = []
         # TODO: This would be better by selecting the first player's
@@ -272,7 +275,9 @@ class ShortDeckPokerState:
         cards_selected += new_state._public_cards
         for card in cards_selected:
             new_state._table.dealer.deck.remove(card)
-        return new_state
+        final_action = new_state._final_action
+        newest_state = new_state.apply_action(final_action)
+        return newest_state
 
     @staticmethod
     def load_pickle_files(pickle_dir: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
@@ -386,6 +391,7 @@ class ShortDeckPokerState:
     def _update_hole_cards_bayes(self, offline_strategy: Dict[str, Dict[str,
                                  float]]):
         """Get probability of reach for each starting hand for each player"""
+        assert self._history
         n_players = len(self._table.players)
         player_indices: List[int] = [p_i for p_i in range(n_players)]
         for p_i in player_indices:
