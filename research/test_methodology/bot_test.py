@@ -12,18 +12,19 @@ from scipy import stats
 from pluribus.games.short_deck.state import ShortDeckPokerState, new_game
 from pluribus.poker.card import Card
 
-
 def _calculate_strategy(
         state: ShortDeckPokerState,
         I: str,
-        strategy: DefaultDict[str, DefaultDict[str, float]]
+        strategy: DefaultDict[str, DefaultDict[str, float]],
+        count=None,
+        total_count=None
 ) -> str:
     sigma = collections.defaultdict(lambda: collections.defaultdict(lambda: 1 / 3))
     try:
         # If strategy is empty, go to other block
+        sigma[I] = strategy[I].copy()
         if sigma[I] == {}:
             raise KeyError
-        sigma[I] = strategy[I].copy()
         norm = sum(sigma[I].values())
         for a in sigma[I].keys():
             sigma[I][a] /= norm
@@ -31,11 +32,15 @@ def _calculate_strategy(
             list(sigma[I].keys()), 1, p=list(sigma[I].values()),
         )[0]
     except KeyError:
+        if count is not None:
+            count += 1
         p = 1 / len(state.legal_actions)
         probabilities = np.full(len(state.legal_actions), p)
         a = np.random.choice(state.legal_actions, p=probabilities)
         sigma[I] = {action: p for action in state.legal_actions}
-    return a
+    if total_count is not None:
+        total_count += 1
+    return a, count, total_count
 
 
 def _create_dir(folder_id: str) -> Path:
@@ -57,6 +62,8 @@ def agent_test(
     n_outter_iters: int = 30,
     n_inner_iters: int = 100,
     n_players: int = 3,
+    hero_count=None,
+    hero_total_count=None,
 ):
     config: Dict[str, int] = {**locals()}
     save_path: Path = _create_dir('bt')
@@ -100,13 +107,15 @@ def agent_test(
                         EV = np.append(EV, state.payout[p_i])
                         break
                     if state.player_i == p_i:
-                        random_action: str = _calculate_strategy(
+                        random_action, hero_count, hero_total_count = _calculate_strategy(
                             state,
                             state.info_set,
                             hero_strategy,
+                            count=hero_count,
+                            total_count=hero_total_count
                         )
                     else:
-                        random_action: str = _calculate_strategy(
+                        random_action, oc, otc = _calculate_strategy(
                             state,
                             state.info_set,
                             opponent_strategy,
@@ -120,7 +129,9 @@ def agent_test(
         'T Statistic': float(t_stat),
         'P Value': float(p_val),
         'Standard Deviation': float(EVs.std()),
-        'N': int(len(EVs))
+        'N': int(len(EVs)),
+        'Random Moves Hero': hero_count,
+        'Total Moves Hero': hero_total_count
     }
     with open(save_path / 'results.yaml', "w") as stream:
         yaml.safe_dump(results_dict, stream=stream, default_flow_style=False)
@@ -129,11 +140,13 @@ def agent_test(
 if __name__ == "__main__":
     strat_path = "test_strategy2/unnormalized_output/"
     agent_test(
-        hero_strategy_path=strat_path + "offline_strategy_1500.gz",
-        opponent_strategy_path=strat_path + "random_strategy.gz",
+        hero_strategy_path=strat_path + "random_strategy.gz",
+        opponent_strategy_path=strat_path + "offline_strategy_1500.gz",
         real_time_est=False,
         public_cards=[],
         action_sequence=None,
         n_inner_iters=25,
-        n_outter_iters=50,
+        n_outter_iters=75,
+        hero_count=0,
+        hero_total_count=0
     )
