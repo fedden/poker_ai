@@ -3,10 +3,10 @@
 CLI Use
 -------
 
-Below you can run `python main.py --help` to get the following description of
+Below you can run `python runner.py --help` to get the following description of
 the two commands available in the CLI, `resume` and `search`:
 ```
-Usage: main.py [OPTIONS] COMMAND [ARGS]...
+Usage: runner.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --help  Show this message and exit.
@@ -17,10 +17,10 @@ Commands:
 ```
 
 More information on the `search` command can be obtained by running the command
-`python main.py search --help`. This will then return the following args that
+`python runner.py search --help`. This will then return the following args that
 can be set to guide the agent:
 ```
-Usage: main.py search [OPTIONS]
+Usage: runner.py search [OPTIONS]
 
   Train agent from scratch.
 
@@ -82,7 +82,7 @@ import yaml
 from pluribus import utils
 from server import Server
 
-log = logging.getLogger("sync.main")
+log = logging.getLogger("poker_ai.ai.runner")
 
 
 def _safe_search(server: Server):
