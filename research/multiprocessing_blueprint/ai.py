@@ -11,6 +11,22 @@ from pluribus.games.short_deck.state import ShortDeckPokerState
 log = logging.getLogger("sync.ai")
 
 
+def calculate_strategy(this_info_sets_regret: Dict[str, float]) -> Dict[str, float]:
+    """Calculate the strategy based on the current information sets regret."""
+    # TODO: Could we instanciate a state object from an info set?
+    actions = this_info_sets_regret.keys()
+    regret_sum = sum([max(regret, 0) for regret in this_info_sets_regret.values()])
+    if regret_sum > 0:
+        strategy: Dict[str, float] = {
+            action: max(this_info_sets_regret[action], 0) / regret_sum
+            for action in actions
+        }
+    else:
+        default_probability = 1 / len(actions)
+        strategy: Dict[str, float] = {action: default_probability for action in actions}
+    return strategy
+
+
 def update_strategy(
     agent: Agent,
     state: ShortDeckPokerState,
@@ -26,24 +42,6 @@ def update_strategy(
     :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
         actions is what allows the algorithm to build up preference for one action over another in a given spot
     """
-    log.debug("UPDATE STRATEGY")
-    log.debug("########")
-
-    log.debug(f"Iteration: {t}")
-    log.debug(f"Player Set to Update Regret: {i}")
-    log.debug(f"P(h): {state.player_i}")
-    log.debug(f"P(h) Updating Regret? {state.player_i == i}")
-    log.debug(f"Betting Round {state._betting_stage}")
-    log.debug(f"Community Cards {state._table.community_cards}")
-    log.debug(f"Player 0 hole cards: {state.players[0].cards}")
-    log.debug(f"Player 1 hole cards: {state.players[1].cards}")
-    log.debug(f"Player 2 hole cards: {state.players[2].cards}")
-    try:
-        log.debug(f"I(h): {state.info_set}")
-    except KeyError:
-        pass
-    log.debug(f"Betting Action Correct?: {state.players}")
-
     ph = state.player_i  # this is always the case no matter what i is
 
     player_not_in_hand = not state.players[i].is_active
@@ -61,21 +59,21 @@ def update_strategy(
     #   update_strategy(rs, h + a, i, t)
 
     elif ph == i:
-        I = state.info_set
         # calculate regret
-        sigma = calculate_strategy(agent.regret, state)
-        log.debug(f"Calculated Strategy for {I}: {sigma}")
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
+        sigma = calculate_strategy(this_info_sets_regret)
+        log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
         # choose an action based of sigma
-        available_actions: List[str] = list(sigma.keys())
-        action_probabilities: List[float] = list(sigma.values())
+        available_actions: List[str] = sigma["actions"]
+        action_probabilities: np.ndarray = sigma["probabilities"]
         action: str = np.random.choice(available_actions, p=action_probabilities)
         log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         # Increment the action counter.
         locks["strategy"].acquire()
-        this_states_strategy = agent.strategy.get(I, state.initial_strategy)
+        this_states_strategy = agent.strategy.get(state.info_set, state.initial_strategy)
         this_states_strategy[action] += 1
         # Update the master strategy by assigning.
-        agent.strategy[I] = this_states_strategy
+        agent.strategy[state.info_set] = this_states_strategy
         locks["strategy"].release()
         new_state: ShortDeckPokerState = state.apply_action(action)
         update_strategy(agent, new_state, i, t, locks)
@@ -85,34 +83,6 @@ def update_strategy(
             log.debug(f"Going to Traverse {action} for opponent")
             new_state: ShortDeckPokerState = state.apply_action(action)
             update_strategy(agent, new_state, i, t, locks)
-
-
-def calculate_strategy(
-    regret: Dict[str, Dict[str, float]], state: ShortDeckPokerState,
-) -> Dict[str, float]:
-    """
-
-    :param regret: dictionary of regrets, I is key, then each action at I, with values being regret
-    :param state: the game state
-    :return: doesn't return anything, just updates sigma
-    """
-    default_probability = 1 / len(state.legal_actions)
-    sigma: Dict[str, float] = dict()
-    # We don't make use of default dicts anymore, so prepare a dictionary
-    # describing uniform regret of zero for all legal actions for this state.
-    this_states_regret = regret.get(state.info_set, state.initial_regret)
-    regret_sum = sum([max(r, 0) for r in this_states_regret.values()])
-    # Previously we were adding if/else inside the loop. Not a big issue but we
-    # call this method so many times so wanted to optimise this a little...
-    # Now we branch once and loop, rather than loop and branch many times.
-    if regret_sum > 0:
-        sigma = {
-            action: max(this_states_regret[action], 0) / regret_sum
-            for action in state.legal_actions
-        }
-    else:
-        sigma = {action: default_probability for action in state.legal_actions}
-    return sigma
 
 
 def cfr(
@@ -169,10 +139,10 @@ def cfr(
     #   cfr()
 
     elif ph == i:
-        I = state.info_set
         # calculate strategy
-        sigma = calculate_strategy(agent.regret, state)
-        log.debug(f"Calculated Strategy for {I}: {sigma}")
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
+        sigma = calculate_strategy(this_info_sets_regret)
+        log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
 
         vo = 0.0
         voa: Dict[str, float] = {}
@@ -185,22 +155,22 @@ def cfr(
             log.debug(f"Got EV for {action}: {voa[action]}")
             vo += sigma[action] * voa[action]
             log.debug(
-                f"Added to Node EV for ACTION: {action} INFOSET: {I}\n"
+                f"Added to Node EV for ACTION: {action} INFOSET: {state.info_set}\n"
                 f"STRATEGY: {sigma[action]}: {sigma[action] * voa[action]}"
             )
-        log.debug(f"Updated EV at {I}: {vo}")
+        log.debug(f"Updated EV at {state.info_set}: {vo}")
         locks["regret"].acquire()
-        this_states_regret = agent.regret.get(I, state.initial_regret)
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
         for action in state.legal_actions:
-            this_states_regret[action] += voa[action] - vo
+            this_info_sets_regret[action] += voa[action] - vo
         # Assign regret back to the shared memory.
-        agent.regret[I] = this_states_regret
+        agent.regret[state.info_set] = this_info_sets_regret
         locks["regret"].release()
         return vo
     else:
-        Iph = state.info_set
-        sigma = calculate_strategy(agent.regret, state)
-        log.debug(f"Calculated Strategy for {Iph}: {sigma}")
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
+        sigma = calculate_strategy(this_info_sets_regret)
+        log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
         available_actions: List[str] = list(sigma.keys())
         action_probabilities: List[float] = list(sigma.values())
         action: str = np.random.choice(available_actions, p=action_probabilities)
@@ -245,9 +215,9 @@ def cfrp(
     #   sample action from strategy for h
     #   cfr()
     elif ph == i:
-        I = state.info_set
         # calculate strategy
-        sigma = calculate_strategy(agent.regret, state)
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
+        sigma = calculate_strategy(this_info_sets_regret)
         # TODO: Does updating sigma here (as opposed to after regret) miss out
         #       on any updates? If so, is there any benefit to having it up
         #       here?
@@ -257,9 +227,9 @@ def cfrp(
         # skipped.
         explored: Dict[str, bool] = {action: False for action in state.legal_actions}
         # Get the regret for this state.
-        this_states_regret = agent.regret.get(I, state.initial_regret)
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
         for action in state.legal_actions:
-            if this_states_regret[action] > c:
+            if this_info_sets_regret[action] > c:
                 new_state: ShortDeckPokerState = state.apply_action(action)
                 voa[action] = cfrp(agent, new_state, i, t, c, locks)
                 explored[action] = True
@@ -267,16 +237,17 @@ def cfrp(
         locks["regret"].acquire()
         # Get the regret for this state again, incase any other process updated
         # it whilst we were doing `cfrp`.
-        this_states_regret = agent.regret.get(I, state.initial_regret)
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
         for action in state.legal_actions:
             if explored[action]:
-                this_states_regret[action] += voa[action] - vo
+                this_info_sets_regret[action] += voa[action] - vo
         # Update the master copy of the regret.
-        agent.regret[I] = this_states_regret
+        agent.regret[state.info_set] = this_info_sets_regret
         locks["regret"].release()
         return vo
     else:
-        sigma = calculate_strategy(agent.regret, state)
+        this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
+        sigma = calculate_strategy(this_info_sets_regret)
         available_actions: List[str] = list(sigma.keys())
         action_probabilities: List[float] = list(sigma.values())
         action: str = np.random.choice(available_actions, p=action_probabilities)
