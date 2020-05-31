@@ -1,4 +1,4 @@
-import logging
+import copy
 import multiprocessing as mp
 import os
 from pathlib import Path
@@ -12,8 +12,6 @@ from agent import Agent
 from pluribus import utils
 from pluribus.games.short_deck import state
 
-log = logging.getLogger("sync.worker")
-
 
 class Worker(mp.Process):
     """Subclass of multiprocessing Process to handle agent optimisation."""
@@ -22,6 +20,7 @@ class Worker(mp.Process):
         self,
         job_queue: mp.Queue,
         status_queue: mp.Queue,
+        logging_queue: mp.Queue,
         locks: Dict[str, mp.synchronize.Lock],
         agent: Agent,
         info_set_lut: state.InfoSetLookupTable,
@@ -38,6 +37,7 @@ class Worker(mp.Process):
         super().__init__(group=None, name=None, args=(), kwargs={}, daemon=None)
         self._job_queue: mp.Queue = job_queue
         self._status_queue: mp.Queue = status_queue
+        self._logging_queue: mp.Queue = logging_queue
         self._locks = locks
         self._n_players = n_players
         self._prune_threshold = prune_threshold
@@ -123,20 +123,31 @@ class Worker(mp.Process):
 
     def _serialise(self, t: int, server_state: Dict[str, Union[str, float, int, None]]):
         """Write progress of optimising agent (and server state) to file."""
+        # Load the shared strategy that we accumulate into.
+        agent_path = os.path.abspath(str(self._save_path / f"agent.joblib"))
+        if os.path.isfile(agent_path):
+            offline_agent = joblib.load(agent_path)
+        else:
+            offline_agent = {"regret": {}, "timestep": t, "strategy": {}}
         # Lock shared dicts so no other process modifies it whilst writing to
         # file.
+        # Calculate the strategy for each info sets regret, and accumulate in
+        # the offline agent's strategy.
+        for info_set, this_info_sets_regret in sorted(self._agent.regret.items()):
+            self._locks["regret"].acquire()
+            strategy = ai.calculate_strategy(this_info_sets_regret)
+            self._locks["regret"].release()
+            if info_set not in offline_agent["strategy"]:
+                offline_agent["strategy"][info_set] = {
+                    action: probability for action, probability in strategy.items()
+                }
+            else:
+                for action, probability in strategy.items():
+                    offline_agent["strategy"][info_set][action] += probability
         self._locks["regret"].acquire()
-        self._locks["strategy"].acquire()
-        to_persist = utils.io.to_dict(
-            strategy=self._agent.strategy, regret=self._agent.regret
-        )
+        offline_agent["regret"] = copy.deepcopy(self._agent.regret)
         self._locks["regret"].release()
-        self._locks["strategy"].release()
-        # Dump the current strategy (sigma) throughout training and then take
-        # an average. This allows for estimation of expected value in leaf
-        # nodes later on using modified versions of the blueprint strategy.
-        agent_path = os.path.abspath(str(self._save_path / f"agent_{t}.gz"))
-        joblib.dump(to_persist, agent_path, compress="gzip")
+        joblib.dump(offline_agent, agent_path)
         # Dump the server state to file too, but first update a few bits of the
         # state so when we load it next time, we start from the right place in
         # the optimisation process.
@@ -145,10 +156,12 @@ class Worker(mp.Process):
         server_state["start_timestep"] = t + 1
         joblib.dump(server_state, server_path)
 
-    def _update_status(self, status, log_status: bool = False):
+    def _update_status(self, status, log_status: bool = True):
         """Update the status of this worker by posting it to the server."""
         if log_status:
-            log.info(f"{self.name} updating status to {status}")
+            self._logging_queue.put(
+                f"{self.name} updating status to {status}", block=True
+            )
         self._status_queue.put((self.name, status), block=True)
 
     def _setup_new_game(self):
