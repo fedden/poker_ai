@@ -25,23 +25,53 @@ Usage: main.py search [OPTIONS]
   Train agent from scratch.
 
 Options:
-  --strategy_interval INTEGER  .
-  --n_iterations INTEGER       .
-  --lcfr_threshold INTEGER     .
-  --discount_interval INTEGER  .
-  --prune_threshold INTEGER    .
-  --c INTEGER                  .
-  --n_players INTEGER          .
-  --dump_iteration INTEGER     .
-  --update_threshold INTEGER   .
-  --pickle_dir TEXT            .
+  --strategy_interval INTEGER     Update the current strategy whenever the
+                                  iteration % strategy_interval == 0.
+
+  --n_iterations INTEGER          The total number of iterations we should
+                                  train the model for.
+
+  --lcfr_threshold INTEGER        A threshold for linear CFR which means don't
+                                  apply discounting before this iteration.
+
+  --discount_interval INTEGER     Discount the current regret and strategy
+                                  whenever iteration % discount_interval == 0.
+
+  --prune_threshold INTEGER       When a uniform random number is less than
+                                  95%, and the iteration > prune_threshold,
+                                  use CFR with pruning.
+
+  --c INTEGER                     Pruning threshold for regret, which means
+                                  when we are using CFR with pruning and have
+                                  a state with a regret of less than `c`, then
+                                  we'll elect to not recusrively visit it and
+                                  it's child nodes.
+
+  --n_players INTEGER             The number of players in the game.
+  --dump_iteration INTEGER        When the iteration % dump_iteration == 0, we
+                                  will compute a new strategy and write that
+                                  to the accumlated strategy, which gets
+                                  normalised at a later time.
+
+  --update_threshold INTEGER      When the iteration is greater than
+                                  update_threshold we can start updating the
+                                  strategy.
+
+  --pickle_dir TEXT               The path to the pickles for clustering the
+                                  infosets.
+
   --sync_update_strategy / --async_update_strategy
-  --sync_cfr / --async_cfr
+                                  Do or don't synchronise update_strategy.
+  --sync_cfr / --async_cfr        Do or don't synchronuse CFR.
   --sync_discount / --async_discount
+                                  Do or don't synchronise the discounting.
   --sync_serialise / --async_serialise
-  --help                       Show this message and exit.
+                                  Do or don't synchronise the serialisation.
+  --nickname TEXT                 The nickname of the study.
+  --help                          Show this message and exit.
 ```
 """
+import logging
 from pathlib import Path
 from typing import Dict
 
@@ -52,6 +82,19 @@ import yaml
 from pluribus import utils
 from server import Server
 
+log = logging.getLogger("sync.main")
+
+
+def _safe_search(server: Server):
+    """Safely run the server, and allow user to control c."""
+    try:
+        server.search()
+    except (KeyboardInterrupt, SystemExit):
+        log.info("Early termination of program. Please wait for workers to terminate.")
+    finally:
+        server.terminate()
+    log.info("All workers terminated. Quitting program - thanks for using me!")
+
 
 @click.group()
 def cli():
@@ -59,7 +102,11 @@ def cli():
 
 
 @cli.command()
-@click.option("--server_config_path", default="./server.gz", help=".")
+@click.option(
+    "--server_config_path",
+    default="./server.gz",
+    help="The path to the previous server.gz file from a previous study.",
+)
 def resume(server_config_path: str):
     """Continue training agent from config loaded from file."""
     try:
@@ -70,25 +117,95 @@ def resume(server_config_path: str):
             f"Please set the path to a valid file dumped by a previous session."
         )
     server = Server.from_dict(config)
-    server.search()
-    server.terminate()
+    _safe_search(server)
 
 
 @cli.command()
-@click.option("--strategy_interval", default=2, help=".")
-@click.option("--n_iterations", default=10, help=".")
-@click.option("--lcfr_threshold", default=80, help=".")
-@click.option("--discount_interval", default=1000, help=".")
-@click.option("--prune_threshold", default=4000, help=".")
-@click.option("--c", default=-20000, help=".")
-@click.option("--n_players", default=3, help=".")
-@click.option("--dump_iteration", default=10, help=".")
-@click.option("--update_threshold", default=0, help=".")
-@click.option("--pickle_dir", default="../blueprint_algo", help=".")
-@click.option("--sync_update_strategy/--async_update_strategy", default=False, help=".")
-@click.option("--sync_cfr/--async_cfr", default=False, help=".")
-@click.option("--sync_discount/--async_discount", default=False, help=".")
-@click.option("--sync_serialise/--async_serialise", default=False, help=".")
+@click.option(
+    "--strategy_interval",
+    default=2,
+    help="Update the current strategy whenever the iteration % strategy_interval == 0.",
+)
+@click.option(
+    "--n_iterations",
+    default=10,
+    help="The total number of iterations we should train the model for.",
+)
+@click.option(
+    "--lcfr_threshold",
+    default=80,
+    help=(
+        "A threshold for linear CFR which means don't apply discounting "
+        "before this iteration."
+    ),
+)
+@click.option(
+    "--discount_interval",
+    default=1000,
+    help=(
+        "Discount the current regret and strategy whenever iteration % "
+        "discount_interval == 0."
+    ),
+)
+@click.option(
+    "--prune_threshold",
+    default=4000,
+    help=(
+        "When a uniform random number is less than 95%, and the iteration > "
+        "prune_threshold, use CFR with pruning."
+    ),
+)
+@click.option(
+    "--c",
+    default=-20000,
+    help=(
+        "Pruning threshold for regret, which means when we are using CFR with "
+        "pruning and have a state with a regret of less than `c`, then we'll "
+        "elect to not recusrively visit it and it's child nodes."
+    ),
+)
+@click.option("--n_players", default=3, help="The number of players in the game.")
+@click.option(
+    "--dump_iteration",
+    default=10,
+    help=(
+        "When the iteration % dump_iteration == 0, we will compute a new strategy "
+        "and write that to the accumlated strategy, which gets normalised at a "
+        "later time."
+    ),
+)
+@click.option(
+    "--update_threshold",
+    default=0,
+    help=(
+        "When the iteration is greater than update_threshold we can start "
+        "updating the strategy."
+    ),
+)
+@click.option(
+    "--pickle_dir",
+    default="../blueprint_algo",
+    help="The path to the pickles for clustering the infosets.",
+)
+@click.option(
+    "--sync_update_strategy/--async_update_strategy",
+    default=False,
+    help="Do or don't synchronise update_strategy.",
+)
+@click.option(
+    "--sync_cfr/--async_cfr", default=False, help="Do or don't synchronuse CFR."
+)
+@click.option(
+    "--sync_discount/--async_discount",
+    default=False,
+    help="Do or don't synchronise the discounting.",
+)
+@click.option(
+    "--sync_serialise/--async_serialise",
+    default=False,
+    help="Do or don't synchronise the serialisation.",
+)
+@click.option("--nickname", default="", help="The nickname of the study.")
 def search(
     strategy_interval: int,
     n_iterations: int,
@@ -104,11 +221,12 @@ def search(
     sync_cfr: bool,
     sync_discount: bool,
     sync_serialise: bool,
+    nickname: str,
 ):
     """Train agent from scratch."""
     # Write config to file, and create directory to save results in.
     config: Dict[str, int] = {**locals()}
-    save_path: Path = utils.io.create_dir()
+    save_path: Path = utils.io.create_dir(nickname)
     with open(save_path / "config.yaml", "w") as steam:
         yaml.dump(config, steam)
     # Create the server that controls/coordinates the workers.
@@ -129,8 +247,7 @@ def search(
         sync_discount=sync_discount,
         sync_serialise=sync_serialise,
     )
-    server.search()
-    server.terminate()
+    _safe_search(server)
 
 
 if __name__ == "__main__":
