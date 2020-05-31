@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import List, TYPE_CHECKING
 
-from pluribus.poker.dealer import Dealer
+from poker_ai.poker.dealer import Dealer
 
 if TYPE_CHECKING:
-    from pluribus.poker.player import Player
-    from pluribus.poker.pot import Pot
-    from pluribus.poker.cards import Card
+    from poker_ai.poker.player import Player
+    from poker_ai.poker.pot import Pot
+    from poker_ai.poker.cards import Card
 
 
 class PokerTable:

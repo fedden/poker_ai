@@ -7,9 +7,9 @@ from typing import Any, Dict
 
 import numpy as np
 
-from pluribus.games.short_deck import state
+from poker_ai.games.short_deck import state
 
-log = logging.getLogger("pluribus.utils.io")
+log = logging.getLogger("poker_ai.utils.io")
 
 
 class NumpyJSONEncoder(json.JSONEncoder):

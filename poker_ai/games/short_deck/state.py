@@ -10,14 +10,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import dill as pickle
 
-from pluribus import utils
-from pluribus.poker.card import Card
-from pluribus.poker.engine import PokerEngine
-from pluribus.games.short_deck.player import ShortDeckPokerPlayer
-from pluribus.poker.pot import Pot
-from pluribus.poker.table import PokerTable
+from poker_ai import utils
+from poker_ai.poker.card import Card
+from poker_ai.poker.engine import PokerEngine
+from poker_ai.games.short_deck.player import ShortDeckPokerPlayer
+from poker_ai.poker.pot import Pot
+from poker_ai.poker.table import PokerTable
 
-logger = logging.getLogger("pluribus.games.short_deck.state")
+logger = logging.getLogger("poker_ai.games.short_deck.state")
 InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
 
 
@@ -318,7 +318,7 @@ class ShortDeckPokerState:
 
     @property
     def betting_round(self) -> int:
-        """Algorithm 1 of pluribus supp. material references betting_round."""
+        """Algorithm 1 of poker_ai supp. material references betting_round."""
         try:
             betting_round = self._betting_stage_to_round[self._betting_stage]
         except KeyError:

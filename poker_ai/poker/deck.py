@@ -5,7 +5,7 @@ from typing import List
 
 import numpy as np
 
-from pluribus.poker.card import Card, get_all_suits
+from poker_ai.poker.card import Card, get_all_suits
 
 default_include_suits: List[str] = list(get_all_suits())
 default_include_ranks: List[int] = list(range(2, 15))

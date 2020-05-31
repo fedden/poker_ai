@@ -45,7 +45,7 @@ Below is a rough structure of the repository.
 ```
 ├── applications   # Larger applications like the state visualiser sever.
 ├── paper          # Main source of info and documentation :)
-├── pluribus       # Main Python library.
+├── poker_ai       # Main Python library.
 │   ├── ai         # Stub functions for ai algorithms.
 │   ├── games      # Implementations of poker games as node based objects that
 │   │              # can be traversed in a depth-first recursive manner.
@@ -67,7 +67,7 @@ Here are some assorted examples of things that are being built in this repo.
 
 ### State based poker traversal
 
-To perform MCCFR, the core algorithm of pluribus, we need a class that encodes all of the poker rules, that we can apply an action to which then creates a new game state.
+To perform MCCFR, the core algorithm of poker_ai, we need a class that encodes all of the poker rules, that we can apply an action to which then creates a new game state.
 
 ```python
 pot = Pot()
@@ -91,11 +91,11 @@ The characters are a little broken when captured in `asciinema`, but you'll get 
     <img src="https://asciinema.org/a/331234.svg" width="500" />
   </a>
 </p>
-To invoke the code, either call the `run_terminal_app` method directly from the `pluribus.terminal.runner` module, or call from python like so:
+To invoke the code, either call the `run_terminal_app` method directly from the `poker_ai.terminal.runner` module, or call from python like so:
 
 ```bash
-cd /path/to/pluribus/dir
-python -m pluribus.terminal.runner       \
+cd /path/to/poker_ai/dir
+python -m poker_ai.terminal.runner       \
   --agent offline                        \ 
   --pickle_dir ./research/blueprint_algo \
   --strategy_path ./research/blueprint_algo/offline_strategy_285800.gz 
@@ -105,7 +105,7 @@ python -m pluribus.terminal.runner       \
 
 We are also working on code to visualise a given instance of the `ShortDeckPokerState`, which looks like this:
 <p align="center">
-  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
+  <img src="https://github.com/fedden/poker_ai-poker-AI/blob/develop/assets/visualisation.png">
 </p>
 
 It is so we can visualise the AI as it plays, and also debug particular situations visually. The idea as it stands, is a live web-visualisation server like TensorBoard, so you'll just push your current poker game state, and this will be reflected in the visualisations, so you can see what the agents are doing. 
@@ -115,9 +115,9 @@ It is so we can visualise the AI as it plays, and also debug particular situatio
 Here is an example of how you could plot the poker game state:
 ```python
 from plot import PokerPlot
-from pluribus.games.short_deck.player import ShortDeckPokerPlayer
-from pluribus.games.short_deck.state import ShortDeckPokerState
-from pluribus.poker.pot import Pot
+from poker_ai.games.short_deck.player import ShortDeckPokerPlayer
+from poker_ai.games.short_deck.state import ShortDeckPokerState
+from poker_ai.poker.pot import Pot
 
 
 def get_state() -> ShortDeckPokerState:
@@ -154,11 +154,11 @@ The reason the poker engine is implemented is because it is useful to have a wel
 The following code is how one might program a round of poker that is deterministic using the engine. This engine is now the first pass that will be used support self play.
 
 ```python
-from pluribus import utils
-from pluribus.ai.dummy import RandomPlayer
-from pluribus.poker.table import PokerTable
-from pluribus.poker.engine import PokerEngine
-from pluribus.poker.pot import Pot
+from poker_ai import utils
+from poker_ai.ai.dummy import RandomPlayer
+from poker_ai.poker.table import PokerTable
+from poker_ai.poker.engine import PokerEngine
+from poker_ai.poker.pot import Pot
 
 # Seed so things are deterministic.
 utils.random.seed(42)
@@ -192,7 +192,7 @@ engine.play_one_round()
 
 ## Roadmap
 
-The following todo will change dynamically as my understanding of the algorithms and the pluribus project evolves. 
+The following todo will change dynamically as my understanding of the algorithms and the poker_ai project evolves. 
 
 At first, the goal is to prototype in Python as iteration will be much easier and quicker. Once there is a working prototype, write in a systems level language like C++ and optimise for performance. 
 

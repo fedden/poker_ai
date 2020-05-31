@@ -4,7 +4,7 @@ import threading
 
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
-from pluribus.games.short_deck.state import ShortDeckPokerState
+from poker_ai.games.short_deck.state import ShortDeckPokerState
 
 from backend import convert
 

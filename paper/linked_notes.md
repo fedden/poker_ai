@@ -49,14 +49,14 @@ From #2:
       - This is not stated explicitly, but it makes the most sense
       -  Inherently the algo above is imperfect recall: [pg.273 here](http://www.ifaamas.org/Proceedings/aamas2013/docs/p271.pdf)
       - OHS is a method described in the same paper that clusters the 169 into 8 clusters based on EHS and then runs simulations
-    - Current Implementation: [See Clustering Branch](https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py)
+    - Current Implementation: [See Clustering Branch](https://github.com/fedden/poker_ai/blob/develop/research/clustering/information_abstraction.py)
       - Based on [potential aware](http://www.cs.cmu.edu/afs/cs/Web/People/sandholm/potential-aware_imperfect-recall.aaai14.pdf) 
       algo
       - Potentially should be based on: https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf
   - Real Time Search
     - Uses 500 buckets here
     -  Definitely takes into account - [potential aware](http://www.cs.cmu.edu/afs/cs/Web/People/sandholm/potential-aware_imperfect-recall.aaai14.pdf)
-      - This is exactly [the algorithm I emulated](https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py)
+      - This is exactly [the algorithm I emulated](https://github.com/fedden/poker_ai/blob/develop/research/clustering/information_abstraction.py)
     - Additional related material - [48 - potential-aware abstraction](https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf), [EMD](http://www.cs.cmu.edu/~sandholm/gs3.aaai07.pdf)
     - Potentially should be based on: https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf    
 - Blueprint Computation Algorithm
@@ -64,7 +64,7 @@ From #2:
     - https://papers.nips.cc/paper/3306-regret-minimization-in-games-with-incomplete-information.pdf
     - https://papers.nips.cc/paper/3713-monte-carlo-sampling-for-regret-minimization-in-extensive-games.pdf
   - See pseudo-code
-  - Also see the draft I created [here](https://github.com/fedden/pluribus-poker-AI/blob/develop/research/blueprint_algo/blueprint_kuhn.py)
+  - Also see the draft I created [here](https://github.com/fedden/poker_ai/blob/develop/research/blueprint_algo/blueprint_kuhn.py)
   - [Linear MCCFR](https://arxiv.org/pdf/1809.04040.pdf)
     - First 400 minutes of training
   - Also negative regret pruning
@@ -126,6 +126,6 @@ Misc Resources
         - https://webdocs.cs.ualberta.ca/~games/poker/publications/sara09.pdf
         - https://poker.cs.ualberta.ca/publications/AAMAS13-modelling.pdf
       - most modern algo (as of 2015): https://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8459/8487
-        - implemented here: https://github.com/fedden/pluribus-poker-AI/blob/develop/research/clustering/information_abstraction.py
+        - implemented here: https://github.com/fedden/poker_ai/blob/develop/research/clustering/information_abstraction.py
       - later algo though: https://www.cs.cmu.edu/~sandholm/hierarchical.aamas15.pdf 
 

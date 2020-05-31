@@ -5,7 +5,7 @@ from typing import Dict, Any
 import numpy as np
 import yaml
 
-from pluribus.games.short_deck.state import ShortDeckPokerState
+from poker_ai.games.short_deck.state import ShortDeckPokerState
 
 
 class UserResults:

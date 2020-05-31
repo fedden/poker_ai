@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
-from pluribus.games.short_deck.player import ShortDeckPokerPlayer
-from pluribus.poker.card import Card
+from poker_ai.games.short_deck.player import ShortDeckPokerPlayer
+from poker_ai.poker.card import Card
 
 _colours = ["cyan", "lightcoral", "crimson", "#444", "forestgreen", "goldenrod", "gold"]
 _suit_lut = {"spades": "P", "diamonds": "D", "clubs": "C", "hearts": "H"}

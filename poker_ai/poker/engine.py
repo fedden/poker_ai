@@ -6,12 +6,12 @@ import logging
 import operator
 from typing import Dict, List, TYPE_CHECKING
 
-from pluribus.poker.evaluation.evaluator import Evaluator
-from pluribus.poker.state import PokerGameState
+from poker_ai.poker.evaluation.evaluator import Evaluator
+from poker_ai.poker.state import PokerGameState
 
 if TYPE_CHECKING:
-    from pluribus.poker.player import Player
-    from pluribus.poker.table import PokerTable
+    from poker_ai.poker.player import Player
+    from poker_ai.poker.table import PokerTable
 
 
 logger = logging.getLogger(__name__)

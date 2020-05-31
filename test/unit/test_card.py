@@ -1,6 +1,6 @@
 import random
 
-from pluribus.poker.card import Card, get_all_suits
+from poker_ai.poker.card import Card, get_all_suits
 
 
 def random_card(suit=None, rank=None):

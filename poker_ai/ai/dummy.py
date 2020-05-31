@@ -3,9 +3,9 @@ from typing import List
 
 import numpy as np
 
-from pluribus.poker.player import Player
-from pluribus.poker.pot import Pot
-from pluribus.poker.state import PokerGameState
+from poker_ai.poker.player import Player
+from poker_ai.poker.pot import Pot
+from poker_ai.poker.state import PokerGameState
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class RandomPlayer(Player):
     """Complete a dummy agent largely for development purposes.
 
-    Extends the `pluribus.game.player.Player` class so inherits all of that
+    Extends the `poker_ai.game.player.Player` class so inherits all of that
     functionality.
 
     The agent will make a move based on the probabilities set in the

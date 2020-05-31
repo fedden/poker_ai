@@ -3,11 +3,11 @@
 
 from typing import List
 
-from pluribus.ai.dummy import RandomPlayer
-from pluribus.poker.card import Card
-from pluribus.poker.table import PokerTable
-from pluribus.poker.engine import PokerEngine
-from pluribus.poker.pot import Pot
+from poker_ai.ai.dummy import RandomPlayer
+from poker_ai.poker.card import Card
+from poker_ai.poker.table import PokerTable
+from poker_ai.poker.engine import PokerEngine
+from poker_ai.poker.pot import Pot
 
 
 def _scenario_helper(

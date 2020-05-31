@@ -7,11 +7,11 @@ import pytest
 import numpy as np
 import dill as pickle
 
-from pluribus.games.short_deck.state import ShortDeckPokerState
-from pluribus.games.short_deck.player import ShortDeckPokerPlayer
-from pluribus.poker.card import Card
-from pluribus.poker.pot import Pot
-from pluribus.utils.random import seed
+from poker_ai.games.short_deck.state import ShortDeckPokerState
+from poker_ai.games.short_deck.player import ShortDeckPokerPlayer
+from poker_ai.poker.card import Card
+from poker_ai.poker.pot import Pot
+from poker_ai.utils.random import seed
 
 
 def _new_game(

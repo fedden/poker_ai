@@ -1,5 +1,5 @@
-from pluribus.poker.player import Player
-from pluribus.poker.pot import Pot
+from poker_ai.poker.player import Player
+from poker_ai.poker.pot import Pot
 
 
 class ShortDeckPokerPlayer(Player):
