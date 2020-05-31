@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from tqdm import trange
+import enlighten
 
 from agent import Agent
 from pluribus import utils
@@ -64,6 +64,7 @@ class Server:
         log.info("Loaded lookup table.")
         self._job_queue: mp.JoinableQueue = mp.JoinableQueue(maxsize=n_processes)
         self._status_queue: mp.Queue = mp.Queue()
+        self._logging_queue: mp.Queue = mp.Queue()
         self._worker_status: Dict[str, str] = dict()
         self._agent: Agent = Agent(agent_path)
         self._locks: Dict[str, mp.synchronize.Lock] = dict(
@@ -81,9 +82,16 @@ class Server:
         log.info(f"synchronising cfr             - {self._sync_cfr}")
         log.info(f"synchronising discount        - {self._sync_discount}")
         log.info(f"synchronising serialise_agent - {self._sync_serialise}")
-        for t in trange(
-            self._start_timestep, self._n_iterations + 1, desc="train iter"
-        ):
+        progress_bar_manager = enlighten.get_manager()
+        progress_bar = progress_bar_manager.counter(
+            total=self._n_iterations, desc="Optimisation iterations", unit="iter"
+        )
+        for t in range(self._start_timestep, self._n_iterations):
+            # Log any messages from the worker in this master process to avoid
+            # weirdness with tqdm.
+            while not self._logging_queue.empty():
+                log.info(self._logging_queue.get())
+            # Optimise for each player's position.
             for i in range(self._n_players):
                 if t > self._update_threshold and t % self._strategy_interval == 0:
                     self.job(
@@ -102,6 +110,7 @@ class Server:
                     t=t,
                     server_state=self.to_dict(),
                 )
+            progress_bar.update()
 
     def terminate(self):
         """Kill all workers."""
@@ -189,6 +198,7 @@ class Server:
             worker = Worker(
                 job_queue=self._job_queue,
                 status_queue=self._status_queue,
+                logging_queue=self._logging_queue,
                 locks=self._locks,
                 agent=self._agent,
                 info_set_lut=self._info_set_lut,
