@@ -47,11 +47,11 @@ def print_strategy(strategy: Dict[str, Dict[str, int]]):
             log.info(f"  - {action}: {probability / norm:.2f}")
 
 
-def create_dir() -> Path:
+def create_dir(dir_name: str = "results") -> Path:
     """Create and get a unique dir path to save to using a timestamp."""
     time = str(datetime.datetime.now())
     for char in ":- .":
         time = time.replace(char, "_")
-    path: Path = Path(f"./results_{time}")
+    path: Path = Path(f"./{dir_name}_{time}")
     path.mkdir(parents=True, exist_ok=True)
     return path
