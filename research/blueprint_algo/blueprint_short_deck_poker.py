@@ -204,7 +204,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             logging.debug(f"Got EV for {a}: {voa[a]}")
             vo += sigma[I][a] * voa[a]
             logging.debug(
-                f"""Added to Node EV for ACTION: {a} INFOSET: {I} 
+                f"""Added to Node EV for ACTION: {a} INFOSET: {I}
                 STRATEGY: {sigma[I][a]}: {sigma[I][a] * voa[a]}"""
             )
         logging.debug(f"Updated EV at {I}: {vo}")
@@ -346,16 +346,16 @@ def _create_dir() -> Path:
 
 
 @click.command()
-@click.option("--strategy_interval", default=2, help=".")
-@click.option("--n_iterations", default=10, help=".")
-@click.option("--lcfr_threshold", default=80, help=".")
-@click.option("--discount_interval", default=1000, help=".")
-@click.option("--prune_threshold", default=4000, help=".")
+@click.option("--strategy_interval", default=400, help=".")
+@click.option("--n_iterations", default=5500, help=".")
+@click.option("--lcfr_threshold", default=400, help=".")
+@click.option("--discount_interval", default=400, help=".")
+@click.option("--prune_threshold", default=400, help=".")
 @click.option("--c", default=-20000, help=".")
 @click.option("--n_players", default=3, help=".")
-@click.option("--print_iteration", default=10, help=".")
-@click.option("--dump_iteration", default=10, help=".")
-@click.option("--update_threshold", default=0, help=".")
+@click.option("--print_iteration", default=100, help=".")
+@click.option("--dump_iteration", default=20, help=".")
+@click.option("--update_threshold", default=400, help=".")
 def train(
     strategy_interval: int,
     n_iterations: int,
