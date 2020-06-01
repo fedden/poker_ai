@@ -7,7 +7,7 @@ import pytest
 import numpy as np
 import dill as pickle
 
-from pluribus.games.short_deck.state import ShortDeckPokerState
+from pluribus.games.short_deck.state import ShortDeckPokerState, new_game
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.poker.card import Card
 from pluribus.poker.pot import Pot
@@ -338,3 +338,33 @@ def test_skips(n_players: int = 3):
                         for i, action in enumerate(actions[fold_idx:]):
                             if i % n_players == 0:
                                 assert action == "skip"
+
+
+def test_load_game_state(n_players: int = 3, n: int = 2):
+    # Load a random sample of action sequences
+    random_actions_path = "research/size_of_problem/random_action_sequences.pkl"
+    action_sequences = _load_action_sequences(random_actions_path)
+    test_action_sequences = np.random.choice(action_sequences, n)
+    state: ShortDeckPokerState = new_game(
+        n_players, info_set_lut={}, real_time_test=True, public_cards=[]
+    )
+    for action_sequence in test_action_sequences:
+        game_action_sequence = action_sequence.copy()
+        # Load current game state
+        current_game_state: ShortDeckPokerState = state.load_game_state(
+            offline_strategy={}, action_sequence=game_action_sequence
+        )
+        current_history = current_game_state._history
+        check_action_seq_current = []
+        for betting_stage in current_history.keys():
+            check_action_seq_current += current_history[betting_stage]
+        check_action_sequence = [a for a in check_action_seq_current if a != "skip"]
+        assert check_action_sequence == action_sequence[:-1]
+
+        new_state = current_game_state.deal_bayes()
+        full_history = new_state._history
+        check_action_seq_full = []
+        for betting_stage in full_history.keys():
+            check_action_seq_full += full_history[betting_stage]
+        check_action_sequence = [a for a in check_action_seq_full if a != "skip"]
+        assert check_action_sequence == action_sequence
