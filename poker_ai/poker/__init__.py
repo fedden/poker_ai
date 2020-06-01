@@ -7,5 +7,6 @@ from . import deck
 from . import engine
 from . import player
 from . import pot
+from . import random_player
 from . import state
 from . import table

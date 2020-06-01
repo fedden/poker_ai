@@ -5,7 +5,7 @@ import pytest
 def test_hand(n_players):
     """Test a hand can be played."""
     from poker_ai import utils
-    from poker_ai.ai.dummy import RandomPlayer
+    from poker_ai.poker.random_player import RandomPlayer
     from poker_ai.poker.table import PokerTable
     from poker_ai.poker.engine import PokerEngine
     from poker_ai.poker.pot import Pot
