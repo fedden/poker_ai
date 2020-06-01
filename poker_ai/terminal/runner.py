@@ -27,12 +27,13 @@ def run_terminal_app(
     strategy_path: str = "",
     debug_quick_start: bool = False
 ):
-    """Start up terminal app.
+    """Start up terminal app to play against your poker AI.
 
     Example
     -------
 
-    Call this method from this module directly from python.
+    Usually you would call this from the `poker_ai` CLI. Alternatively you can
+    call this method from this module directly from python.
 
     ```bash
     python -m poker_ai.terminal.runner                                       \

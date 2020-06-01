@@ -13,14 +13,14 @@ Options:
 
 Commands:
   resume  Continue training agent from config loaded from file.
-  search  Train agent from scratch.
+  start   Train agent from scratch.
 ```
 
-More information on the `search` command can be obtained by running the command
-`python runner.py search --help`. This will then return the following args that
+More information on the `start` command can be obtained by running the command
+`python runner.py start --help`. This will then return the following args that
 can be set to guide the agent:
 ```
-Usage: runner.py search [OPTIONS]
+Usage: runner.py start [OPTIONS]
 
   Train agent from scratch.
 
@@ -98,6 +98,7 @@ def _safe_search(server: Server):
 
 @click.group()
 def train():
+    """Train a poker AI."""
     pass
 
 
@@ -206,7 +207,7 @@ def resume(server_config_path: str):
     help="Do or don't synchronise the serialisation.",
 )
 @click.option("--nickname", default="", help="The nickname of the study.")
-def search(
+def start(
     strategy_interval: int,
     n_iterations: int,
     lcfr_threshold: int,
