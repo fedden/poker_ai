@@ -79,8 +79,8 @@ import click
 import joblib
 import yaml
 
-from pluribus import utils
-from server import Server
+from poker_ai import utils
+from poker_ai.ai.multiprocess.server import Server
 
 log = logging.getLogger("poker_ai.ai.runner")
 
@@ -97,11 +97,11 @@ def _safe_search(server: Server):
 
 
 @click.group()
-def cli():
+def train():
     pass
 
 
-@cli.command()
+@train.command()
 @click.option(
     "--server_config_path",
     default="./server.gz",
@@ -120,7 +120,7 @@ def resume(server_config_path: str):
     _safe_search(server)
 
 
-@cli.command()
+@train.command()
 @click.option(
     "--strategy_interval",
     default=2,
@@ -251,4 +251,4 @@ def search(
 
 
 if __name__ == "__main__":
-    cli()
+    train()

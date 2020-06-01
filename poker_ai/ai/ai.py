@@ -4,8 +4,8 @@ from typing import Dict, List
 
 import numpy as np
 
-from agent import Agent
-from pluribus.games.short_deck.state import ShortDeckPokerState
+from poker_ai.ai.agent import Agent
+from poker_ai.games.short_deck.state import ShortDeckPokerState
 
 
 log = logging.getLogger("sync.ai")

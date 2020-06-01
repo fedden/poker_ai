@@ -7,10 +7,10 @@ from typing import Dict, Union
 import joblib
 import numpy as np
 
-import ai
-from agent import Agent
-from pluribus import utils
-from pluribus.games.short_deck import state
+from poker_ai.ai import ai
+from poker_ai.ai.agent import Agent
+from poker_ai import utils
+from poker_ai.games.short_deck import state
 
 
 class Worker(mp.Process):

@@ -7,10 +7,10 @@ from typing import Dict, Optional, Union
 
 import enlighten
 
-from agent import Agent
-from pluribus import utils
-from pluribus.games.short_deck import state
-from worker import Worker
+from poker_ai.ai.agent import Agent
+from poker_ai import utils
+from poker_ai.games.short_deck import state
+from poker_ai.ai.multiprocess.worker import Worker
 
 log = logging.getLogger("sync.server")
 manager = mp.Manager()
