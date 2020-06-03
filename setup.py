@@ -2,6 +2,8 @@ import glob
 import setuptools
 from typing import List
 
+import poker_ai
+
 
 def get_scripts_from_bin() -> List[str]:
     """Get all local scripts from bin so they are included in the package."""
@@ -19,7 +21,7 @@ def get_package_description() -> str:
 
 setuptools.setup(
     name="poker_ai",
-    version="1.0.0",
+    version=poker_ai.__version__,
     author="Leon Fedden, Colin Manko",
     author_email="leonfedden@gmail.com",
     description="Open source implementation of a CFR based poker AI player.",
