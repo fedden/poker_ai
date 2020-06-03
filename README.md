@@ -6,6 +6,8 @@
 | coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/poker_ai/test_coverage) |
 | license         | [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) |
 
+[Read the documentation]()
+
 # 🤖 Poker AI
 
 This repository will contain a best effort open source implementation of a poker AI using the ideas of Counterfactual Regret.
@@ -70,6 +72,18 @@ We are working hard on testing our components, but contributions here are always
 cd /path/to/poker_ai
 pip install pytest
 pytest
+```
+
+## Building documentation
+
+Documentation is hosted, but you can build it yourself if you wish:
+```bash
+# Build the documentation.
+cd /path/to/poker_ai/docs
+make html
+cd ./_build/html 
+# Run a webserver and navigate to localhost and the port (usually 8000) in your browser.
+python -m http.server 
 ```
 
 ## Repository Structure
