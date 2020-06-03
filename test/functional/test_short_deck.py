@@ -7,7 +7,8 @@ import pytest
 import numpy as np
 import dill as pickle
 
-from pluribus.games.short_deck.state import ShortDeckPokerState, new_game
+from pluribus.games.short_deck.state import ShortDeckPokerState, new_game, \
+    InfoSetLookupTable
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.poker.card import Card
 from pluribus.poker.pot import Pot
@@ -345,8 +346,15 @@ def test_load_game_state(n_players: int = 3, n: int = 2):
     random_actions_path = "research/size_of_problem/random_action_sequences.pkl"
     action_sequences = _load_action_sequences(random_actions_path)
     test_action_sequences = np.random.choice(action_sequences, n)
+    # Lookup table that defaults to 0 as the cluster id
+    info_set_lut: InfoSetLookupTable = {
+        "pre_flop": collections.defaultdict(lambda: 0),
+        "flop": collections.defaultdict(lambda: 0),
+        "turn": collections.defaultdict(lambda: 0),
+        "river": collections.defaultdict(lambda: 0),
+    }
     state: ShortDeckPokerState = new_game(
-        n_players, info_set_lut={}, real_time_test=True, public_cards=[]
+        n_players, info_set_lut=info_set_lut, real_time_test=True, public_cards=[]
     )
     for action_sequence in test_action_sequences:
         game_action_sequence = action_sequence.copy()
