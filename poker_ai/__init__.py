@@ -6,15 +6,13 @@ from rich.logging import RichHandler
 
 FORMAT = "%(message)s"
 logging.basicConfig(
-    format=FORMAT,
-    datefmt="[%X] ",
-    handlers=[RichHandler()],
-    level=logging.INFO,
+    format=FORMAT, datefmt="[%X] ", handlers=[RichHandler()], level=logging.INFO,
 )
-
 
 from . import ai
 from . import games
 from . import poker
 from . import terminal
 from . import utils
+
+__version__ = "1.0.0rc1"
