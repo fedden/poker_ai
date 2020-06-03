@@ -6,9 +6,9 @@
 | coverage        | [![Test Coverage](https://api.codeclimate.com/v1/badges/c5a556dae097b809b4d9/test_coverage)](https://codeclimate.com/github/fedden/poker_ai/test_coverage) |
 | license         | [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) |
 
-# 🤖 Open Source Poker AI
+# 🤖 Poker AI
 
-This repository will contain a best effort, open source implementation of the key ideas required to implement a poker AI.
+This repository will contain a best effort open source implementation of a poker AI using the ideas of Counterfactual Regret.
 
 <p align="center">
   <img src="https://github.com/fedden/poker_ai/blob/develop/assets/poker.jpg">
@@ -16,31 +16,65 @@ This repository will contain a best effort, open source implementation of the ke
 
 _Made with love from the developers [Leon](https://www.leonfedden.co.uk) and [Colin](http://www.colinmanko.com/)._
 
-## Pre-requisites
+## Prerequisites
 
 This repository assumes Python 3.7 or newer is used.
 
 ## Installing
 
-There isn't much to do with this repository at the moment but one could install the Python package by cloning this repo and pip installing it:
+Either install from pypi:
+```bash
+pip install poker_ai 
+```
+
+Or if you want to dev on our code, install the Python package from source by cloning this repo and `pip -e` installing it:
 ```bash
 git clone https://github.com/fedden/poker_ai.git # Though really we should use ssh here!
 cd /path/to/poker_ai
 pip install .
 ```
 
+## Command Line Interface (CLI)
+
+We have a CLI that will be installed when you pip install the package. To get help on any option, just add the `--help` flag when invoking the CLI.
+
+How to get a list of commands that can be run:
+```bash
+poker_ai --help
+``` 
+
+You will need to produce some lookup tables that cluster the various information sets. Here is more information on that:
+```bash
+poker_ai cluster --help
+```
+
+How to get information on training an agent:
+```bash
+poker_ai train start --help
+```
+
+How to get information on resuming training:
+```bash
+poker_ai train resume --help
+```
+
+Once you have an agent, and want to play against it, you can do the following:
+```bash
+poker_ai play --help
+```
+
 ## Running tests
 
-I'm working on improving the testing as I progress. You can run the tests by moving to this repositories root directory (i.e `poker_ai/`) and call the python test library `pytest`:
+We are working hard on testing our components, but contributions here are always welcome. You can run the tests by cloning the code, changing directory to this repositories root directory (i.e `poker_ai/`) and call the python test library `pytest`:
 ```bash
 cd /path/to/poker_ai
 pip install pytest
 pytest
 ```
 
-## Structure
+## Repository Structure
 
-Below is a rough structure of the repository. 
+Below is a rough structure of the codebase. 
 
 ```
 ├── applications   # Larger applications like the state visualiser sever.
@@ -54,7 +88,6 @@ Below is a rough structure of the repository.
 │   └── utils      # Utility code like seed setting.
 ├── research       # A directory for research/development scripts 
 │                  # to help formulate understanding and ideas.
-├── scripts        # Scripts to help develop the main library.
 └── test           # Python tests.
     ├── functional # Functional tests that test multiple components 
     │              # together.
@@ -206,10 +239,10 @@ _Implement a multiplayer working heads up no limit poker game engine to support 
 
 ### 2. AI iteration.
 _Iterate on the AI algorithms and the integration into the poker engine._
-- [ ] Integrate the AI strategy to support self-play in the multiplayer poker game engine.
+- [x] Integrate the AI strategy to support self-play in the multiplayer poker game engine.
 - [x] In the game-engine, allow the replay of any round the current hand to support MCCFR. 
 - [x] Implement the creation of the blueprint strategy using Monte Carlo CFR miminisation.
-- [ ] Add the real-time search for better strategies during the game.
+- [x] Add the real-time search for better strategies during the game.
 
 ### 3. Game engine iteration.
 _Strengthen the game engine with more tests and allow users to see live visualisation of game state._
