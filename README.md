@@ -279,3 +279,9 @@ Feel free to start a discussion on the github issues or to reach out to me at le
 ## License
 
 The code is provided under the copy-left GPL licence. If you need it under a more permissive license then please contact me at leonfedden at gmail dot com.
+
+## Stargazers over time
+
+We appreciate you getting this far in the README file! If you like what we are doing, please give us a star and share with your friends! 
+
+[![Stargazers over time](https://starchart.cc/fedden/poker_ai.svg)](https://starchart.cc/fedden/poker_ai)
