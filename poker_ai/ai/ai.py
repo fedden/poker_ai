@@ -1,7 +1,11 @@
+import copy
 import logging
 import multiprocessing as mp
-from typing import Dict, List
+import os
+from pathlib import Path
+from typing import Dict, List, Union
 
+import joblib
 import numpy as np
 
 from poker_ai.ai.agent import Agent
@@ -32,7 +36,7 @@ def update_strategy(
     state: ShortDeckPokerState,
     i: int,
     t: int,
-    locks: Dict[str, mp.synchronize.Lock],
+    locks: Dict[str, mp.synchronize.Lock] = {},
 ):
     """
 
@@ -69,12 +73,16 @@ def update_strategy(
         action: str = np.random.choice(available_actions, p=action_probabilities)
         log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         # Increment the action counter.
-        locks["strategy"].acquire()
-        this_states_strategy = agent.strategy.get(state.info_set, state.initial_strategy)
+        if locks:
+            locks["strategy"].acquire()
+        this_states_strategy = agent.strategy.get(
+            state.info_set, state.initial_strategy
+        )
         this_states_strategy[action] += 1
         # Update the master strategy by assigning.
         agent.strategy[state.info_set] = this_states_strategy
-        locks["strategy"].release()
+        if locks:
+            locks["strategy"].release()
         new_state: ShortDeckPokerState = state.apply_action(action)
         update_strategy(agent, new_state, i, t, locks)
     else:
@@ -90,7 +98,7 @@ def cfr(
     state: ShortDeckPokerState,
     i: int,
     t: int,
-    locks: Dict[str, mp.synchronize.Lock],
+    locks: Dict[str, mp.synchronize.Lock] = {},
 ) -> float:
     """
     regular cfr algo
@@ -159,13 +167,15 @@ def cfr(
                 f"STRATEGY: {sigma[action]}: {sigma[action] * voa[action]}"
             )
         log.debug(f"Updated EV at {state.info_set}: {vo}")
-        locks["regret"].acquire()
+        if locks:
+            locks["regret"].acquire()
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
         for action in state.legal_actions:
             this_info_sets_regret[action] += voa[action] - vo
         # Assign regret back to the shared memory.
         agent.regret[state.info_set] = this_info_sets_regret
-        locks["regret"].release()
+        if locks:
+            locks["regret"].release()
         return vo
     else:
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
@@ -185,7 +195,7 @@ def cfrp(
     i: int,
     t: int,
     c: int,
-    locks: Dict[str, mp.synchronize.Lock],
+    locks: Dict[str, mp.synchronize.Lock] = {},
 ):
     """
     pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
@@ -234,7 +244,8 @@ def cfrp(
                 voa[action] = cfrp(agent, new_state, i, t, c, locks)
                 explored[action] = True
                 vo += sigma[action] * voa[action]
-        locks["regret"].acquire()
+        if locks:
+            locks["regret"].acquire()
         # Get the regret for this state again, incase any other process updated
         # it whilst we were doing `cfrp`.
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
@@ -243,7 +254,8 @@ def cfrp(
                 this_info_sets_regret[action] += voa[action] - vo
         # Update the master copy of the regret.
         agent.regret[state.info_set] = this_info_sets_regret
-        locks["regret"].release()
+        if locks:
+            locks["regret"].release()
         return vo
     else:
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
@@ -253,3 +265,49 @@ def cfrp(
         action: str = np.random.choice(available_actions, p=action_probabilities)
         new_state: ShortDeckPokerState = state.apply_action(action)
         return cfrp(agent, new_state, i, t, c, locks)
+
+
+def serialise(
+    agent: Agent,
+    save_path: Path,
+    t: int,
+    server_state: Dict[str, Union[str, float, int, None]],
+    locks: Dict[str, mp.synchronize.Lock] = {},
+):
+    """Write progress of optimising agent (and server state) to file."""
+    # Load the shared strategy that we accumulate into.
+    agent_path = os.path.abspath(str(save_path / f"agent.joblib"))
+    if os.path.isfile(agent_path):
+        offline_agent = joblib.load(agent_path)
+    else:
+        offline_agent = {"regret": {}, "timestep": t, "strategy": {}}
+    # Lock shared dicts so no other process modifies it whilst writing to
+    # file.
+    # Calculate the strategy for each info sets regret, and accumulate in
+    # the offline agent's strategy.
+    for info_set, this_info_sets_regret in sorted(agent.regret.items()):
+        if locks:
+            locks["regret"].acquire()
+        strategy = calculate_strategy(this_info_sets_regret)
+        if locks:
+            locks["regret"].release()
+        if info_set not in offline_agent["strategy"]:
+            offline_agent["strategy"][info_set] = {
+                action: probability for action, probability in strategy.items()
+            }
+        else:
+            for action, probability in strategy.items():
+                offline_agent["strategy"][info_set][action] += probability
+    if locks:
+        locks["regret"].acquire()
+    offline_agent["regret"] = copy.deepcopy(agent.regret)
+    if locks:
+        locks["regret"].release()
+    joblib.dump(offline_agent, agent_path)
+    # Dump the server state to file too, but first update a few bits of the
+    # state so when we load it next time, we start from the right place in
+    # the optimisation process.
+    server_path = save_path / f"server.gz"
+    server_state["agent_path"] = agent_path
+    server_state["start_timestep"] = t + 1
+    joblib.dump(server_state, server_path)

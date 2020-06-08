@@ -123,38 +123,13 @@ class Worker(mp.Process):
 
     def _serialise(self, t: int, server_state: Dict[str, Union[str, float, int, None]]):
         """Write progress of optimising agent (and server state) to file."""
-        # Load the shared strategy that we accumulate into.
-        agent_path = os.path.abspath(str(self._save_path / f"agent.joblib"))
-        if os.path.isfile(agent_path):
-            offline_agent = joblib.load(agent_path)
-        else:
-            offline_agent = {"regret": {}, "timestep": t, "strategy": {}}
-        # Lock shared dicts so no other process modifies it whilst writing to
-        # file.
-        # Calculate the strategy for each info sets regret, and accumulate in
-        # the offline agent's strategy.
-        for info_set, this_info_sets_regret in sorted(self._agent.regret.items()):
-            self._locks["regret"].acquire()
-            strategy = ai.calculate_strategy(this_info_sets_regret)
-            self._locks["regret"].release()
-            if info_set not in offline_agent["strategy"]:
-                offline_agent["strategy"][info_set] = {
-                    action: probability for action, probability in strategy.items()
-                }
-            else:
-                for action, probability in strategy.items():
-                    offline_agent["strategy"][info_set][action] += probability
-        self._locks["regret"].acquire()
-        offline_agent["regret"] = copy.deepcopy(self._agent.regret)
-        self._locks["regret"].release()
-        joblib.dump(offline_agent, agent_path)
-        # Dump the server state to file too, but first update a few bits of the
-        # state so when we load it next time, we start from the right place in
-        # the optimisation process.
-        server_path = self._save_path / f"server.gz"
-        server_state["agent_path"] = agent_path
-        server_state["start_timestep"] = t + 1
-        joblib.dump(server_state, server_path)
+        ai.serialise(
+            agent=self._agent,
+            save_path=self._save_path,
+            t=t,
+            server_state=server_state,
+            locks=self._locks,
+        )
 
     def _update_status(self, status, log_status: bool = True):
         """Update the status of this worker by posting it to the server."""

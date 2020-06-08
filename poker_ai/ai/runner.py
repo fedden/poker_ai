@@ -81,6 +81,8 @@ import yaml
 
 from poker_ai import utils
 from poker_ai.ai.multiprocess.server import Server
+from poker_ai.ai.singleprocess.train import simple_search
+
 
 log = logging.getLogger("poker_ai.ai.runner")
 
@@ -90,7 +92,10 @@ def _safe_search(server: Server):
     try:
         server.search()
     except (KeyboardInterrupt, SystemExit):
-        log.info("Early termination of program. Please wait for workers to terminate.")
+        log.info(
+            "Early termination of program. Please wait for workers to "
+            "terminate."
+        )
     finally:
         server.terminate()
     log.info("All workers terminated. Quitting program - thanks for using me!")
@@ -189,6 +194,11 @@ def resume(server_config_path: str):
     help="The path to the pickles for clustering the infosets.",
 )
 @click.option(
+    "--single_process/--multi_process",
+    default=False,
+    help="Either use or don't use multiple processes.",
+)
+@click.option(
     "--sync_update_strategy/--async_update_strategy",
     default=False,
     help="Do or don't synchronise update_strategy.",
@@ -218,6 +228,7 @@ def start(
     dump_iteration: int,
     update_threshold: int,
     pickle_dir: str,
+    single_process: bool,
     sync_update_strategy: bool,
     sync_cfr: bool,
     sync_discount: bool,
@@ -230,25 +241,48 @@ def start(
     save_path: Path = utils.io.create_dir(nickname)
     with open(save_path / "config.yaml", "w") as steam:
         yaml.dump(config, steam)
-    # Create the server that controls/coordinates the workers.
-    server = Server(
-        strategy_interval=strategy_interval,
-        n_iterations=n_iterations,
-        lcfr_threshold=lcfr_threshold,
-        discount_interval=discount_interval,
-        prune_threshold=prune_threshold,
-        c=c,
-        n_players=n_players,
-        dump_iteration=dump_iteration,
-        update_threshold=update_threshold,
-        save_path=save_path,
-        pickle_dir=pickle_dir,
-        sync_update_strategy=sync_update_strategy,
-        sync_cfr=sync_cfr,
-        sync_discount=sync_discount,
-        sync_serialise=sync_serialise,
-    )
-    _safe_search(server)
+    if single_process:
+        log.info(
+            "Only one process specified so using poker_ai.ai.singleprocess."
+            "simple_search for the optimisation."
+        )
+        simple_search(
+            config=config,
+            save_path=save_path,
+            strategy_interval=strategy_interval,
+            n_iterations=n_iterations,
+            lcfr_threshold=lcfr_threshold,
+            discount_interval=discount_interval,
+            prune_threshold=prune_threshold,
+            c=c,
+            n_players=n_players,
+            dump_iteration=dump_iteration,
+            update_threshold=update_threshold,
+        )
+    else:
+        log.info(
+            "Mulitple processes specifed so using poker_ai.ai.multiprocess."
+            "server.Server for the optimisation."
+        )
+        # Create the server that controls/coordinates the workers.
+        server = Server(
+            strategy_interval=strategy_interval,
+            n_iterations=n_iterations,
+            lcfr_threshold=lcfr_threshold,
+            discount_interval=discount_interval,
+            prune_threshold=prune_threshold,
+            c=c,
+            n_players=n_players,
+            dump_iteration=dump_iteration,
+            update_threshold=update_threshold,
+            save_path=save_path,
+            pickle_dir=pickle_dir,
+            sync_update_strategy=sync_update_strategy,
+            sync_cfr=sync_cfr,
+            sync_discount=sync_discount,
+            sync_serialise=sync_serialise,
+        )
+        _safe_search(server)
 
 
 if __name__ == "__main__":

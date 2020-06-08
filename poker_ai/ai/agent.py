@@ -1,6 +1,6 @@
 import multiprocessing as mp
 from pathlib import Path
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 import joblib
 
@@ -16,10 +16,15 @@ class Agent:
     #               initially pruned but later improved. This also prevented
     #               integer overﬂows".
 
-    def __init__(self, agent_path: Optional[Union[str, Path]] = None):
+    def __init__(
+        self,
+        agent_path: Optional[Union[str, Path]] = None,
+        use_manager: bool = True,
+    ):
         """Create agent, optionally initialise to agent specified at path."""
-        self.strategy = manager.dict()
-        self.regret = manager.dict()
+        dict_constructor: Callable = manager.dict if use_manager else dict
+        self.strategy = dict_constructor()
+        self.regret = dict_constructor()
         if agent_path is not None:
             saved_agent = joblib.load(agent_path)
             # Assign keys manually because I don't trust the manager proxy.
