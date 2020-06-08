@@ -117,7 +117,10 @@ def run_terminal_app(
                 # previously picked the last one.
                 selected_action_i %= len(legal_actions)
                 key = term.inkey(timeout=None)
-                if key.name == "KEY_LEFT":
+                if key.name == "q":
+                    log.info(term.pink("quit"))
+                    break
+                elif key.name == "KEY_LEFT":
                     selected_action_i -= 1
                     if selected_action_i < 0:
                         selected_action_i = len(legal_actions) - 1
