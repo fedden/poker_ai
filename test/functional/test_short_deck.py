@@ -1,7 +1,9 @@
 import collections
+import json
 import copy
 import random
 from typing import List, Tuple, Optional
+import joblib
 
 import pytest
 import numpy as np
@@ -13,6 +15,7 @@ from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.poker.card import Card
 from pluribus.poker.pot import Pot
 from pluribus.utils.random import seed
+from pluribus.poker.deck import Deck
 
 
 def _new_game(
@@ -376,3 +379,85 @@ def test_load_game_state(n_players: int = 3, n: int = 2):
             check_action_seq_full += full_history[betting_stage]
         check_action_sequence = [a for a in check_action_seq_full if a != "skip"]
         assert check_action_sequence == action_sequence
+
+
+def test_public_cards(n_players: int = 3, n: int = 5):
+    # TODO: Combine this with above test if possible..
+    # TODO: Move any needed files within the test folder and condense..
+    strategy_dir = "research/test_methodology/test_strategy2/"
+    strategy_path = "unnormalized_output/offline_strategy_1500.gz"
+    check = joblib.load(strategy_dir + strategy_path)
+    histories = np.random.choice(list(check.keys()), n)
+    action_sequences = []
+    public_cards_lst = []
+    community_card_dict = {
+        "pre_flop": 0,
+        "flop": 3,
+        "turn": 4,
+        "river": 5,
+    }
+    ranks = list(range(10, 14 + 1))
+    deck = Deck(include_ranks=ranks)
+    for history in histories:
+        history_dict = json.loads(history)
+        history_lst = history_dict["history"]
+        action_sequence = []
+        betting_rounds = []
+        for x in history_lst:
+            action_sequence += list(x.values())[0]
+            betting_rounds += list(x.keys())
+        action_sequences.append(action_sequence)
+        final_betting_round = list(betting_rounds)[-1]
+        n_cards = community_card_dict[final_betting_round]
+        cards_in_deck = deck._cards_in_deck
+        public_cards = np.random.choice(cards_in_deck, n_cards, replace=False)
+        public_cards_lst.append(list(public_cards))
+
+    info_set_lut: InfoSetLookupTable = {
+        "pre_flop": collections.defaultdict(lambda: 0),
+        "flop": collections.defaultdict(lambda: 0),
+        "turn": collections.defaultdict(lambda: 0),
+        "river": collections.defaultdict(lambda: 0),
+    }
+    for i in range(0, len(action_sequences)):
+        public_cards = public_cards_lst[i].copy()
+        if not public_cards:
+            continue
+        action_sequence = action_sequences[i].copy()
+        state: ShortDeckPokerState = new_game(
+            n_players,
+            info_set_lut=info_set_lut,
+            real_time_test=True,
+            public_cards=public_cards,
+        )
+        current_game_state: ShortDeckPokerState = state.load_game_state(
+            offline_strategy={}, action_sequence=action_sequence
+        )
+        new_state = current_game_state.deal_bayes()
+
+        cont = True
+        if len(public_cards) == 0:
+            loaded_betting_stage = "pre_flop"
+        elif len(public_cards) == 3:
+            loaded_betting_stage = "flop"
+        elif len(public_cards) == 4:
+            loaded_betting_stage = "turn"
+        elif len(public_cards) == 5:
+            loaded_betting_stage = "river"
+
+        public_info = new_state._public_information
+        for betting_stage in public_info.keys():
+            if betting_stage == "pre_flop":
+                # No cards in the pre_flop stage..
+                continue
+            if cont:
+                card_len = community_card_dict[betting_stage]
+                assert public_cards[:card_len] == public_info[betting_stage]
+                if betting_stage == loaded_betting_stage:
+                    cont = False
+            else:
+                # Should only get here if we hit the last action_sequence of
+                # a round..
+                state_public_card_len = len(new_state.community_cards)
+                public_card_len = len(public_cards)
+                assert state_public_card_len == public_card_len + 1
