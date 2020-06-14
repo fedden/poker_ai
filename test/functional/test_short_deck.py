@@ -1,17 +1,21 @@
 import collections
+import json
 import copy
 import random
 from typing import List, Tuple, Optional
+import joblib
 
 import pytest
 import numpy as np
 import dill as pickle
 
-from pluribus.games.short_deck.state import ShortDeckPokerState
+from pluribus.games.short_deck.state import ShortDeckPokerState, new_game, \
+    InfoSetLookupTable
 from pluribus.games.short_deck.player import ShortDeckPokerPlayer
 from pluribus.poker.card import Card
 from pluribus.poker.pot import Pot
 from pluribus.utils.random import seed
+from pluribus.poker.deck import Deck
 
 
 def _new_game(
@@ -35,10 +39,10 @@ def _new_game(
     return state, pot
 
 
-def _load_action_sequences(directory):
+def _load_pkl_file(directory):
     with open(directory, "rb") as file:
-        action_sequences = pickle.load(file)
-    return action_sequences
+        pkl_file = pickle.load(file)
+    return pkl_file
 
 
 def test_short_deck_1():
@@ -203,18 +207,17 @@ def test_flops_are_random():
 
 
 @pytest.mark.parametrize("n_players", [2, 3])
-def test_call_action_sequence(n_players):
+def test_call_action_sequence(n_players, n: int = 50):
     """
-    Make sure we never see an action sequence of "raise", "call", "call" in the same
-    round with only two players. There would be a similar analog for more than two players,
-    but this should aid in initially finding the bug.
+    Make sure we never see an action sequence of "raise", "call", "call" when
+    down to two players
     """
     # Seed the random number generation so things are procedural/reproducable.
     seed(42)
-    # example of a bad sequence in a two-handed game in one round
+    # Example of a bad sequence in a two-handed game in one round
     bad_seq = ["raise", "call", "call"]
     # Run some number of random iterations.
-    for _ in range(200):
+    for _ in range(n):
         state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
         betting_round_dict = collections.defaultdict(list)
         while state.betting_stage not in {"show_down", "terminal"}:
@@ -231,22 +234,22 @@ def test_call_action_sequence(n_players):
                 # Loop through the action history and make sure the bad
                 # sequence has not happened.
                 for i in range(len(no_fold_action_history)):
-                    history_slice = no_fold_action_history[i : i + len(bad_seq)]
+                    history_slice = no_fold_action_history[i: i + len(bad_seq)]
                     assert history_slice != bad_seq
             state = state.apply_action(random_action)
 
 
 @pytest.mark.parametrize("n_players", [2, 3])
-def test_action_sequence(n_players: int):
-    """
-    Check each round against validated action sequences to ensure the state class is
-    working correctly.
-    """
+def test_action_sequence(
+        n_players: int,
+        n: int = 50,
+        action_sequences_path: str = "test/data/action_sequences.pkl"
+):
+    """Ensure action sequences are legal.. """
     # Seed the random number generation so things are procedural/reproducable.
     seed(42)
-    directory = "research/size_of_problem/action_sequences.pkl"
-    action_sequences = _load_action_sequences(directory)
-    for i in range(200):
+    action_sequences = _load_pkl_file(action_sequences_path)
+    for i in range(n):
         state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
 
         betting_stage_dict = {
@@ -281,14 +284,14 @@ def test_action_sequence(n_players: int):
                 assert action_sequence in possible_sequences
 
 
-def test_skips(n_players: int = 3):
+def test_skips(n_players: int = 3, n: int = 50):
     """
-    Check each round to make sure that skips are mod number of players and appended on
-    the skipped player's turn
+    Check each round to make sure that skips are mod number of players and
+    appended on the skipped player's turn
     """
     # Seed the random number generation so things are procedural/reproducable.
     seed(42)
-    for _ in range(500):
+    for _ in range(n):
         state, _ = _new_game(n_players=n_players, small_blind=50, big_blind=100)
 
         while True:
@@ -338,3 +341,137 @@ def test_skips(n_players: int = 3):
                         for i, action in enumerate(actions[fold_idx:]):
                             if i % n_players == 0:
                                 assert action == "skip"
+
+
+def test_load_game_state(
+        n_players: int = 3,
+        n: int = 5,
+        random_actions_path: str = "test/data/random_action_sequences.pkl"
+):
+    # Load a random sample of action sequences
+    action_sequences = _load_pkl_file(random_actions_path)
+    test_action_sequences = np.random.choice(action_sequences, n)
+    # Lookup table that defaults to 0 as the cluster id
+    # TODO: Not sure how to quiet the mypy typing complaint..
+    info_set_lut: InfoSetLookupTable = {
+        "pre_flop": collections.defaultdict(lambda: 0),
+        "flop": collections.defaultdict(lambda: 0),
+        "turn": collections.defaultdict(lambda: 0),
+        "river": collections.defaultdict(lambda: 0),
+    }
+    state: ShortDeckPokerState = new_game(
+        n_players,
+        info_set_lut=info_set_lut,
+        real_time_test=True,
+        public_cards=[]
+    )
+    for action_sequence in test_action_sequences:
+        game_action_sequence = action_sequence.copy()
+        # Load current game state
+        current_game_state: ShortDeckPokerState = state.load_game_state(
+            offline_strategy={}, action_sequence=game_action_sequence
+        )
+        current_history = current_game_state._history
+        check_action_seq_current = []
+        for betting_stage in current_history.keys():
+            check_action_seq_current += current_history[betting_stage]
+        check_action_sequence = [a for a in check_action_seq_current if a != "skip"]
+        assert check_action_sequence == action_sequence[:-1]
+
+        new_state = current_game_state.deal_bayes()
+        full_history = new_state._history
+        check_action_seq_full = []
+        for betting_stage in full_history.keys():
+            check_action_seq_full += full_history[betting_stage]
+        check_action_sequence = [a for a in check_action_seq_full if a != "skip"]
+        assert check_action_sequence == action_sequence
+
+
+def test_public_cards(
+        n_players: int = 3,
+        n: int = 5,
+        strategy_path: str = "test/data/random_offline_strategy.gz"
+):
+    strategy = joblib.load(strategy_path)
+    histories = np.random.choice(list(strategy.keys()), n)
+    action_sequences = []
+    public_cards_lst = []
+    final_betting_round_lst: List[str] = []
+    community_card_dict = {
+        "pre_flop": 0,
+        "flop": 3,
+        "turn": 4,
+        "river": 5,
+    }
+    ranks = list(range(10, 14 + 1))
+    deck = Deck(include_ranks=ranks)
+    for history in histories:
+        history_dict = json.loads(history)
+        history_lst = history_dict["history"]
+        action_sequence = []
+        betting_rounds = []
+        for x in history_lst:
+            action_sequence += list(x.values())[0]
+            betting_rounds += list(x.keys())
+        if not action_sequence:
+            continue
+        action_sequences.append(action_sequence)
+        final_betting_round = list(betting_rounds)[-1]
+        final_betting_round_lst.append(final_betting_round)
+        n_cards = community_card_dict[final_betting_round]
+        cards_in_deck = deck._cards_in_deck
+        public_cards = list(
+            np.random.choice(cards_in_deck, n_cards, replace=False)
+        )
+        public_cards_lst.append(public_cards)
+
+    # TODO: Not sure how to quiet mypy here for typing complaint..
+    info_set_lut: InfoSetLookupTable = {
+        "pre_flop": collections.defaultdict(lambda: 0),
+        "flop": collections.defaultdict(lambda: 0),
+        "turn": collections.defaultdict(lambda: 0),
+        "river": collections.defaultdict(lambda: 0),
+    }
+    for i in range(0, len(action_sequences)):
+        public_cards = public_cards_lst[i].copy()
+        final_betting_round = final_betting_round_lst[i]
+        if not public_cards and final_betting_round == "pre_flop":
+            continue
+        action_sequence = action_sequences[i].copy()
+        state: ShortDeckPokerState = new_game(
+            n_players,
+            info_set_lut=info_set_lut,
+            real_time_test=True,
+            public_cards=public_cards,
+        )
+        current_game_state: ShortDeckPokerState = state.load_game_state(
+            offline_strategy={}, action_sequence=action_sequence
+        )
+        new_state = current_game_state.deal_bayes()
+
+        cont = True
+        if len(public_cards) == 0:
+            loaded_betting_stage = "pre_flop"
+        elif len(public_cards) == 3:
+            loaded_betting_stage = "flop"
+        elif len(public_cards) == 4:
+            loaded_betting_stage = "turn"
+        elif len(public_cards) == 5:
+            loaded_betting_stage = "river"
+
+        public_info = new_state._public_information
+        for betting_stage in public_info.keys():
+            if betting_stage == "pre_flop":
+                # No cards in the pre_flop stage..
+                continue
+            if cont:
+                card_len = community_card_dict[betting_stage]
+                assert public_cards[:card_len] == public_info[betting_stage]
+                if betting_stage == loaded_betting_stage:
+                    cont = False
+            else:
+                # Should only get here if we hit the last action_sequence of
+                # a round..
+                state_public_card_len = len(new_state.community_cards)
+                public_card_len = len(public_cards)
+                assert state_public_card_len == public_card_len + 1

@@ -7,8 +7,11 @@ import logging
 import operator
 import os
 from typing import Any, Dict, List, Optional, Tuple
+from itertools import combinations
+import random
 
 import dill as pickle
+import numpy as np
 
 from pluribus import utils
 from pluribus.poker.card import Card
@@ -32,7 +35,8 @@ def new_game(
     ]
     if info_set_lut:
         # Don't reload massive files, it takes ages.
-        state = ShortDeckPokerState(players=players, load_pickle_files=False, **kwargs)
+        state = ShortDeckPokerState(players=players,
+                                    load_pickle_files=False, **kwargs)
         state.info_set_lut = info_set_lut
     else:
         # Load massive files.
@@ -54,6 +58,8 @@ class ShortDeckPokerState:
         big_blind: int = 100,
         pickle_dir: str = ".",
         load_pickle_files: bool = True,
+        real_time_test: bool = False,
+        public_cards: List[Card] = []
     ):
         """Initialise state."""
         n_players = len(players)
@@ -74,6 +80,7 @@ class ShortDeckPokerState:
         self._initial_n_chips = players[0].n_chips
         self.small_blind = small_blind
         self.big_blind = big_blind
+        self.real_time_test = real_time_test
         self._poker_engine = PokerEngine(
             table=self._table, small_blind=small_blind, big_blind=big_blind
         )
@@ -81,9 +88,13 @@ class ShortDeckPokerState:
         # this), assign blinds to the players.
         self._poker_engine.round_setup()
         # Deal private cards to players.
-        self._table.dealer.deal_private_cards(self._table.players)
+        if not self.real_time_test:
+            self._poker_engine.table.dealer.deal_private_cards(
+                self._table.players
+            )
         # Store the actions as they come in here.
         self._history: Dict[str, List[str]] = collections.defaultdict(list)
+        self._public_information: Dict[str, List[Card]] = collections.defaultdict(list)
         self._betting_stage = "pre_flop"
         self._betting_stage_to_round: Dict[str, int] = {
             "pre_flop": 0,
@@ -107,11 +118,19 @@ class ShortDeckPokerState:
             "terminal": player_i_order,
         }
         self._skip_counter = 0
-        self._first_move_of_current_round = True
+        # self._first_move_of_current_round = True
         self._reset_betting_round_state()
         for player in self.players:
             player.is_turn = False
         self.current_player.is_turn = True
+        if public_cards:
+            assert len(public_cards) in {3, 4, 5}
+        self._public_cards = public_cards
+        self._final_action = None
+        # only want to do these actions in real game play, as they are slow
+        if self.real_time_test:
+            # must have offline strategy loaded up
+            self._starting_hand_probs = self._initialize_starting_hands()
 
     def __repr__(self):
         """Return a helpful description of object in strings and debugger."""
@@ -145,7 +164,6 @@ class ShortDeckPokerState:
         new_state.info_set_lut = self.info_set_lut = lut
         # An action has been made, so alas we are not in the first move of the
         # current betting round.
-        new_state._first_move_of_current_round = False
         if action_str is None:
             # Assert active player has folded already.
             assert (
@@ -189,7 +207,6 @@ class ShortDeckPokerState:
                 # stage of the game.
                 new_state._increment_stage()
                 new_state._reset_betting_round_state()
-                new_state._first_move_of_current_round = True
             if not new_state.current_player.is_active:
                 new_state._skip_counter += 1
                 assert not new_state.current_player.is_active
@@ -208,6 +225,63 @@ class ShortDeckPokerState:
             player.is_turn = False
         new_state.current_player.is_turn = True
         return new_state
+
+    def load_game_state(self, offline_strategy: Dict[str, Dict[str, float]],
+                        action_sequence: list):
+        """
+        Follow through the action sequence provided to get current node.
+        :param action_sequence: List of actions without 'skip'
+        """
+        if 'skip' in set(action_sequence):
+            action_sequence = [a for a in action_sequence if a != 'skip']
+        if len(action_sequence) == 1:
+            # TODO: Not sure if I need to deepcopy
+            betting_stage = self.betting_stage
+            public_cards = self._public_cards
+            # Must declare the appropriate amount of public cards for RTS..
+            assert self._public_information[betting_stage] == public_cards
+            lut = self.info_set_lut
+            self.info_set_lut = {}
+            new_state = copy.deepcopy(self)
+            new_state.info_set_lut = self.info_set_lut = lut
+            new_state._final_action = action_sequence.pop(0)
+            new_state._update_hole_cards_bayes(offline_strategy)
+            return new_state
+        a = action_sequence.pop(0)
+        new_state = self.apply_action(a)
+        return new_state.load_game_state(offline_strategy, action_sequence)
+
+    def deal_bayes(self):
+        # Deep copy the parts of state that are needed that must be immutable
+        # from state to state.
+        lut = self.info_set_lut
+        self.info_set_lut = {}
+        new_state = copy.deepcopy(self)
+        new_state.info_set_lut = self.info_set_lut = lut
+        players = list(range(len(new_state.players)))
+        random.shuffle(players)
+        cards_selected = []
+        # TODO: This would be better by selecting the first player's
+        # cards, then normalizing the second and third, etc..
+        for p_i in players:
+            starting_hand = new_state._get_starting_hand(p_i)
+            len_union = len(set(starting_hand).union(set(cards_selected)))
+            len_individual = len(starting_hand) + len(cards_selected)
+            while len_union < len_individual:
+                starting_hand = new_state._get_starting_hand(p_i)
+                len_union = len(set(starting_hand).union(set(cards_selected)))
+                len_individual = len(starting_hand) + len(cards_selected)
+            # TODO: pull this into a helper method, maybe it should
+            # be in the dealer class..
+            for card in starting_hand:
+                new_state.players[p_i].add_private_card(card)
+            cards_selected += starting_hand
+        cards_selected += new_state._public_cards
+        for card in cards_selected:
+            new_state._table.dealer.deck.remove(card)
+        final_action = new_state._final_action
+        newest_state = new_state.apply_action(final_action)
+        return newest_state
 
     @staticmethod
     def load_pickle_files(pickle_dir: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
@@ -254,15 +328,36 @@ class ShortDeckPokerState:
         if self._betting_stage == "pre_flop":
             # Progress from private cards to the flop.
             self._betting_stage = "flop"
-            self._poker_engine.table.dealer.deal_flop(self._table)
+            if len(self._public_cards) >= 3:
+                community_cards = self._public_cards[:3]
+                self._poker_engine.table.community_cards += community_cards
+            else:
+                self._poker_engine.table.dealer.deal_flop(self._table)
+            self._public_information[
+                self.betting_stage
+            ] = self._table.community_cards.copy()
         elif self._betting_stage == "flop":
             # Progress from flop to turn.
             self._betting_stage = "turn"
-            self._poker_engine.table.dealer.deal_turn(self._table)
+            if len(self._public_cards) >= 4:
+                community_cards = self._public_cards[3:4]
+                self._poker_engine.table.community_cards += community_cards
+            else:
+                self._poker_engine.table.dealer.deal_turn(self._table)
+            self._public_information[
+                self.betting_stage
+            ] = self._table.community_cards.copy()
         elif self._betting_stage == "turn":
             # Progress from turn to river.
             self._betting_stage = "river"
-            self._poker_engine.table.dealer.deal_river(self._table)
+            if len(self._public_cards) == 5:
+                community_cards = self._public_cards[4:]
+                self._poker_engine.table.community_cards += community_cards
+            else:
+                self._poker_engine.table.dealer.deal_river(self._table)
+            self._public_information[
+                self.betting_stage
+            ] = self._table.community_cards.copy()
         elif self._betting_stage == "river":
             # Progress to the showdown.
             self._betting_stage = "show_down"
@@ -270,6 +365,200 @@ class ShortDeckPokerState:
             pass
         else:
             raise ValueError(f"Unknown betting_stage: {self._betting_stage}")
+
+    def _initialize_starting_hands(self) -> Dict[int, Dict[List[Card], float]]:
+        """Dictionary of starting hands to store probabilities in"""
+        assert self.betting_stage == "pre_flop"
+        starting_hand_probs: Dict = {}
+        n_players = len(self.players)
+        starting_hands = self._get_card_combos(2)
+        for p_i in range(n_players):
+            starting_hand_probs[p_i] = {}
+            for starting_hand in starting_hands:
+                starting_hand_probs[p_i][
+                    starting_hand
+                ] = 1
+        return starting_hand_probs
+
+    def _get_card_combos(self, num_cards) -> List[Tuple[Any, ...]]:
+        """Get combinations of cards"""
+        return list(combinations(self.cards_in_deck, num_cards))
+
+    def _normalize_bayes(self):
+        """Normalize probability of reach for each player"""
+        n_players = len(self.players)
+        for p_i in range(n_players):
+            total_prob = sum(self._starting_hand_probs[p_i].values())
+            for starting_hand, prob in self._starting_hand_probs[p_i].items():
+                self._starting_hand_probs[p_i][starting_hand] = prob / total_prob
+
+    def _update_hole_cards_bayes(self, offline_strategy: Dict[str, Dict[str,
+                                 float]]):
+        """Get probability of reach for each starting hand for each player"""
+        assert self._history
+        n_players = len(self._table.players)
+        player_indices: List[int] = [p_i for p_i in range(n_players)]
+        for p_i in player_indices:
+            # TODO: Might make since to put starting hands in the deck class
+            for starting_hand in self._starting_hand_probs[p_i].keys():
+                starting_hand = list(
+                    starting_hand
+                )
+                # TODO: Is this bad?
+                if "p_reach" in locals():
+                    del p_reach
+                action_sequence: Dict[str, List[str]] = collections.defaultdict(list)
+                for idx, betting_stage in enumerate(self._history.keys()):
+                    n_actions_round = len(self._history[betting_stage])
+                    for i in range(n_actions_round):
+                        action = self._history[betting_stage][i]
+                        while action == 'skip':
+                            i += 1  # Action sequences don't end in skip
+                            action = self._history[betting_stage][i]
+                        # TODO: Maybe a method already exists for this?
+                        if betting_stage == "pre_flop":
+                            ph = (i + 2) % n_players
+                        else:
+                            ph = i % n_players
+                        if p_i != ph:
+                            prob_reach_all_hands = []
+                            for opp_starting_hand in self._starting_hand_probs[
+                                p_i
+                            ].keys():
+                                opp_starting_hand = list(
+                                    opp_starting_hand
+                                )
+                                publics = self._public_information[betting_stage]
+                                if len(
+                                        set(opp_starting_hand).union(
+                                            set(publics)
+                                        ).union(set(starting_hand))
+                                ) < len(
+                                        opp_starting_hand
+                                ) + len(
+                                        starting_hand
+                                ) + len(
+                                        publics
+                                ):
+                                    prob = 0
+                                else:
+                                    publics = self._public_information[
+                                        betting_stage
+                                    ]
+                                    infoset = self._info_set_builder(
+                                        hole_cards=opp_starting_hand,
+                                        public_cards=publics,
+                                        history=action_sequence,
+                                        this_betting_stage=betting_stage,
+                                    )
+                                    # Check to see if the strategy exists,
+                                    #    if not equal probability
+                                    # TODO: is this overly hacky?
+                                    # Problem with defaulting to 1 / 3, is that it
+                                    #    it doesn't work for calculations that
+                                    #    need to be made with the object's values
+                                    try:
+                                        prob = offline_strategy[infoset][action]
+                                        # Normalizing unnormalized offline_stregy
+                                        prob /= sum(offline_strategy[infoset]\
+                                                        .values())
+                                    except KeyError:
+                                        prob = 1 / len(self.legal_actions)
+                                prob_reach_all_hands.append(prob)
+                            total_opp_prob_h = sum(prob_reach_all_hands) /\
+                                len(prob_reach_all_hands)
+                            if "p_reach" not in locals():
+                                p_reach = total_opp_prob_h
+                            else:
+                                p_reach *= total_opp_prob_h
+                        elif p_i == ph:
+                            publics = self._public_information[betting_stage]
+                            if len(
+                                    set(starting_hand).union(
+                                        set(publics)
+                                    )
+                            ) < (
+                                len(publics) + 2
+                            ):
+                                total_prob = 0
+                            else:
+                                publics = self._public_information[betting_stage]
+                                infoset = self._info_set_builder(
+                                    hole_cards=starting_hand,
+                                    public_cards=publics,
+                                    history=action_sequence,
+                                    this_betting_stage=betting_stage,
+                                )
+                                try:
+                                    total_prob = offline_strategy[infoset][action]
+                                    # Normalizing unnormalized offline_stregy
+                                    total_prob /= sum(offline_strategy[infoset]\
+                                                        .values())
+                                except KeyError:
+                                    total_prob = 1 / len(self.legal_actions)
+                            if "p_reach" not in locals():
+                                p_reach = total_prob
+                            else:
+                                p_reach *= total_prob
+                        action_sequence[betting_stage].append(action)
+                self._starting_hand_probs[p_i][tuple(starting_hand)] = p_reach
+        self._normalize_bayes()
+
+    def _get_starting_hand(self, player_idx: int) -> List[Card]:
+        """Get starting hand based on probability of reach"""
+        starting_hands = list(self._starting_hand_probs[player_idx].keys())
+        starting_hands_idxs = list(range(len(starting_hands)))
+        starting_hands_probs = list(self._starting_hand_probs[
+            player_idx
+        ].values())
+        starting_hand_idx = np.random.choice(
+            starting_hands_idxs,
+            1,
+            p=starting_hands_probs
+        )[0]
+        starting_hand = list(starting_hands[starting_hand_idx])
+        return starting_hand
+
+    def _info_set_builder(self, hole_cards=None, public_cards=None,
+                          history=None, this_betting_stage=None) -> str:
+        """Get the information set for the current player."""
+        if hole_cards is None:
+            hole_cards = self.current_player.cards
+        if public_cards is None:
+            public_cards = self._table.community_cards
+        if history is None:
+            history = self._history
+        if this_betting_stage is None:
+            this_betting_stage = self._betting_stage
+        cards = sorted(
+            hole_cards,
+            key=operator.attrgetter("eval_card"),
+            reverse=True,
+        )
+        cards += sorted(
+            public_cards,
+            key=operator.attrgetter("eval_card"),
+            reverse=True,
+        )
+        eval_cards = tuple([int(card) for card in cards])
+        try:
+            cards_cluster = self.info_set_lut[this_betting_stage][eval_cards]
+        except KeyError:
+            import ipdb;
+            ipdb.set_trace()
+            return "default info set, please ensure you load it correctly"
+        # Convert history from a dict of lists to a list of dicts as I'm
+        # paranoid about JSON's lack of care with insertion order.
+        info_set_dict = {
+            "cards_cluster": cards_cluster,
+            "history": [
+                {betting_stage: [str(action) for action in actions]}
+                for betting_stage, actions in history.items()
+            ],
+        }
+        return json.dumps(
+            info_set_dict, separators=(",", ":"), cls=utils.io.NumpyJSONEncoder
+        )
 
     @property
     def community_cards(self) -> List[Card]:
@@ -280,6 +569,11 @@ class ShortDeckPokerState:
     def private_hands(self) -> Dict[ShortDeckPokerPlayer, List[Card]]:
         """Return all private hands."""
         return {p: p.cards for p in self.players}
+
+    @property
+    def cards_in_deck(self):
+        """Returns current cards in deck"""
+        return self._table.dealer.deck._cards_in_deck
 
     @property
     def initial_regret(self) -> Dict[str, float]:
@@ -314,11 +608,11 @@ class ShortDeckPokerState:
     @player_i.setter
     def player_i(self, _: Any):
         """Raise an error if player_i is set."""
-        raise ValueError(f"The player_i property should not be set.")
+        raise ValueError("The player_i property should not be set.")
 
     @property
     def betting_round(self) -> int:
-        """Algorithm 1 of pluribus supp. material references betting_round."""
+        """Return 0 indexed betting round"""
         try:
             betting_round = self._betting_stage_to_round[self._betting_stage]
         except KeyError:
@@ -332,33 +626,7 @@ class ShortDeckPokerState:
     @property
     def info_set(self) -> str:
         """Get the information set for the current player."""
-        cards = sorted(
-            self.current_player.cards,
-            key=operator.attrgetter("eval_card"),
-            reverse=True,
-        )
-        cards += sorted(
-            self._table.community_cards,
-            key=operator.attrgetter("eval_card"),
-            reverse=True,
-        )
-        eval_cards = tuple([card.eval_card for card in cards])
-        try:
-            cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
-        except KeyError:
-            return "default info set, please ensure you load it correctly"
-        # Convert history from a dict of lists to a list of dicts as I'm
-        # paranoid about JSON's lack of care with insertion order.
-        info_set_dict = {
-            "cards_cluster": cards_cluster,
-            "history": [
-                {betting_stage: [str(action) for action in actions]}
-                for betting_stage, actions in self._history.items()
-            ],
-        }
-        return json.dumps(
-            info_set_dict, separators=(",", ":"), cls=utils.io.NumpyJSONEncoder
-        )
+        return self._info_set_builder()
 
     @property
     def payout(self) -> Dict[int, int]:
