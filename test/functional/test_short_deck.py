@@ -396,6 +396,7 @@ def test_public_cards(
     histories = np.random.choice(list(strategy.keys()), n)
     action_sequences = []
     public_cards_lst = []
+    final_betting_round_lst: List[str] = []
     community_card_dict = {
         "pre_flop": 0,
         "flop": 3,
@@ -412,12 +413,17 @@ def test_public_cards(
         for x in history_lst:
             action_sequence += list(x.values())[0]
             betting_rounds += list(x.keys())
+        if not action_sequence:
+            continue
         action_sequences.append(action_sequence)
         final_betting_round = list(betting_rounds)[-1]
+        final_betting_round_lst.append(final_betting_round)
         n_cards = community_card_dict[final_betting_round]
         cards_in_deck = deck._cards_in_deck
-        public_cards = np.random.choice(cards_in_deck, n_cards, replace=False)
-        public_cards_lst.append(list(public_cards))
+        public_cards = list(
+            np.random.choice(cards_in_deck, n_cards, replace=False)
+        )
+        public_cards_lst.append(public_cards)
 
     # TODO: Not sure how to quiet mypy here for typing complaint..
     info_set_lut: InfoSetLookupTable = {
@@ -428,7 +434,8 @@ def test_public_cards(
     }
     for i in range(0, len(action_sequences)):
         public_cards = public_cards_lst[i].copy()
-        if not public_cards:
+        final_betting_round = final_betting_round_lst[i]
+        if not public_cards and final_betting_round == "pre_flop":
             continue
         action_sequence = action_sequences[i].copy()
         state: ShortDeckPokerState = new_game(

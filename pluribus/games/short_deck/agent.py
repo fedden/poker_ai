@@ -3,6 +3,7 @@ import joblib
 
 
 class Agent:
+    """Agent class can hold a trained strategy and regret"""
     def __init__(self, regret_path=None):
         self.strategy = collections.defaultdict(
             lambda: collections.defaultdict(lambda: 0)

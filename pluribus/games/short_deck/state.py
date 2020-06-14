@@ -236,6 +236,10 @@ class ShortDeckPokerState:
             action_sequence = [a for a in action_sequence if a != 'skip']
         if len(action_sequence) == 1:
             # TODO: Not sure if I need to deepcopy
+            betting_stage = self.betting_stage
+            public_cards = self._public_cards
+            # Must declare the appropriate amount of public cards for RTS..
+            assert self._public_information[betting_stage] == public_cards
             lut = self.info_set_lut
             self.info_set_lut = {}
             new_state = copy.deepcopy(self)
@@ -540,6 +544,8 @@ class ShortDeckPokerState:
         try:
             cards_cluster = self.info_set_lut[this_betting_stage][eval_cards]
         except KeyError:
+            import ipdb;
+            ipdb.set_trace()
             return "default info set, please ensure you load it correctly"
         # Convert history from a dict of lists to a list of dicts as I'm
         # paranoid about JSON's lack of care with insertion order.

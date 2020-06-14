@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import collections
-from typing import Dict
+from typing import Dict, List
 import joblib
 from pathlib import Path
 
@@ -13,6 +13,7 @@ import yaml
 from pluribus import utils
 from pluribus.games.short_deck.state import ShortDeckPokerState, new_game
 from pluribus.games.short_deck.agent import Agent
+from pluribus.poker.card import Card
 
 
 def normalize_strategy(this_info_sets_regret: Dict[str, float]) -> Dict[str, float]:
@@ -96,18 +97,20 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
         # Move regret over to a temporary object and build off that
         if agent.tmp_regret[Iph] == {}:
             agent.tmp_regret[Iph] == agent.regret[Iph].copy()
-        sigma = calculate_strategy(agent.regret, Iph, state)
+        sigma = calculate_strategy(agent.tmp_regret, Iph, state)
 
         try:
             a = np.random.choice(
                 list(sigma[Iph].keys()), 1, p=list(sigma[Iph].values()),
             )[0]
-
         except KeyError:
             p = 1 / len(state.legal_actions)
             probabilities = np.full(len(state.legal_actions), p)
             a = np.random.choice(state.legal_actions, p=probabilities)
             sigma[Iph] = {action: p for action in state.legal_actions}
+        except:
+            import ipdb;
+            ipdb.set_trace()
 
         new_state: ShortDeckPokerState = state.apply_action(a)
         return cfr(agent, new_state, i, t)
@@ -115,7 +118,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
 
 def rts(
     offline_strategy_path: str,
-    regret_path: str,
+    last_regret_path: str,
     public_cards: list,
     action_sequence: list,
     n_iterations: int,
@@ -133,7 +136,7 @@ def rts(
         yaml.dump(config, steam)
     # TODO: fix the seed
     # utils.random.seed(36)
-    agent = Agent(regret_path=regret_path)
+    agent = Agent(regret_path=last_regret_path)
     # Load unnormalized strategy to build off
     offline_strategy = joblib.load(offline_strategy_path)
     state: ShortDeckPokerState = new_game(
@@ -143,8 +146,6 @@ def rts(
     current_game_state: ShortDeckPokerState = state.load_game_state(
         offline_strategy, action_sequence
     )
-    # We don't need the offline strategy for search..
-    # del offline_strategy
     for t in trange(1, n_iterations + 1, desc="train iter"):
         for i in range(n_players):  # fixed position i
             # Deal hole cards based on bayesian updating of hole card probs
@@ -158,8 +159,8 @@ def rts(
         # Add the unnormalized strategy into the original
         # Right now assumes dump_int is a multiple of n_iterations
         if t % dump_int == 0:
-            # offline_strategy = joblib.load(offline_strategy_path)
-            # Adding the regret back to the regret dict, we'll build off for next RTS
+            # Adding the regret back to the regret dict, we'll build off for
+            # next RTS
             for I in agent.tmp_regret.keys():
                 if agent.tmp_regret != {}:
                     agent.regret[I] = agent.tmp_regret[I].copy()
@@ -171,11 +172,32 @@ def rts(
                 if no_info_set or offline_strategy[info_set] == {}:
                     offline_strategy[info_set] = {a: 0 for a in strategy.keys()}
                 for action, probability in strategy.items():
-                    try:
-                        offline_strategy[info_set][action] += probability
-                    except:
-                        import ipdb;
-                        ipdb.set_trace()
+                    offline_strategy[info_set][action] += probability
             agent.reset_new_regret()
 
     return agent, offline_strategy
+
+
+if __name__ == "__main__":
+    # We can set public cards or not
+    public_cards = [Card("ace", "diamonds"), Card("king", "clubs"),
+                    Card("jack", "spades"), Card("10", "hearts"),
+                    Card("10", "spades")]
+    # Action sequence must be in old form (one list, includes skips)
+    action_sequence = ["raise", "raise", "raise", "call", "call",
+                       "raise", "raise", "raise", "call", "call",
+                       "raise", "raise", "raise", "call", "call", "call"]
+    agent_output, offline_strategy = rts(
+        'test_strategy3/unnormalized_output/offline_strategy_1500.gz',
+        'test_strategy3/strategy.gz', public_cards, action_sequence,
+        1400, 1, 1, 3, 1, 1, 20
+    )
+    save_path = "test_strategy3/unnormalized_output/"
+    last_regret = {
+        info_set: dict(strategy)
+        for info_set, strategy in agent_output.regret.items()
+    }
+    joblib.dump(offline_strategy, save_path + 'rts_output.gz', compress="gzip")
+    joblib.dump(last_regret, save_path + 'last_regret.gz', compress="gzip")
+    import ipdb;
+    ipdb.set_trace()

@@ -10,7 +10,6 @@ if __name__ == "__main__":
     public_cards = [Card("ace", "diamonds"), Card("king", "clubs"),
                     Card("jack", "spades"), Card("10", "hearts"),
                     Card("10", "spades")]
-    # public_cards: List[Card] = []
     # Action sequence must be in old form (one list, includes skips)
     action_sequence = ["raise", "raise", "raise", "call", "call",
                        "raise", "raise", "raise", "call", "call",
@@ -21,8 +20,11 @@ if __name__ == "__main__":
         1400, 1, 1, 3, 1, 1, 20
     )
     save_path = "test_strategy2/unnormalized_output/"
-    last_regret = {info_set: dict(strategy) for info_set, strategy in agent_output.regret.items()}
-    joblib.dump(offline_strategy, save_path + 'rts_output3.gz', compress="gzip")
-    joblib.dump(last_regret, save_path + 'last_regret3.gz', compress="gzip")
+    last_regret = {
+        info_set: dict(strategy)
+        for info_set, strategy in agent_output.regret.items()
+    }
+    joblib.dump(offline_strategy, save_path + 'rts_output.gz', compress="gzip")
+    joblib.dump(last_regret, save_path + 'last_regret.gz', compress="gzip")
     import ipdb;
     ipdb.set_trace()
