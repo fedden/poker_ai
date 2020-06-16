@@ -41,10 +41,10 @@ import time
 from itertools import combinations
 from typing import List
 
+import click
 import dill as pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from sklearn.cluster import KMeans
 from scipy.stats import wasserstein_distance
 from tqdm import tqdm
@@ -507,6 +507,12 @@ class InfoBucketMaker(InfoSets):
         print(f"Dumped Data to {location}")
 
 
-if __name__ == "__main__":
+@click.command()
+def cluster():
+    """Run clustering."""
     info_bucket = InfoBucketMaker()
     info_bucket()
+
+
+if __name__ == "__main__":
+    cluster()
