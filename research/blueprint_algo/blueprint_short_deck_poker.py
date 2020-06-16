@@ -46,10 +46,13 @@ def update_strategy(agent: Agent, state: ShortDeckPokerState, i: int, t: int):
     """
 
     :param state: the game state
-    :param i: the player, i = 1 is always first to act and i = 2 is always second to act, but they take turns who
-        updates the strategy (only one strategy)
-    :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
-        actions is what allows the algorithm to build up preference for one action over another in a given spot
+    :param i: the player, i = 1 is always first to act and i = 2 is
+        always second to act, but they take turns who updates the strategy
+        (only one strategy)
+    :return: nothing, updates action count in the strategy of actions chosen
+        according to sigma, this simple choosing of actions is what allows
+        the algorithm to build up preference for one action over another in a
+        given spot
     """
     logging.debug("UPDATE STRATEGY")
     logging.debug("########")
@@ -122,8 +125,10 @@ def calculate_strategy(
 ):
     """
 
-    :param regret: dictionary of regrets, I is key, then each action at I, with values being regret
-    :param sigma: dictionary of strategy updated by regret, iteration is key, then I is key, then each action with prob
+    :param regret: dictionary of regrets, I is key, then each action at I, with
+        values being regret
+    :param sigma: dictionary of strategy updated by regret, iteration is key,
+        then I is key, then each action with prob
     :param I:
     :param state: the game state
     :return: doesn't return anything, just updates sigma
@@ -204,7 +209,7 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
             logging.debug(f"Got EV for {a}: {voa[a]}")
             vo += sigma[I][a] * voa[a]
             logging.debug(
-                f"""Added to Node EV for ACTION: {a} INFOSET: {I} 
+                f"""Added to Node EV for ACTION: {a} INFOSET: {I}
                 STRATEGY: {sigma[I][a]}: {sigma[I][a] * voa[a]}"""
             )
         logging.debug(f"Updated EV at {I}: {vo}")
@@ -240,7 +245,8 @@ def cfr(agent: Agent, state: ShortDeckPokerState, i: int, t: int) -> float:
 
 def cfrp(agent: Agent, state: ShortDeckPokerState, i: int, t: int, c: int):
     """
-    pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
+    pruning cfr algo, might need to adjust only pruning if not final betting
+        round and if not terminal node
 
     :param state: the game state
     :param i: player
