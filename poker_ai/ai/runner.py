@@ -129,17 +129,17 @@ def resume(server_config_path: str):
 @train.command()
 @click.option(
     "--strategy_interval",
-    default=2,
+    default=20,
     help="Update the current strategy whenever the iteration % strategy_interval == 0.",
 )
 @click.option(
     "--n_iterations",
-    default=10,
+    default=1500,
     help="The total number of iterations we should train the model for.",
 )
 @click.option(
     "--lcfr_threshold",
-    default=80,
+    default=500,
     help=(
         "A threshold for linear CFR which means don't apply discounting "
         "before this iteration."
@@ -147,7 +147,7 @@ def resume(server_config_path: str):
 )
 @click.option(
     "--discount_interval",
-    default=1000,
+    default=500,
     help=(
         "Discount the current regret and strategy whenever iteration % "
         "discount_interval == 0."
@@ -155,7 +155,7 @@ def resume(server_config_path: str):
 )
 @click.option(
     "--prune_threshold",
-    default=4000,
+    default=500,
     help=(
         "When a uniform random number is less than 95%, and the iteration > "
         "prune_threshold, use CFR with pruning."
@@ -173,7 +173,7 @@ def resume(server_config_path: str):
 @click.option("--n_players", default=3, help="The number of players in the game.")
 @click.option(
     "--dump_iteration",
-    default=10,
+    default=20,
     help=(
         "When the iteration % dump_iteration == 0, we will compute a new strategy "
         "and write that to the accumlated strategy, which gets normalised at a "
@@ -182,7 +182,7 @@ def resume(server_config_path: str):
 )
 @click.option(
     "--update_threshold",
-    default=0,
+    default=500,
     help=(
         "When the iteration is greater than update_threshold we can start "
         "updating the strategy."
