@@ -91,7 +91,6 @@ def run_terminal_app(
             if state.is_terminal:
                 legal_actions = ["quit", "new game"]
                 human_should_interact = True
-                user_results.add_result(strategy_path, agent, state, og_name_to_name)
             else:
                 og_current_name = state.current_player.name
                 human_should_interact = og_name_to_position[og_current_name] == "right"
@@ -129,9 +128,11 @@ def run_terminal_app(
                 elif key.name == "KEY_ENTER":
                     action = legal_actions[selected_action_i]
                     if action == "quit":
+                        user_results.add_result(strategy_path, agent, state, og_name_to_name)
                         log.info(term.pink("quit"))
                         break
                     elif action == "new game":
+                        user_results.add_result(strategy_path, agent, state, og_name_to_name)
                         log.clear()
                         log.info(term.green("new game"))
                         if debug_quick_start:
