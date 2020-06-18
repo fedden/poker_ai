@@ -61,3 +61,9 @@ class Deck:
         card: Card = self._cards_in_deck.pop(index)
         self._dealt_cards.append(card)
         return card
+
+    def remove(self, card):
+        """Remove a specific card from the deck"""
+        if card in self._cards_in_deck:
+            self._cards_in_deck.remove(card)
+            self._dealt_cards.append(card)
