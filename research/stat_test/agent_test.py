@@ -9,8 +9,8 @@ import datetime
 import numpy as np
 from scipy import stats
 
-from pluribus.games.short_deck.state import ShortDeckPokerState, new_game
-from pluribus.poker.card import Card
+from poker_ai.games.short_deck.state import ShortDeckPokerState, new_game
+from poker_ai.poker.card import Card
 
 
 def _calculate_strategy(
@@ -74,9 +74,9 @@ def agent_test(
         yaml.dump(config, steam)
 
     # Load unnormalized strategy for hero
-    hero_strategy = joblib.load(hero_strategy_path)
+    hero_strategy = joblib.load(hero_strategy_path)['strategy']
     # Load unnormalized strategy for opponents
-    opponent_strategy = joblib.load(opponent_strategy_path)
+    opponent_strategy = joblib.load(opponent_strategy_path)['strategy']
 
     # Loading game state we used RTS on
     if real_time_est:
@@ -147,10 +147,9 @@ def agent_test(
 
 
 if __name__ == "__main__":
-    strat_path = "test_strategy2/unnormalized_output/"
     agent_test(
-        hero_strategy_path=strat_path + "random_strategy.gz",
-        opponent_strategy_path=strat_path + "offline_strategy_1500.gz",
+        hero_strategy_path="./_2020_06_17_22_04_53_863221/agent.joblib",
+        opponent_strategy_path="./random_strategy/random_strategy.gz",
         real_time_est=False,
         public_cards=[],
         action_sequence=None,
