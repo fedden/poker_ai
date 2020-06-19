@@ -69,7 +69,7 @@ def update_strategy(
         log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
         # choose an action based of sigma
         available_actions: List[str] = list(sigma.keys())
-        action_probabilities: np.ndarray = list(sigma.values())
+        action_probabilities: np.ndarray = np.array(list(sigma.values()))
         action: str = np.random.choice(available_actions, p=action_probabilities)
         log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         # Increment the action counter.
