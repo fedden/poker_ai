@@ -68,7 +68,7 @@ class Server:
         self._worker_status: Dict[str, str] = dict()
         self._agent: Agent = Agent(agent_path)
         self._locks: Dict[str, mp.synchronize.Lock] = dict(
-            regret=mp.Lock(), strategy=mp.Lock()
+            regret=mp.Lock(), strategy=mp.Lock(), pre_flop_strategy=mp.Lock()
         )
         self._workers: Dict[str, Worker] = self._start_workers(n_processes)
 
@@ -86,7 +86,7 @@ class Server:
         progress_bar = progress_bar_manager.counter(
             total=self._n_iterations, desc="Optimisation iterations", unit="iter"
         )
-        for t in range(self._start_timestep, self._n_iterations):
+        for t in range(self._start_timestep, self._n_iterations + 1):
             # Log any messages from the worker in this master process to avoid
             # weirdness with tqdm.
             while not self._logging_queue.empty():

@@ -75,9 +75,6 @@ def simple_search(
                 agent=agent, save_path=save_path, t=t, server_state=config,
             )
 
-    ai.serialise(
-        agent=agent, save_path=save_path, t=t, server_state=config,
-    )
     print_strategy(agent.strategy)
 
 
