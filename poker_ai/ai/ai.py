@@ -68,8 +68,8 @@ def update_strategy(
         sigma = calculate_strategy(this_info_sets_regret)
         log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
         # choose an action based of sigma
-        available_actions: List[str] = sigma["actions"]
-        action_probabilities: np.ndarray = sigma["probabilities"]
+        available_actions: List[str] = list(sigma.keys())
+        action_probabilities: np.ndarray = list(sigma.values())
         action: str = np.random.choice(available_actions, p=action_probabilities)
         log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         # Increment the action counter.
@@ -280,7 +280,12 @@ def serialise(
     if os.path.isfile(agent_path):
         offline_agent = joblib.load(agent_path)
     else:
-        offline_agent = {"regret": {}, "timestep": t, "strategy": {}}
+        offline_agent = {
+            "regret": {},
+            "timestep": t,
+            "strategy": {},
+            "pre_flop_strategy": {}
+        }
     # Lock shared dicts so no other process modifies it whilst writing to
     # file.
     # Calculate the strategy for each info sets regret, and accumulate in
@@ -303,6 +308,11 @@ def serialise(
     offline_agent["regret"] = copy.deepcopy(agent.regret)
     if locks:
         locks["regret"].release()
+    if locks:
+        locks["pre_flop_strategy"].acquire()
+    offline_agent["pre_flop_strategy"] = copy.deepcopy(agent.strategy)
+    if locks:
+        locks["pre_flop_strategy"].release()
     joblib.dump(offline_agent, agent_path)
     # Dump the server state to file too, but first update a few bits of the
     # state so when we load it next time, we start from the right place in
