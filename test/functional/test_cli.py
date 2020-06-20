@@ -1,3 +1,4 @@
+import os
 import pickle
 import shlex
 from typing import List
@@ -6,6 +7,8 @@ import pytest
 from click.testing import CliRunner
 
 from poker_ai.cli.runner import cli
+
+os.environ["TESTING_SUITE"] = "1"
 
 
 @pytest.mark.parametrize("strategy_interval", [1])
@@ -59,9 +62,6 @@ def test_train_multiprocess_async(
         """
         cli_args: List[str] = shlex.split(cli_str)
         result = runner.invoke(cli, cli_args, catch_exceptions=False)
-        import ipdb
-
-        ipdb.set_trace()
 
 
 @pytest.mark.parametrize("strategy_interval", [1])
@@ -115,9 +115,6 @@ def test_train_multiprocess_sync(
         """
         cli_args: List[str] = shlex.split(cli_str)
         result = runner.invoke(cli, cli_args, catch_exceptions=False)
-        import ipdb
-
-        ipdb.set_trace()
 
 
 def test_train_singleprocess():
