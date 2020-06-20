@@ -16,7 +16,12 @@ log = logging.getLogger("sync.ai")
 
 
 def calculate_strategy(this_info_sets_regret: Dict[str, float]) -> Dict[str, float]:
-    """Calculate the strategy based on the current information sets regret."""
+    """
+    Calculate the strategy based on the current information sets regret.
+
+    :param this_info_sets_regret: Regret for each action at this info set.
+    :return: Strategy as a probability over actions.
+    """
     # TODO: Could we instanciate a state object from an info set?
     actions = this_info_sets_regret.keys()
     regret_sum = sum([max(regret, 0) for regret in this_info_sets_regret.values()])
@@ -39,12 +44,13 @@ def update_strategy(
     locks: Dict[str, mp.synchronize.Lock] = {},
 ):
     """
+    Update pre flop strategy using a more theoretically sound approach.
 
-    :param state: the game state
-    :param i: the player, i = 1 is always first to act and i = 2 is always second to act, but they take turns who
-        updates the strategy (only one strategy)
-    :return: nothing, updates action count in the strategy of actions chosen according to sigma, this simple choosing of
-        actions is what allows the algorithm to build up preference for one action over another in a given spot
+    :param agent: Agent being trained.
+    :param state: Current game state.
+    :param i: The player.
+    :param t: The iteration.
+    :param locks: Locks for multiprocessing.
     """
     ph = state.player_i  # this is always the case no matter what i is
 

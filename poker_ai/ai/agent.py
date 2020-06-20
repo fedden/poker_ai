@@ -8,6 +8,12 @@ manager = mp.Manager()
 
 
 class Agent:
+    """
+    Create agent, optionally initialise to agent specified at path.
+
+    :param agent_path: Path to a previously created agent.
+    :param use_manager: To use manager or not.
+    """
     # TODO(fedden): Note from the supplementary material, the data here will
     #               need to be lower precision: "To save memory, regrets were
     #               stored using 4-byte integers rather than 8-byte doubles.
@@ -21,7 +27,6 @@ class Agent:
         agent_path: Optional[Union[str, Path]] = None,
         use_manager: bool = True,
     ):
-        """Create agent, optionally initialise to agent specified at path."""
         dict_constructor: Callable = manager.dict if use_manager else dict
         self.strategy = dict_constructor()
         self.regret = dict_constructor()
