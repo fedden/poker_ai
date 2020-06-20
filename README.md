@@ -18,6 +18,9 @@ This repository will contain a best effort open source implementation of a poker
 
 _Made with love from the developers [Leon](https://www.leonfedden.co.uk) and [Colin](http://www.colinmanko.com/)._
 
+## Join the Community
+[https://thepoker.ai](https://thepoker.ai)
+
 ## Prerequisites
 
 This repository assumes Python 3.7 or newer is used.
