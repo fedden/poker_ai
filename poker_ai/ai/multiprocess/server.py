@@ -70,6 +70,8 @@ class Server:
         self._locks: Dict[str, mp.synchronize.Lock] = dict(
             regret=mp.Lock(), strategy=mp.Lock(), pre_flop_strategy=mp.Lock()
         )
+        if os.environ.get("TESTING_SUITE"):
+            n_processes = 2
         self._workers: Dict[str, Worker] = self._start_workers(n_processes)
 
     def search(self):
@@ -243,3 +245,4 @@ class Server:
             if all_idle and all_statuses_obtained:
                 break
             time.sleep(sleep_secs)
+            log.info({w: s for w, s in self._worker_status.items() if s != "idle"})
