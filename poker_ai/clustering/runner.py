@@ -76,7 +76,7 @@ class GameUtility:
 
         :return: two cards for the opponent (Card.eval_card)
         """
-        return np.random.choice(self.available_cards, 2)
+        return np.random.choice(self.available_cards, 2, replace=False)
 
 
 class InfoSets:
@@ -259,7 +259,7 @@ class CardInfoLutBuilder(InfoSets):
         turn_ehs_distribution = np.zeros(len(self._river_centroids))
         # sample river cards and run a simulation
         for _ in range(num_simulations):
-            river_card = np.random.choice(available_cards, 1)
+            river_card = np.random.choice(available_cards, 1, replace=False)
             board = the_board + river_card
             game = GameUtility(our_hand=our_hand, board=board, cards=self._cards)
             ehs = self.simulate_get_ehs(game)
@@ -362,7 +362,7 @@ class CardInfoLutBuilder(InfoSets):
             potential_aware_distribution_flop = np.zeros_like(self._turn_centroids)
             for j in range(num_simulations):
                 # randomly generating turn
-                turn_card = np.random.choice(available_cards, 1)
+                turn_card = np.random.choice(available_cards, 1, replace=False)
                 our_hand = public[:2]
                 board = public[2:5]
                 the_board = np.append(board, turn_card).tolist()
