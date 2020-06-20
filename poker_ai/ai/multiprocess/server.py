@@ -112,12 +112,13 @@ class Server:
                 )
             progress_bar.update()
 
-    def terminate(self):
+    def terminate(self, safe: bool = False):
         """Kill all workers."""
-        # Wait for all workers to finish their current jobs.
-        self._job_queue.join()
-        # Ensure all workers are idle.
-        self._wait_until_all_workers_are_idle()
+        if safe:
+            # Wait for all workers to finish their current jobs.
+            self._job_queue.join()
+            # Ensure all workers are idle.
+            self._wait_until_all_workers_are_idle()
         # Send the terminate command to all workers.
         for _ in self._workers.values():
             name = "terminate"
