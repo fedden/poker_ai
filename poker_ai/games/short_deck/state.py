@@ -22,7 +22,7 @@ InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
 
 
 def new_game(
-    n_players: int, info_set_lut: InfoSetLookupTable = {}, **kwargs
+    n_players: int, card_info_lut: InfoSetLookupTable = {}, **kwargs
 ) -> ShortDeckPokerState:
     """Create a new game of short deck poker."""
     pot = Pot()
@@ -30,10 +30,10 @@ def new_game(
         ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
         for player_i in range(n_players)
     ]
-    if info_set_lut:
+    if card_info_lut:
         # Don't reload massive files, it takes ages.
         state = ShortDeckPokerState(players=players, load_pickle_files=False, **kwargs)
-        state.info_set_lut = info_set_lut
+        state.card_info_lut = card_info_lut
     else:
         # Load massive files.
         state = ShortDeckPokerState(players=players, **kwargs)
@@ -63,9 +63,9 @@ class ShortDeckPokerState:
                 f"were provided."
             )
         if load_pickle_files:
-            self.info_set_lut = self.load_pickle_files(pickle_dir)
+            self.card_info_lut = self.load_pickle_files(pickle_dir)
         else:
-            self.info_set_lut = {}
+            self.card_info_lut = {}
         # Get a reference of the pot from the first player.
         self._table = PokerTable(
             players=players, pot=players[0].pot, include_ranks=[10, 11, 12, 13, 14]
@@ -139,10 +139,10 @@ class ShortDeckPokerState:
             )
         # Deep copy the parts of state that are needed that must be immutable
         # from state to state.
-        lut = self.info_set_lut
-        self.info_set_lut = {}
+        lut = self.card_info_lut
+        self.card_info_lut = {}
         new_state = copy.deepcopy(self)
-        new_state.info_set_lut = self.info_set_lut = lut
+        new_state.card_info_lut = self.card_info_lut = lut
         # An action has been made, so alas we are not in the first move of the
         # current betting round.
         new_state._first_move_of_current_round = False
@@ -210,16 +210,10 @@ class ShortDeckPokerState:
         return new_state
 
     @staticmethod
-    def load_pickle_files(pickle_dir: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
-        """Load pickle files into memory."""
-        file_names = [
-            "preflop_lossless.pkl",
-            "flop_lossy_2.pkl",
-            "turn_lossy_2.pkl",
-            "river_lossy_2.pkl",
-        ]
+    def load_card_info_lut(lut_path: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
+        """Load card information lookup table."""
         betting_stages = ["pre_flop", "flop", "turn", "river"]
-        info_set_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
+        card_info_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
         for file_name, betting_stage in zip(file_names, betting_stages):
             file_path = os.path.join(pickle_dir, file_name)
             if not os.path.isfile(file_path):
@@ -228,8 +222,8 @@ class ShortDeckPokerState:
                     f"set to directory containing pickle files"
                 )
             with open(file_path, "rb") as fp:
-                info_set_lut[betting_stage] = pickle.load(fp)
-        return info_set_lut
+                card_info_lut[betting_stage] = joblib.load(fp)
+        return card_info_lut
 
     def _move_to_next_player(self):
         """Ensure state points to next valid active player."""
@@ -344,7 +338,7 @@ class ShortDeckPokerState:
         )
         eval_cards = tuple([card.eval_card for card in cards])
         try:
-            cards_cluster = self.info_set_lut[self._betting_stage][eval_cards]
+            cards_cluster = self.card_info_lut[self._betting_stage][eval_cards]
         except KeyError:
             return "default info set, please ensure you load it correctly"
         # Convert history from a dict of lists to a list of dicts as I'm
