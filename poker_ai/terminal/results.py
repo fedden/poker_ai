@@ -9,7 +9,7 @@ from poker_ai.games.short_deck.state import ShortDeckPokerState
 
 
 class UserResults:
-    """"""
+    """Class to store user results."""
 
     def __init__(self):
         """"""
@@ -32,7 +32,19 @@ class UserResults:
         state: ShortDeckPokerState,
         og_name_to_name: Dict[str, str],
     ):
-        """Adds results to file."""
+        """
+        Adds results to file.
+
+        Parameters
+        ----------
+        strategy_path : str
+            Path to the strategy.
+        agent : Agent
+            Trainable entity that stores regret and unnormalized strategy.
+        state : ShortDeckPokerState
+            Current state of the game.
+        og_name_to_name : Dict[str, str]
+        """
         ai_key = f"{agent}_{os.path.basename(strategy_path)}"
         players = []
         for player_i, player in enumerate(state.players):

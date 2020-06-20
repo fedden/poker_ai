@@ -41,13 +41,21 @@ def _compute_header_lines(
     return ["", state.betting_stage]
 
 
-def print_header(term: Terminal, state: ShortDeckPokerState, og_name_to_name: Dict[str, str]):
+def print_header(
+    term: Terminal,
+    state: ShortDeckPokerState,
+    og_name_to_name: Dict[str, str]
+):
     for line in _compute_header_lines(state, og_name_to_name):
         print(term.center(term.yellow(line)))
     print(f"\n{term.width * '-'}\n")
 
 
-def print_footer(term: Terminal, selected_action_i: int, legal_actions: List[str]):
+def print_footer(
+    term: Terminal,
+    selected_action_i: int,
+    legal_actions: List[str]
+):
     print(f"\n{term.width * '-'}\n")
     actions = []
     for action_i in range(len(legal_actions)):

@@ -24,7 +24,23 @@ InfoSetLookupTable = Dict[str, Dict[Tuple[int, ...], str]]
 def new_game(
     n_players: int, card_info_lut: InfoSetLookupTable = {}, **kwargs
 ) -> ShortDeckPokerState:
-    """Create a new game of short deck poker."""
+    """
+    Create a new game of short deck poker.
+
+    ...
+
+    Parameters
+    ----------
+    n_players : int
+        Number of players.
+    info_set_lut : InfoSetLookupTable
+        Card information cluster lookup table.
+
+    Returns
+    -------
+    state : ShortDeckPokerState
+        Current state of the game
+    """
     pot = Pot()
     players = [
         ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
@@ -211,7 +227,23 @@ class ShortDeckPokerState:
 
     @staticmethod
     def load_card_lut(pickle_dir: str = "", lut_path: str = "") -> Dict[str, Dict[Tuple[int, ...], str]]:
-        """Load card information lookup table."""
+        """
+        Load card information lookup table.
+
+        ...
+
+        Parameters
+        ----------
+        pickle_dir : str
+            Directory of the pickle files for card information clustering.
+        lut_path : str
+            Path to lookupkup table.
+
+        Returns
+        -------
+        cad_info_lut : InfoSetLookupTable
+            Card information cluster lookup table.
+        """
         if pickle_dir:
             file_names = [
                 "preflop_lossless.pkl",
@@ -323,7 +355,7 @@ class ShortDeckPokerState:
 
     @property
     def betting_round(self) -> int:
-        """Algorithm 1 of poker_ai supp. material references betting_round."""
+        """Betting stagee in integer form."""
         try:
             betting_round = self._betting_stage_to_round[self._betting_stage]
         except KeyError:
