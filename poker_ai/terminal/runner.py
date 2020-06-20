@@ -47,7 +47,7 @@ def run_terminal_app(
     log = AsciiLogger(term)
     n_players: int = 3
     if debug_quick_start:
-        state: ShortDeckPokerState = new_game(n_players, {}, load_pickle_files=False)
+        state: ShortDeckPokerState = new_game(n_players, {}, load_card_lut=False)
     else:
         state: ShortDeckPokerState = new_game(n_players, pickle_dir=pickle_dir)
     n_table_rotations: int = 0
@@ -137,7 +137,7 @@ def run_terminal_app(
                         log.info(term.green("new game"))
                         if debug_quick_start:
                             state: ShortDeckPokerState = new_game(
-                                n_players, state.info_set_lut, load_pickle_files=False,
+                                n_players, state.info_set_lut, load_card_lut=False,
                             )
                         else:
                             state: ShortDeckPokerState = new_game(

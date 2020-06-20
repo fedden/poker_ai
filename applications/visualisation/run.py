@@ -14,7 +14,7 @@ def get_state() -> ShortDeckPokerState:
         ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
         for player_i in range(n_players)
     ]
-    return ShortDeckPokerState(players=players, load_pickle_files=False)
+    return ShortDeckPokerState(players=players, load_card_lut=False)
 
 
 pp: PokerPlot = PokerPlot()

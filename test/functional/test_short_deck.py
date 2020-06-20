@@ -28,7 +28,7 @@ def _new_game(
     ]
     state = ShortDeckPokerState(
         players=players,
-        load_pickle_files=False,
+        load_card_lut=False,
         small_blind=small_blind,
         big_blind=big_blind,
     )

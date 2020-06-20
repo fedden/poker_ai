@@ -8,7 +8,7 @@ import operator
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-import dill as pickle
+import joblib
 
 from poker_ai import utils
 from poker_ai.poker.card import Card
@@ -32,7 +32,7 @@ def new_game(
     ]
     if card_info_lut:
         # Don't reload massive files, it takes ages.
-        state = ShortDeckPokerState(players=players, load_pickle_files=False, **kwargs)
+        state = ShortDeckPokerState(players=players, load_card_lut=False, **kwargs)
         state.card_info_lut = card_info_lut
     else:
         # Load massive files.
@@ -53,7 +53,7 @@ class ShortDeckPokerState:
         small_blind: int = 50,
         big_blind: int = 100,
         pickle_dir: str = ".",
-        load_pickle_files: bool = True,
+        load_card_lut: bool = True,
     ):
         """Initialise state."""
         n_players = len(players)
@@ -62,8 +62,8 @@ class ShortDeckPokerState:
                 f"At least 2 players must be provided but only {n_players} "
                 f"were provided."
             )
-        if load_pickle_files:
-            self.card_info_lut = self.load_pickle_files(pickle_dir)
+        if load_card_lut:
+            self.card_info_lut = self.load_card_lut(pickle_dir)
         else:
             self.card_info_lut = {}
         # Get a reference of the pot from the first player.
@@ -210,19 +210,30 @@ class ShortDeckPokerState:
         return new_state
 
     @staticmethod
-    def load_card_info_lut(lut_path: str) -> Dict[str, Dict[Tuple[int, ...], str]]:
+    def load_card_lut(pickle_dir: str = "", lut_path: str = "") -> Dict[str, Dict[Tuple[int, ...], str]]:
         """Load card information lookup table."""
-        betting_stages = ["pre_flop", "flop", "turn", "river"]
-        card_info_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
-        for file_name, betting_stage in zip(file_names, betting_stages):
-            file_path = os.path.join(pickle_dir, file_name)
-            if not os.path.isfile(file_path):
-                raise ValueError(
-                    f"File path not found {file_path}. Ensure pickle_dir is "
-                    f"set to directory containing pickle files"
-                )
-            with open(file_path, "rb") as fp:
-                card_info_lut[betting_stage] = joblib.load(fp)
+        if pickle_dir:
+            file_names = [
+                "preflop_lossless.pkl",
+                "flop_lossy_2.pkl",
+                "turn_lossy_2.pkl",
+                "river_lossy_2.pkl",
+            ]
+            betting_stages = ["pre_flop", "flop", "turn", "river"]
+            card_info_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
+            for file_name, betting_stage in zip(file_names, betting_stages):
+                file_path = os.path.join(pickle_dir, file_name)
+                if not os.path.isfile(file_path):
+                    raise ValueError(
+                        f"File path not found {file_path}. Ensure pickle_dir is "
+                        f"set to directory containing pickle files"
+                    )
+                with open(file_path, "rb") as fp:
+                    card_info_lut[betting_stage] = joblib.load(fp)
+        elif lut_path:
+            raise NotImplementedError(f"")
+        else:
+            card_info_lut = {}
         return card_info_lut
 
     def _move_to_next_player(self):

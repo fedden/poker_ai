@@ -29,7 +29,7 @@ class NumpyJSONEncoder(json.JSONEncoder):
 
 def load_info_set_lut(path: str):
     """Load the info set abstraction lookup table."""
-    info_set_lut = state.ShortDeckPokerState.load_pickle_files(path)
+    info_set_lut = state.ShortDeckPokerState.load_card_lut(path)
     return info_set_lut
 
 
