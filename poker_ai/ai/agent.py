@@ -11,8 +11,14 @@ class Agent:
     """
     Create agent, optionally initialise to agent specified at path.
 
-    :param agent_path: Path to a previously created agent.
-    :param use_manager: To use manager or not.
+    ...
+
+    Attributes
+    ----------
+    strategy : Dict[str, Dict[str, int]]
+        The preflop strategy for an agent.
+    regret : Dict[str, Dict[strategy, int]]
+        The regret for an agent.
     """
     # TODO(fedden): Note from the supplementary material, the data here will
     #               need to be lower precision: "To save memory, regrets were

@@ -19,7 +19,16 @@ from poker_ai.games.short_deck.state import new_game, ShortDeckPokerState
 
 
 def print_strategy(strategy: Dict[str, Dict[str, int]]):
-    """Print strategy."""
+    """
+    Print strategy.
+
+    ...
+
+    Parameters
+    ----------
+    strategy : Dict[str, Dict[str, int]]
+        The preflop strategy for our agent.
+    """
     for info_set, action_to_probabilities in sorted(strategy.items()):
         norm = sum(list(action_to_probabilities.values()))
         tqdm.write(f"{info_set}")
@@ -40,7 +49,36 @@ def simple_search(
     dump_iteration: int,
     update_threshold: int,
 ):
-    """Train agent."""
+    """
+    Train agent.
+
+    ...
+
+    Parameters
+    ----------
+    config : Dict[str, int],
+        Configurations for the simple search.
+    save_path : str
+        Path to save to.
+    strategy_interval : int
+        Iteration at which to update strategy.
+    n_iterations : int
+        Number of iterations.
+    lcfr_threshold : int
+        Iteration at which to begin linear CFR.
+    discount_interval : int
+        Iteration at which to discount strategy and regret.
+    prune_threshold : int
+        Iteration at which to begin pruning.
+    c : int
+        Floor for regret at which we do not search a node.
+    n_players : int
+        Number of players.
+    dump_iteration : int
+        Iteration at which we begin serialization.
+    update_threshold : int
+        Iteration at which we begin updating strategy.
+    """
     utils.random.seed(42)
     agent = Agent(use_manager=False)
     info_set_lut = {}

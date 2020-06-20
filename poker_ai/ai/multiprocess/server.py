@@ -162,7 +162,18 @@ class Server:
         return Server(**config)
 
     def job(self, job_name: str, sync_workers: bool = False, **kwargs):
-        """Create a job for the workers."""
+        """
+        Create a job for the workers.
+
+        ...
+
+        Parameters
+        ----------
+        job_name : str
+            Name of job.
+        sync_wrokers : bool
+            Whether or not to synchronize workers.
+        """
         func = self._syncronised_job if sync_workers else self._send_job
         func(job_name, **kwargs)
 

@@ -19,8 +19,17 @@ def calculate_strategy(this_info_sets_regret: Dict[str, float]) -> Dict[str, flo
     """
     Calculate the strategy based on the current information sets regret.
 
-    :param this_info_sets_regret: Regret for each action at this info set.
-    :return: Strategy as a probability over actions.
+    ...
+
+    Parameters
+    ----------
+    this_info_sets_regret : Dict[str, float]
+        Regret for each action at this info set.
+
+    Returns
+    -------
+    strategy : Dict[str, float]
+        Strategy as a probability over actions.
     """
     # TODO: Could we instanciate a state object from an info set?
     actions = this_info_sets_regret.keys()
@@ -46,11 +55,20 @@ def update_strategy(
     """
     Update pre flop strategy using a more theoretically sound approach.
 
-    :param agent: Agent being trained.
-    :param state: Current game state.
-    :param i: The player.
-    :param t: The iteration.
-    :param locks: Locks for multiprocessing.
+    ...
+
+    Parameters
+    ----------
+    agent : Agent
+        Agent being trained.
+    state : ShortDeckPokerState
+        Current game state.
+    i : int
+        The Player.
+    t : int
+        The iteration.
+    locks : Dict[str, mp.synchronize.Lock]
+        The locks for multiprocessing
     """
     ph = state.player_i  # this is always the case no matter what i is
 
@@ -107,12 +125,22 @@ def cfr(
     locks: Dict[str, mp.synchronize.Lock] = {},
 ) -> float:
     """
-    regular cfr algo
+    Regular counter factual regret minimization algorithm.
 
-    :param state: the game state
-    :param i: player
-    :param t: iteration
-    :return: expected value for node for player i
+    ...
+
+    Parameters
+    ----------
+    agent : Agent
+        Agent being trained.
+    state : ShortDeckPokerState
+        Current game state.
+    i : int
+        The Player.
+    t : int
+        The iteration.
+    locks : Dict[str, mp.synchronize.Lock]
+        The locks for multiprocessing
     """
     log.debug("CFR")
     log.debug("########")
@@ -204,12 +232,22 @@ def cfrp(
     locks: Dict[str, mp.synchronize.Lock] = {},
 ):
     """
-    pruning cfr algo, might need to adjust only pruning if not final betting round and if not terminal node
+    Counter factual regret minimazation with pruning.
 
-    :param state: the game state
-    :param i: player
-    :param t: iteration
-    :return: expected value for node for player i
+    ...
+
+    Parameters
+    ----------
+    agent : Agent
+        Agent being trained.
+    state : ShortDeckPokerState
+        Current game state.
+    i : int
+        The Player.
+    t : int
+        The iteration.
+    locks : Dict[str, mp.synchronize.Lock]
+        The locks for multiprocessing
     """
     ph = state.player_i
 
@@ -280,7 +318,24 @@ def serialise(
     server_state: Dict[str, Union[str, float, int, None]],
     locks: Dict[str, mp.synchronize.Lock] = {},
 ):
-    """Write progress of optimising agent (and server state) to file."""
+    """
+    Write progress of optimising agent (and server state) to file.
+
+    ...
+
+    Parameters
+    ----------
+    agent : Agent
+        Agent being trained.
+    save_path : ShortDeckPokerState
+        Current game state.
+    t : int
+        The iteration.
+    server_state : Dict[str, Union[str, float, int, None]]
+        All the variables required to resume training.
+    locks : Dict[str, mp.synchronize.Lock]
+        The locks for multiprocessing
+    """
     # Load the shared strategy that we accumulate into.
     agent_path = os.path.abspath(str(save_path / f"agent.joblib"))
     if os.path.isfile(agent_path):
