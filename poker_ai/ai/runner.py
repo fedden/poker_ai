@@ -48,6 +48,7 @@ Options:
                                   it's child nodes.
 
   --n_players INTEGER             The number of players in the game.
+
   --dump_iteration INTEGER        When the iteration % dump_iteration == 0, we
                                   will compute a new strategy and write that
                                   to the accumlated strategy, which gets
@@ -60,14 +61,19 @@ Options:
   --pickle_dir TEXT               The path to the pickles for clustering the
                                   infosets.
 
-  --sync_update_strategy / --async_update_strategy
+  --sync_update_strategy / async_update_strategy
                                   Do or don't synchronise update_strategy.
-  --sync_cfr / --async_cfr        Do or don't synchronuse CFR.
-  --sync_discount / --async_discount
+
+  --sync_cfr / async_cfr          Do or don't synchronuse CFR.
+
+  --sync_discount / async_discount
                                   Do or don't synchronise the discounting.
-  --sync_serialise / --async_serialise
+
+  --sync_serialise / async_serialise
                                   Do or don't synchronise the serialisation.
+
   --nickname TEXT                 The nickname of the study.
+
   --help                          Show this message and exit.
 ```
 """
@@ -114,7 +120,16 @@ def train():
     help="The path to the previous server.gz file from a previous study.",
 )
 def resume(server_config_path: str):
-    """Continue training agent from config loaded from file."""
+    """
+    Continue training agent from config loaded from file.
+
+    ...
+
+    Parameters
+    ----------
+    server_config_path : str
+        Path to server configurations.
+    """
     try:
         config = joblib.load(server_config_path)
     except FileNotFoundError:
@@ -129,17 +144,17 @@ def resume(server_config_path: str):
 @train.command()
 @click.option(
     "--strategy_interval",
-    default=2,
+    default=20,
     help="Update the current strategy whenever the iteration % strategy_interval == 0.",
 )
 @click.option(
     "--n_iterations",
-    default=20,
+    default=1500,
     help="The total number of iterations we should train the model for.",
 )
 @click.option(
     "--lcfr_threshold",
-    default=20,
+    default=400,
     help=(
         "A threshold for linear CFR which means don't apply discounting "
         "before this iteration."
@@ -147,7 +162,7 @@ def resume(server_config_path: str):
 )
 @click.option(
     "--discount_interval",
-    default=40,
+    default=400,
     help=(
         "Discount the current regret and strategy whenever iteration % "
         "discount_interval == 0."
@@ -155,7 +170,7 @@ def resume(server_config_path: str):
 )
 @click.option(
     "--prune_threshold",
-    default=40,
+    default=400,
     help=(
         "When a uniform random number is less than 95%, and the iteration > "
         "prune_threshold, use CFR with pruning."
@@ -182,7 +197,7 @@ def resume(server_config_path: str):
 )
 @click.option(
     "--update_threshold",
-    default=1,
+    default=400,
     help=(
         "When the iteration is greater than update_threshold we can start "
         "updating the strategy."
