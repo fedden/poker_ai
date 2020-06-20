@@ -10,6 +10,8 @@ logging.basicConfig(
 )
 
 from . import ai
+from . import cli
+from . import clustering
 from . import games
 from . import poker
 from . import terminal
