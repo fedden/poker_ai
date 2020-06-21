@@ -71,7 +71,7 @@ class Server:
             regret=mp.Lock(), strategy=mp.Lock(), pre_flop_strategy=mp.Lock()
         )
         if os.environ.get("TESTING_SUITE"):
-            n_processes = 2
+            n_processes = 1
         self._workers: Dict[str, Worker] = self._start_workers(n_processes)
 
     def search(self):
