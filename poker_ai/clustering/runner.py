@@ -214,16 +214,15 @@ class CardInfoLutBuilder(InfoSets):
         """"""
         log.info("Starting computation of turn clusters.")
         start = time.time()
-        turn_count = len(self.turn)
         with concurrent.futures.ProcessPoolExecutor() as executor:
             self._turn_ehs_distributions = list(
-                range(
+                tqdm(
                     executor.map(
                         self.process_turn_ehs_distributions,
                         self.turn,
-                        chunksize=turn_count // 160,
+                        chunksize=len(self.turn) // 160,
                     ),
-                    total=turn_count,
+                    total=len(self.turn),
                 )
             )
         self._turn_centroids, self._turn_clusters = self.cluster(
@@ -290,7 +289,7 @@ class CardInfoLutBuilder(InfoSets):
         # sample river cards and run a simulation
         for _ in range(num_simulations):
             river_card = np.random.choice(available_cards, 1, replace=False)
-            board = the_board + river_card
+            board = np.append(the_board, river_card)
             game = GameUtility(our_hand=our_hand, board=board, cards=self._cards)
             ehs = self.simulate_get_ehs(game)
             # get EMD for expected hand strength against each river centroid
@@ -328,7 +327,7 @@ class CardInfoLutBuilder(InfoSets):
         """Get all cards that are available."""
         # Turn into set for O(1) lookup speed.
         unavailable_cards = set(unavailable_cards.tolist())
-        return np.ndarray([c for c in cards if c not in unavailable_cards])
+        return np.array([c for c in cards if c not in unavailable_cards])
 
     def process_turn_ehs_distributions(self, public: List[int]) -> List[float]:
         """
@@ -357,7 +356,7 @@ class CardInfoLutBuilder(InfoSets):
         available_cards: np.ndarray = self.get_available_cards(
             cards=self._cards, unavailable_cards=public
         )
-        potential_aware_distribution_flop = np.zeros_like(self._turn_centroids)
+        potential_aware_distribution_flop = [0] * len(self._turn_centroids)
         for j in range(num_simulations):
             # randomly generating turn
             turn_card = np.random.choice(available_cards, 1, replace=False)
@@ -384,7 +383,8 @@ class CardInfoLutBuilder(InfoSets):
             # ok, now increment the cluster to which it belongs -
             potential_aware_distribution_flop[min_idx] += 1 / num_simulations
             # object for storing flop potential aware expected hand strength distributions
-        potential_aware_distribution_flops[i] = potential_aware_distribution_flop
+        return potential_aware_distribution_flop
+
     @staticmethod
     def cluster(num_clusters: int, X: np.array):
         km = KMeans(
