@@ -3,6 +3,7 @@ import time
 from itertools import combinations
 from pathlib import Path
 from typing import Any, Dict, List
+import concurrent.futures
 
 import click
 import ipdb
@@ -12,7 +13,6 @@ from joblib import Memory
 from sklearn.cluster import KMeans
 from scipy.stats import wasserstein_distance
 from tqdm import tqdm
-import concurrent.futures
 
 from poker_ai.poker.card import Card
 from poker_ai.poker.deck import get_all_suits
@@ -25,14 +25,10 @@ log = logging.getLogger("poker_ai.clustering.runner")
 
 
 class GameUtility:
-    """
-    This class takes care of some game related functions
-    """
+    """This class takes care of some game related functions."""
 
     def __init__(self, our_hand: np.ndarray, board: np.ndarray, cards: np.ndarray):
-        """"""
         self._evaluator = Evaluator()
-        # TODO: this is what takes forever, find a better way
         unavailable_cards = np.concatenate([board, our_hand], axis=0)
         self.available_cards = np.array(
             [c for c in cards if c not in unavailable_cards]
@@ -40,19 +36,23 @@ class GameUtility:
         self.our_hand = our_hand
         self.board = board
 
-    def evaluate_hand(self, hand: np.ndarray) -> int:
+    def evaluate_hand(self, hand: np.array) -> int:
         """
-        takes a hand
-        :param hand: list of two integers Card.eval_card
-        :return: evaluation of hand
+        Evaluate a hand.
+
+        Parameters
+        ----------
+        hand : np.array
+            Hand to evaluate.
+
+        Returns
+        -------
+            Evaluation of hand
         """
-        try:
-            return self._evaluator.evaluate(
-                board=self.board.astype(np.int).tolist(),
-                cards=hand.astype(np.int).tolist(),
-            )
-        except KeyError:
-            ipdb.set_trace()
+        return self._evaluator.evaluate(
+            board=self.board.astype(np.int).tolist(),
+            cards=hand.astype(np.int).tolist(),
+        )
 
     def get_winner(self) -> int:
         """Get the winner.
@@ -75,17 +75,15 @@ class GameUtility:
     def opp_hand(self) -> List[int]:
         """Get random card.
 
-        :return: two cards for the opponent (Card.eval_card)
+        Returns
+        -------
+            Two cards for the opponent (Card)
         """
         return np.random.choice(self.available_cards, 2, replace=False)
 
 
-class InfoSets:
-    """
-    This class stores combinations of cards (histories) per street (for flop, turn, river)
-    # TODO: should this be isomorphic/lossless to reduce the program run time?
-    """
-
+class CardCombos:
+    """This class stores combinations of cards (histories) per street."""
     def __init__(self, disk_cache: bool = True):
         super().__init__()
         # Setup caching.
@@ -95,7 +93,9 @@ class InfoSets:
         # Sort for caching.
         suits: List[str] = sorted(list(get_all_suits()))
         ranks: List[int] = sorted(list(range(12, 15)))
-        self._cards = np.array([Card(rank, suit) for suit in suits for rank in ranks])
+        self._cards = np.array(
+            [Card(rank, suit) for suit in suits for rank in ranks]
+        )
         self.starting_hands = self.get_card_combos(2)
         self.flop = self.create_info_combos(
             self.starting_hands, self.get_card_combos(3)
@@ -112,8 +112,15 @@ class InfoSets:
 
     def get_card_combos(self, num_cards: int) -> np.ndarray:
         """
-        :param num_cards: number of cards you want returned
-        :return: combos of cards (Card.eval_card) -> np.array
+        Get the card combinations for a given street.
+
+        Parameters
+        ----------
+        num_cards : Number of cards you want returned
+
+        Returns
+        -------
+            Combos of cards (Card) -> np.array
         """
         return np.array([c for c in combinations(self._cards, num_cards)])
 
@@ -122,13 +129,20 @@ class InfoSets:
     ) -> np.ndarray:
         """Combinations of private info(hole cards) and public info (board).
 
-        Uses the logic that a AsKsJs on flop with a 10s on turn is different
-        than AsKs10s on flop and Js on turn. That logic is used within the
-        literature.
+        Uses the logic that a AsKsJs on flop with a 10s on turn is the same
+        as AsKs10s on flop and Js on turn. That logic is used within the
+        literature as well as the logic where those two are different.
 
-        :param start_combos: starting combination of cards (beginning with hole cards)
-        :param publics: np.array of public combinations being added
-        :return: Combinations of private information (hole cards) and public information (board)
+        Parameters
+        ----------
+        start_combos : np.array
+            Starting combination of cards (beginning with hole cards)
+        publics : np.array
+            Public cards being added
+        Returns
+        -------
+            Combinations of private information (hole cards) and public
+            information (board)
         """
         if publics.shape[1] == 3:
             betting_stage = "flop"
@@ -150,15 +164,19 @@ class InfoSets:
         return np.array(our_cards)
 
 
-class CardInfoLutBuilder(InfoSets):
+class CardInfoLutBuilder(CardCombos):
     """
     Stores info buckets for each street when called
-    # TODO: create key to access these from a dictionary, store more efficiently somehow
-    # TODO: change cluster to num_clusters=200 for full deck
-    """
 
+    Attributes
+    ----------
+    card_info_lut : Dict[str, Any]
+        Lookup table of card combinations per betting round to a cluster id.
+    centroids : Dict[str, Any]
+        Centroids per betting round for use in clustering previous rounds by
+        earth movers distance.
+    """
     def __init__(self, save_dir: str = ""):
-        """"""
         super().__init__()
         self.card_info_lut_path: Path = Path(save_dir) / "card_info_lut.joblib"
         self.centroid_path: Path = Path(save_dir) / "centroids.joblib"
@@ -193,7 +211,7 @@ class CardInfoLutBuilder(InfoSets):
         log.info(f"Finished computation of clusters - took {end - start} seconds.")
 
     def _compute_river_clusters(self):
-        """"""
+        """Compute river clusters and create lookup table."""
         log.info("Starting computation of river clusters.")
         start = time.time()
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -217,7 +235,7 @@ class CardInfoLutBuilder(InfoSets):
         return self.create_card_lookup(self._river_clusters, self.river)
 
     def _compute_turn_clusters(self):
-        """"""
+        """Compute turn clusters and create lookup table."""
         log.info("Starting computation of turn clusters.")
         start = time.time()
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -239,7 +257,7 @@ class CardInfoLutBuilder(InfoSets):
         return self.create_card_lookup(self._turn_clusters, self.turn)
 
     def _compute_flop_clusters(self):
-        """"""
+        """Compute flop clusters and create lookup table."""
         log.info("Starting computation of flop clusters.")
         start = time.time()
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -261,12 +279,24 @@ class CardInfoLutBuilder(InfoSets):
         return self.create_card_lookup(self._flop_clusters, self.flop)
 
     @staticmethod
-    def simulate_get_ehs(game: GameUtility, num_simulations: int = 2) -> List[float]:
+    def simulate_get_ehs(
+        game: GameUtility,
+        num_simulations: int = 2
+    ) -> np.array:
         """
-        # TODO: probably want to increase simulations..
-        :param game: GameState for help with determining winner and sampling opponent hand
-        :param num_simulations: how many simulations you want to do
-        :return: [win_rate, loss_rate, tie_rate]
+        Get expected hand strength object.
+
+        Parameters
+        ----------
+        game : GameUtility
+            GameState for help with determining winner and sampling opponent hand
+        num_simulations : nt
+            How many simulations you want to do
+
+        Returns
+        -------
+        ehs : np.array
+            [win_rate, loss_rate, tie_rate]
         """
         ehs: np.ndarray = np.zeros(3)
         for _ in range(num_simulations):
@@ -277,19 +307,31 @@ class CardInfoLutBuilder(InfoSets):
 
     def simulate_get_turn_ehs_distributions(
         self,
-        available_cards: List[int],
-        the_board: List[int],
-        our_hand: List[int],
+        available_cards: np.array,
+        the_board: np.array,
+        our_hand: np.array,
         num_simulations: int = 2,
     ) -> np.array:
         """
-        # TODO num_simulations should be higher
+        Get histogram of frequencies that a given turn situation resulted in a
+        certain cluster id after a river simulation.
 
-        :param available_cards: list of available cards on the turn
-        :param the_board: the board as of the turn
-        :param our_hand: cards our hand (Card.eval_card)
-        :param num_simulations: int of simulations
-        :return: array of counts for each cluster the turn fell into by the river after simulations
+        Parameters
+        ----------
+        available_cards : np.array
+            Array of available cards on the turn
+        the_board : np.array
+            The board as of the turn
+        our_hand : np.array
+            Cards our hand (Card)
+        num_simulations: int
+            Number of simulations
+
+        Returns
+        -------
+        turn_ehs_distribution : np.array
+            Array of counts for each cluster the turn fell into by the river
+            after simulations
         """
         turn_ehs_distribution = np.zeros(len(self.centroids["river"]))
         # sample river cards and run a simulation
@@ -316,9 +358,16 @@ class CardInfoLutBuilder(InfoSets):
 
     def process_river_ehs(self, public: List[int]) -> List[float]:
         """
+        Get the expected hand strength for a particular card combo.
 
-        :param num_print: number of simulations of opponents cards for calculating ehs
-        :return: np.ndarray of arrays containing [win_rate, loss_rate, tie_rate]
+        Parameters
+        ----------
+        public : List[float]
+            Cards to process
+
+        Returns
+        -------
+            Expected hand strength
         """
         our_hand = public[:2]
         board = public[2:7]
@@ -328,18 +377,37 @@ class CardInfoLutBuilder(InfoSets):
 
     @staticmethod
     def get_available_cards(
-        cards: np.ndarray, unavailable_cards: np.ndarray
-    ) -> np.ndarray:
-        """Get all cards that are available."""
+        cards: np.array, unavailable_cards: np.array
+    ) -> np.array:
+        """
+        Get all cards that are available.
+
+        Parameters
+        ----------
+        cards : np.array
+        unavailable_cards : np.array
+            Cards that are not available.
+
+        Returns
+        -------
+            Available cards
+        """
         # Turn into set for O(1) lookup speed.
         unavailable_cards = set(unavailable_cards.tolist())
         return np.array([c for c in cards if c not in unavailable_cards])
 
     def process_turn_ehs_distributions(self, public: List[int]) -> List[float]:
         """
+        Get the potential aware turn distribution for a particular card combo.
 
-        :param num_print: frequency at which to print
-        :return: np.ndarray of distribution aware turn distributions
+        Parameters
+        ----------
+        public : List[float]
+            Cards to process
+
+        Returns
+        -------
+            Potential aware turn distributions
         """
         available_cards: np.ndarray = self.get_available_cards(
             cards=self._cards, unavailable_cards=public
@@ -354,10 +422,16 @@ class CardInfoLutBuilder(InfoSets):
         self, public: List[int], num_simulations: int = 2
     ) -> np.ndarray:
         """
+        Get the potential aware flop distribution for a particular card combo.
 
-        :param num_print: frequency at which to print
-        :param num_simulations: number of simulations
-        :return: ndarray of potential aware histograms
+        Parameters
+        ----------
+        public : List[float]
+            Cards to process
+
+        Returns
+        -------
+            Potential aware flop distributions
         """
         available_cards: np.ndarray = self.get_available_cards(
             cards=self._cards, unavailable_cards=public
@@ -372,7 +446,7 @@ class CardInfoLutBuilder(InfoSets):
             # getting available cards
             available_cards_turn = [
                 x for x in available_cards if x != turn_card[0]
-            ]  # TODO: get better implementation of this
+            ]
             turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
                 available_cards_turn, the_board=the_board, our_hand=our_hand
             )
@@ -386,28 +460,42 @@ class CardInfoLutBuilder(InfoSets):
                     if emd < min_emd:
                         min_idx = idx
                         min_emd = emd
-            # ok, now increment the cluster to which it belongs -
+            # Now increment the cluster to which it belongs.
             potential_aware_distribution_flop[min_idx] += 1 / num_simulations
-            # object for storing flop potential aware expected hand strength distributions
         return potential_aware_distribution_flop
 
     @staticmethod
     def cluster(num_clusters: int, X: np.array):
         km = KMeans(
             n_clusters=num_clusters,
-            init="random",  # would be 200 in our example
+            init="random",
             n_init=10,
             max_iter=300,
             tol=1e-04,
             random_state=0,
         )
         y_km = km.fit_predict(X)
-        # centers to be used for r - 1 (ie; the previous round)
+        # Centers to be used for r - 1 (ie; the previous round)
         centroids = km.cluster_centers_
         return centroids, y_km
 
     @staticmethod
-    def create_card_lookup(clusters, card_combos):
+    def create_card_lookup(clusters: np.array, card_combos: np.array) -> Dict:
+        """
+        Create lookup table.
+
+        Parameters
+        ----------
+        clusters : np.array
+            Array of cluster ids.
+        card_combos : np.array
+            The card combos to which the cluster ids belong.
+
+        Returns
+        -------
+        lossy_lookup : Dict
+            Lookup table for finding cluster ids.
+        """
         log.info("Creating lookup table.")
         lossy_lookup = {}
         for i, card_combo in enumerate(tqdm(card_combos)):
