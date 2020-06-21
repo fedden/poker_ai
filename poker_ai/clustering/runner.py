@@ -86,7 +86,7 @@ class InfoSets:
     # TODO: should this be isomorphic/lossless to reduce the program run time?
     """
 
-    def __init__(self, disk_cache: bool = False):
+    def __init__(self, disk_cache: bool = True):
         super().__init__()
         # Setup caching.
         if disk_cache:
@@ -161,9 +161,12 @@ class CardInfoLutBuilder(InfoSets):
         """"""
         super().__init__()
         self.card_info_lut_path: Path = Path(save_dir) / "card_info_lut.joblib"
+        self.centroid_path: Path = Path(save_dir) / "centroids.joblib"
         try:
             self.card_info_lut: Dict[str, Any] = joblib.load(self.card_info_lut_path)
+            self.centroids: Dict[str, Any] = joblib.load(self.centroid_path)
         except FileNotFoundError:
+            self.centroids: Dict[str, Any] = {}
             self.card_info_lut: Dict[str, Any] = {}
 
     def compute(self):
@@ -177,12 +180,15 @@ class CardInfoLutBuilder(InfoSets):
         if "river" not in self.card_info_lut:
             self.card_info_lut["river"] = self._compute_river_clusters()
             joblib.dump(self.card_info_lut, self.card_info_lut_path)
+            joblib.dump(self.centroids, self.centroid_path)
         if "turn" not in self.card_info_lut:
             self.card_info_lut["turn"] = self._compute_turn_clusters()
             joblib.dump(self.card_info_lut, self.card_info_lut_path)
+            joblib.dump(self.centroids, self.centroid_path)
         if "flop" not in self.card_info_lut:
             self.card_info_lut["flop"] = self._compute_flop_clusters()
             joblib.dump(self.card_info_lut, self.card_info_lut_path)
+            joblib.dump(self.centroids, self.centroid_path)
         end = time.time()
         log.info(f"Finished computation of clusters - took {end - start} seconds.")
 
@@ -201,14 +207,14 @@ class CardInfoLutBuilder(InfoSets):
                     total=len(self.river),
                 )
             )
-        self._river_centroids, self._river_clusters = self.cluster(
+        self.centroids["river"], self._river_clusters = self.cluster(
             num_clusters=50, X=self._river_ehs
         )
         end = time.time()
         log.info(
             f"Finished computation of river clusters - took {end - start} seconds."
         )
-        return self._river_clusters
+        return self.create_card_lookup(self._river_clusters, self.river)
 
     def _compute_turn_clusters(self):
         """"""
@@ -225,12 +231,12 @@ class CardInfoLutBuilder(InfoSets):
                     total=len(self.turn),
                 )
             )
-        self._turn_centroids, self._turn_clusters = self.cluster(
+        self.centroids["turn"], self._turn_clusters = self.cluster(
             num_clusters=50, X=self._turn_ehs_distributions
         )
         end = time.time()
         log.info(f"Finished computation of turn clusters - took {end - start} seconds.")
-        return self._turn_clusters
+        return self.create_card_lookup(self._turn_clusters, self.turn)
 
     def _compute_flop_clusters(self):
         """"""
@@ -247,12 +253,12 @@ class CardInfoLutBuilder(InfoSets):
                     total=len(self.flop),
                 )
             )
-        self._flop_centroids, self._flop_clusters = self.cluster(
+        self.centroids["flop"], self._flop_clusters = self.cluster(
             num_clusters=50, X=self._flop_potential_aware_distributions
         )
         end = time.time()
         log.info(f"Finished computation of flop clusters - took {end - start} seconds.")
-        return self._flop_clusters
+        return self.create_card_lookup(self._flop_clusters, self.flop)
 
     @staticmethod
     def simulate_get_ehs(game: GameUtility, num_simulations: int = 2) -> List[float]:
@@ -285,7 +291,7 @@ class CardInfoLutBuilder(InfoSets):
         :param num_simulations: int of simulations
         :return: array of counts for each cluster the turn fell into by the river after simulations
         """
-        turn_ehs_distribution = np.zeros(len(self._river_centroids))
+        turn_ehs_distribution = np.zeros(len(self.centroids["river"]))
         # sample river cards and run a simulation
         for _ in range(num_simulations):
             river_card = np.random.choice(available_cards, 1, replace=False)
@@ -294,7 +300,7 @@ class CardInfoLutBuilder(InfoSets):
             ehs = self.simulate_get_ehs(game)
             # get EMD for expected hand strength against each river centroid
             # to which does it belong?
-            for idx, river_centroid in enumerate(self._river_centroids):
+            for idx, river_centroid in enumerate(self.centroids["river"]):
                 # TODO: do we need a faster implementation of this?
                 emd = wasserstein_distance(ehs, river_centroid)
                 if idx == 0:
@@ -356,7 +362,7 @@ class CardInfoLutBuilder(InfoSets):
         available_cards: np.ndarray = self.get_available_cards(
             cards=self._cards, unavailable_cards=public
         )
-        potential_aware_distribution_flop = [0] * len(self._turn_centroids)
+        potential_aware_distribution_flop = [0] * len(self.centroids["turn"])
         for j in range(num_simulations):
             # randomly generating turn
             turn_card = np.random.choice(available_cards, 1, replace=False)
@@ -370,7 +376,7 @@ class CardInfoLutBuilder(InfoSets):
             turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
                 available_cards_turn, the_board=the_board, our_hand=our_hand
             )
-            for idx, turn_centroid in enumerate(self._turn_centroids):
+            for idx, turn_centroid in enumerate(self.centroids["turn"]):
                 # earth mover distance
                 emd = wasserstein_distance(turn_ehs_distribution, turn_centroid)
                 if idx == 0:
@@ -399,6 +405,14 @@ class CardInfoLutBuilder(InfoSets):
         # centers to be used for r - 1 (ie; the previous round)
         centroids = km.cluster_centers_
         return centroids, y_km
+
+    @staticmethod
+    def create_card_lookup(clusters, card_combos):
+        log.info("Creating lookup table.")
+        lossy_lookup = {}
+        for i, card_combo in enumerate(tqdm(card_combos)):
+            lossy_lookup[tuple(card_combo)] = clusters[i]
+        return lossy_lookup
 
 
 @click.command()
