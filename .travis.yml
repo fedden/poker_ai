@@ -1,19 +1,11 @@
 language: python
 
-# Environment variables.
-env:
-  global:
-    - CC_TEST_REPORTER_ID=607f73633cb88df8c21568f855bd394dc47772d2228b2f0476ad8c87b625a334
+services:
+  - docker
 
 # Which version(s) of python we want to use for testing.
 python:
   - "3.7"
-
-# command to install dependencies
-install:
-  - pip install -r requirements.txt
-  - pip install pytest pytest-cov
-  - pip install .
 
 # Hook up code coverage in the before test script.
 before_script:
@@ -22,12 +14,14 @@ before_script:
   - ./cc-test-reporter before-build
 
 # command to run test script.
-script: pytest
+script: 
+  - docker run -ti pokeraitest pytest 
+  - MOST_RECENT_IMAGE=$(docker ps -a --format "{{.Names}}" | head -1)
 
 # Code to run after the test script.
 after_script:
-  - pytest test -v --cov-report term --cov-report xml --cov-fail-under=90 --cov=pluribus
-  - if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
+  - docker run -ti $MOST_RECENT_IMAGE pytest test -v --cov-report term --cov-report xml --cov-fail-under=90 --cov=pluribus
+  - if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then docker run -ti $MOST_RECENT_IMAGE ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
 
 # Alert us in slack.
 notifications:
