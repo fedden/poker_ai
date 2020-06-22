@@ -9,6 +9,7 @@ from click.testing import CliRunner
 from poker_ai.cli.runner import cli
 
 os.environ["TESTING_SUITE"] = "1"
+pickle_dir = os.environ.get("LUT_DIR", os.path.abspath("research/blueprint_algo/"))
 
 
 @pytest.mark.parametrize("strategy_interval", [1])
@@ -32,67 +33,28 @@ def test_train_multiprocess_async(
     update_threshold: int,
 ):
     """Test we can call the syncronous multiprocessing training CLI."""
-    from poker_ai.ai.runner import start
-
-    file_names = [
-        "preflop_lossless.pkl",
-        "flop_lossy_2.pkl",
-        "turn_lossy_2.pkl",
-        "river_lossy_2.pkl",
-    ]
-    for file_name in file_names:
-        with open(file_name, "wb") as stream:
-            pickle.dump(dict(), stream)
-    start.callback(
-        strategy_interval=strategy_interval,
-        n_iterations=n_iterations,
-        lcfr_threshold=lcfr_threshold,
-        discount_interval=discount_interval,
-        prune_threshold=prune_threshold,
-        c=c,
-        n_players=n_players,
-        dump_iteration=dump_iteration,
-        update_threshold=update_threshold,
-        pickle_dir=".",  # "/home/tollie/dev/poker_ai/research/blueprint_algo/",
-        single_process=False,
-        sync_update_strategy=False,
-        sync_cfr=False,
-        sync_discount=False,
-        sync_serialise=False,
-        nickname="test",
-    )
-    for file_name in file_names:
-        os.remove(file_name)
-    #  runner = CliRunner()
-    #  with runner.isolated_filesystem():
-    #      for file_name in [
-    #          "preflop_lossless.pkl",
-    #          "flop_lossy_2.pkl",
-    #          "turn_lossy_2.pkl",
-    #          "river_lossy_2.pkl",
-    #      ]:
-    #          with open(file_name, "wb") as stream:
-    #              pickle.dump(dict(), stream)
-    #      cli_str: str = f"""train start              \
-    #          --strategy_interval {strategy_interval} \
-    #          --n_iterations {n_iterations}           \
-    #          --lcfr_threshold {lcfr_threshold}       \
-    #          --discount_interval {discount_interval} \
-    #          --prune_threshold {prune_threshold}     \
-    #          --c {c}                                 \
-    #          --n_players {n_players}                 \
-    #          --dump_iteration {dump_iteration}       \
-    #          --update_threshold {update_threshold}   \
-    #          --pickle_dir .                          \
-    #          --multi_process                         \
-    #          --async_update_strategy                 \
-    #          --async_cfr                             \
-    #          --async_discount                        \
-    #          --async_serialise                       \
-    #          --nickname test
-    #      """
-    #      cli_args: List[str] = shlex.split(cli_str)
-    #      result = runner.invoke(cli, cli_args, catch_exceptions=False)
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cli_str: str = f"""train start              \
+            --strategy_interval {strategy_interval} \
+            --n_iterations {n_iterations}           \
+            --lcfr_threshold {lcfr_threshold}       \
+            --discount_interval {discount_interval} \
+            --prune_threshold {prune_threshold}     \
+            --c {c}                                 \
+            --n_players {n_players}                 \
+            --dump_iteration {dump_iteration}       \
+            --update_threshold {update_threshold}   \
+            --pickle_dir  {pickle_dir}              \
+            --multi_process                         \
+            --async_update_strategy                 \
+            --async_cfr                             \
+            --async_discount                        \
+            --async_serialise                       \
+            --nickname test
+        """
+        cli_args: List[str] = shlex.split(cli_str)
+        result = runner.invoke(cli, cli_args, catch_exceptions=False)
 
 
 @pytest.mark.parametrize("strategy_interval", [1])
@@ -118,14 +80,6 @@ def test_train_multiprocess_sync(
     """Test we can call the syncronous multiprocessing training CLI."""
     runner = CliRunner()
     with runner.isolated_filesystem():
-        for file_name in [
-            "preflop_lossless.pkl",
-            "flop_lossy_2.pkl",
-            "turn_lossy_2.pkl",
-            "river_lossy_2.pkl",
-        ]:
-            with open(file_name, "wb") as stream:
-                pickle.dump(dict(), stream)
         cli_str: str = f"""train start              \
             --strategy_interval {strategy_interval} \
             --n_iterations {n_iterations}           \
@@ -136,7 +90,7 @@ def test_train_multiprocess_sync(
             --n_players {n_players}                 \
             --dump_iteration {dump_iteration}       \
             --update_threshold {update_threshold}   \
-            --pickle_dir  /home/tollie/dev/poker_ai/research/blueprint_algo/                         \
+            --pickle_dir  {pickle_dir}              \
             --multi_process                         \
             --sync_update_strategy                  \
             --sync_cfr                              \
