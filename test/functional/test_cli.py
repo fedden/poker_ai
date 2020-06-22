@@ -54,7 +54,7 @@ def test_train_multiprocess_async(
             --nickname test
         """
         cli_args: List[str] = shlex.split(cli_str)
-        result = runner.invoke(cli, cli_args, catch_exceptions=False)
+        result = runner.invoke(cli, cli_args, catch_exceptions=True)
 
 
 @pytest.mark.parametrize("strategy_interval", [1])
@@ -99,7 +99,7 @@ def test_train_multiprocess_sync(
             --nickname test
         """
         cli_args: List[str] = shlex.split(cli_str)
-        result = runner.invoke(cli, cli_args, catch_exceptions=False)
+        result = runner.invoke(cli, cli_args, catch_exceptions=True)
 
 
 def test_train_singleprocess():
