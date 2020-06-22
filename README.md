@@ -77,6 +77,20 @@ pip install pytest
 pytest
 ```
 
+See below on how to run the tests from the docker image.
+
+## Building the docker image
+
+We use a custom docker image for our testing suite. You'll need to have computed the pickled card information lookup tables first (the cluster command for poker_ai). We build the images like below, in this case the luts are in './research/blueprint_algo':
+```bash
+docker build --build-arg LUT_DIR=research/blueprint_algo -t poker-ai .
+```
+
+We then can run the tests with:
+```bash
+docker run -it poker-ai pytest 
+```
+
 ## Building documentation
 
 Documentation is hosted, but you can build it yourself if you wish:
