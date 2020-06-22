@@ -10,7 +10,7 @@ COPY "${LUT_DIR}/preflop_lossless.pkl" .
 COPY "${LUT_DIR}/river_lossy_2.pkl" .
 COPY "${LUT_DIR}/turn_lossy_2.pkl" .
 # Set the environment variable for the tests
-ENV LUT_DIR="." 
+ENV LUT_DIR="/poker_ai" 
 # Copy the requirements.
 COPY requirements.txt requirements.txt 
 # Install python modules.
