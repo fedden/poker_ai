@@ -102,9 +102,45 @@ def test_train_multiprocess_sync(
         result = runner.invoke(cli, cli_args, catch_exceptions=True)
 
 
-def test_train_singleprocess():
+@pytest.mark.parametrize("strategy_interval", [1])
+@pytest.mark.parametrize("n_iterations", [5])
+@pytest.mark.parametrize("lcfr_threshold", [0])
+@pytest.mark.parametrize("discount_interval", [1])
+@pytest.mark.parametrize("prune_threshold", [1])
+@pytest.mark.parametrize("c", [0])
+@pytest.mark.parametrize("n_players", [2])
+@pytest.mark.parametrize("dump_iteration", [1])
+@pytest.mark.parametrize("update_threshold", [0])
+def test_train_singleprocess(
+    strategy_interval: int,
+    n_iterations: int,
+    lcfr_threshold: int,
+    discount_interval: int,
+    prune_threshold: int,
+    c: int,
+    n_players: int,
+    dump_iteration: int,
+    update_threshold: int,
+):
+    """Test we can call the syncronous multiprocessing training CLI."""
     runner = CliRunner()
-    pass
+    with runner.isolated_filesystem():
+        cli_str: str = f"""train start              \
+            --strategy_interval {strategy_interval} \
+            --n_iterations {n_iterations}           \
+            --lcfr_threshold {lcfr_threshold}       \
+            --discount_interval {discount_interval} \
+            --prune_threshold {prune_threshold}     \
+            --c {c}                                 \
+            --n_players {n_players}                 \
+            --dump_iteration {dump_iteration}       \
+            --update_threshold {update_threshold}   \
+            --pickle_dir  {pickle_dir}              \
+            --single_process                        \
+            --nickname test
+        """
+        cli_args: List[str] = shlex.split(cli_str)
+        result = runner.invoke(cli, cli_args, catch_exceptions=True)
 
 
 # TODO(fedden): Figure out a way to test the terminal game.
