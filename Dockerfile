@@ -1,16 +1,4 @@
-FROM python:3.7
-RUN mkdir /poker_ai
-# Work from the root of the repo.
-WORKDIR /poker_ai
-# Supply '--build_arg LUT_DIR=research/blueprint_algo' here.
-ARG LUT_DIR
-# Copy pickle LUTs over.
-COPY "${LUT_DIR}/flop_lossy_2.pkl" .
-COPY "${LUT_DIR}/preflop_lossless.pkl" .
-COPY "${LUT_DIR}/river_lossy_2.pkl" .
-COPY "${LUT_DIR}/turn_lossy_2.pkl" .
-# Set the environment variable for the tests
-ENV LUT_DIR="/poker_ai" 
+FROM pokerai/pokerai:1.0.0rc1
 # Copy the requirements.
 COPY requirements.txt requirements.txt 
 # Install python modules.
@@ -18,4 +6,10 @@ RUN pip install -r requirements.txt
 # Copy everything else.
 COPY . /poker_ai
 RUN pip install -e .
+# Setup tests.
+RUN pip install pytest-cov
+ENV CC_TEST_REPORTER_ID=607f73633cb88df8c21568f855bd394dc47772d2228b2f0476ad8c87b625a334 
+RUN curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter 
+RUN chmod +x ./cc-test-reporter
+RUN ./cc-test-reporter before-build
 CMD ["/bin/bash"]
