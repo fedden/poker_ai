@@ -14,12 +14,11 @@ before_script:
 
 # command to run test script.
 script: 
-  - docker run -ti pokeraitest pytest 
+  - docker run -ti pokeraitest pytest test -v --cov-report term --cov-report xml --cov-fail-under=90 --cov=pluribus
   - MOST_RECENT_IMAGE=$(docker ps -a --format "{{.Image}}" | head -1)
 
 # Code to run after the test script.
 after_script:
-  - docker run -ti $MOST_RECENT_IMAGE pytest test -v --cov-report term --cov-report xml --cov-fail-under=90 --cov=pluribus
   - if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then docker run -ti $MOST_RECENT_IMAGE ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
 
 # Alert us in slack.
