@@ -81,17 +81,24 @@ See below on how to run the tests from the docker image.
 
 ## Building the docker image
 
-We use a custom docker image for our testing suite. You'll need to have computed the pickled card information lookup tables first (the cluster command for poker_ai). We build the images like below, in this case the luts are in './research/blueprint_algo':
+We use a custom docker image for our testing suite. 
+
+You'll need to have computed the pickled card information lookup tables first (the cluster command for poker_ai). We build the images like below, in this case the luts are in './research/blueprint_algo'. First we build the parent image, with all of the dependancies.
 ```bash
-docker build --build-arg LUT_DIR=research/blueprint_algo -t pokerai .
+docker build --build-arg LUT_DIR=research/blueprint_algo -f ParentDockerfile -t pokerai .
+```
+
+Then we build the test image.
+```bash
+docker build -t pokeraitest .
 ```
 
 We then can run the tests with:
 ```bash
-docker run -it pokerai pytest 
+docker run -it pokeraitest pytest 
 ```
 
-This is just a note for the developers, but we can push to the registry with the following (please ensure the version tag that comes after the colon is correct):
+This is just a note for the developers, but we can push the parent image to the registry with the following (please ensure the version tag that comes after the colon is correct). We want to do this because we need various dependancies for the remote tests, and travis builds the `pokeraitest` image with the current git commit that has just been pushed.
 ```bash
 docker tag pokerai pokerai/pokerai:1.0.0rc1
 docker push pokerai/pokerai:1.0.0rc1
