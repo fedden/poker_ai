@@ -83,12 +83,18 @@ See below on how to run the tests from the docker image.
 
 We use a custom docker image for our testing suite. You'll need to have computed the pickled card information lookup tables first (the cluster command for poker_ai). We build the images like below, in this case the luts are in './research/blueprint_algo':
 ```bash
-docker build --build-arg LUT_DIR=research/blueprint_algo -t poker-ai .
+docker build --build-arg LUT_DIR=research/blueprint_algo -t pokerai .
 ```
 
 We then can run the tests with:
 ```bash
-docker run -it poker-ai pytest 
+docker run -it pokerai pytest 
+```
+
+This is just a note for the developers, but we can push to the registry with the following (please ensure the version tag that comes after the colon is correct):
+```bash
+docker tag pokerai pokerai/pokerai:1.0.0rc1
+docker push pokerai/pokerai:1.0.0rc1
 ```
 
 ## Building documentation
