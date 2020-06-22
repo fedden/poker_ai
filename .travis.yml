@@ -14,7 +14,7 @@ before_script:
 
 # command to run test script.
 script: 
-  - docker run -ti pokeraitest pytest test -v --cov-report term --cov-report xml --cov-fail-under=90 --cov=pluribus
+  - docker run -ti pokeraitest pytest test -v --cov-report term --cov-report xml --cov-fail-under=70 --cov=/poker_ai/poker_ai
   - MOST_RECENT_IMAGE=$(docker ps -a --format "{{.Image}}" | head -1)
 
 # Code to run after the test script.
