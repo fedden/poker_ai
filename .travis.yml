@@ -3,9 +3,8 @@ language: python
 services:
   - docker
 
-# Which version(s) of python we want to use for testing.
-python:
-  - "3.7"
+before_install:
+  - docker build -t pokeraitest .
 
 # Hook up code coverage in the before test script.
 before_script:
