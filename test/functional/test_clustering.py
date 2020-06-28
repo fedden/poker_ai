@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from poker_ai.clustering import CardCombos
+from poker_ai.clustering.card_combos import CardCombos
 
 
 def _get_num_combos(n: int, r: int):
