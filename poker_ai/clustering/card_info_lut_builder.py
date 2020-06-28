@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from poker_ai.clustering.card_combos import CardCombos
 from poker_ai.clustering.game_utility import GameUtility
+from poker_ai.clustering.preflop import compute_preflop_lossless_abstraction
 
 log = logging.getLogger("poker_ai.clustering.runner")
 
@@ -28,21 +29,21 @@ class CardInfoLutBuilder(CardCombos):
         Centroids per betting round for use in clustering previous rounds by
         earth movers distance.
     """
+
     def __init__(
-            self,
-            n_simulations_river: int,
-            n_simulations_turn: int,
-            n_simulations_flop: int,
-            low_card_rank: int,
-            high_card_rank: int,
-            save_dir: str
+        self,
+        n_simulations_river: int,
+        n_simulations_turn: int,
+        n_simulations_flop: int,
+        low_card_rank: int,
+        high_card_rank: int,
+        save_dir: str,
     ):
         self.n_simulations_river = n_simulations_river
         self.n_simulations_turn = n_simulations_turn
         self.n_simulations_flop = n_simulations_flop
         super().__init__(
-            low_card_rank,
-            high_card_rank,
+            low_card_rank, high_card_rank,
         )
         self.card_info_lut_path: Path = Path(save_dir) / "card_info_lut.joblib"
         self.centroid_path: Path = Path(save_dir) / "centroids.joblib"
@@ -54,10 +55,7 @@ class CardInfoLutBuilder(CardCombos):
             self.card_info_lut: Dict[str, Any] = {}
 
     def compute(
-        self,
-        n_river_clusters: int,
-        n_turn_clusters: int,
-        n_flop_clusters: int,
+        self, n_river_clusters: int, n_turn_clusters: int, n_flop_clusters: int,
     ):
         """Compute all clusters and save to card_info_lut dictionary.
 
@@ -66,6 +64,11 @@ class CardInfoLutBuilder(CardCombos):
         """
         log.info("Starting computation of clusters.")
         start = time.time()
+        if "preflop" not in self.card_info_lut:
+            self.card_info_lut["preflop"] = compute_preflop_lossless_abstraction(
+                builder=self
+            )
+            joblib.dump(self.card_info_lut, self.card_info_lut_path)
         if "river" not in self.card_info_lut:
             self.card_info_lut["river"] = self._compute_river_clusters(
                 n_river_clusters,
@@ -73,15 +76,11 @@ class CardInfoLutBuilder(CardCombos):
             joblib.dump(self.card_info_lut, self.card_info_lut_path)
             joblib.dump(self.centroids, self.centroid_path)
         if "turn" not in self.card_info_lut:
-            self.card_info_lut["turn"] = self._compute_turn_clusters(
-                n_turn_clusters,
-            )
+            self.card_info_lut["turn"] = self._compute_turn_clusters(n_turn_clusters)
             joblib.dump(self.card_info_lut, self.card_info_lut_path)
             joblib.dump(self.centroids, self.centroid_path)
         if "flop" not in self.card_info_lut:
-            self.card_info_lut["flop"] = self._compute_flop_clusters(
-                n_flop_clusters,
-            )
+            self.card_info_lut["flop"] = self._compute_flop_clusters(n_flop_clusters)
             joblib.dump(self.card_info_lut, self.card_info_lut_path)
             joblib.dump(self.centroids, self.centroid_path)
         end = time.time()
@@ -155,10 +154,7 @@ class CardInfoLutBuilder(CardCombos):
         log.info(f"Finished computation of flop clusters - took {end - start} seconds.")
         return self.create_card_lookup(self._flop_clusters, self.flop)
 
-    def simulate_get_ehs(
-        self,
-        game: GameUtility,
-    ) -> np.array:
+    def simulate_get_ehs(self, game: GameUtility,) -> np.array:
         """
         Get expected hand strength object.
 
@@ -182,10 +178,7 @@ class CardInfoLutBuilder(CardCombos):
         return ehs
 
     def simulate_get_turn_ehs_distributions(
-        self,
-        available_cards: np.array,
-        the_board: np.array,
-        our_hand: np.array,
+        self, available_cards: np.array, the_board: np.array, our_hand: np.array,
     ) -> np.array:
         """
         Get histogram of frequencies that a given turn situation resulted in a
@@ -230,10 +223,7 @@ class CardInfoLutBuilder(CardCombos):
             turn_ehs_distribution[min_idx] += 1 / self.n_simulations_turn
         return turn_ehs_distribution
 
-    def process_river_ehs(
-        self,
-        public: List[int],
-    ) -> List[float]:
+    def process_river_ehs(self, public: List[int],) -> List[float]:
         """
         Get the expected hand strength for a particular card combo.
 
@@ -253,9 +243,7 @@ class CardInfoLutBuilder(CardCombos):
         return self.simulate_get_ehs(game)
 
     @staticmethod
-    def get_available_cards(
-        cards: np.array, unavailable_cards: np.array
-    ) -> np.array:
+    def get_available_cards(cards: np.array, unavailable_cards: np.array) -> np.array:
         """
         Get all cards that are available.
 
@@ -273,10 +261,7 @@ class CardInfoLutBuilder(CardCombos):
         unavailable_cards = set(unavailable_cards.tolist())
         return np.array([c for c in cards if c not in unavailable_cards])
 
-    def process_turn_ehs_distributions(
-        self,
-        public: List[int],
-    ) -> List[float]:
+    def process_turn_ehs_distributions(self, public: List[int],) -> List[float]:
         """
         Get the potential aware turn distribution for a particular card combo.
 
@@ -294,15 +279,12 @@ class CardInfoLutBuilder(CardCombos):
         )
         # sample river cards and run a simulation
         turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
-            available_cards,
-            the_board=public[2:6],
-            our_hand=public[:2],
+            available_cards, the_board=public[2:6], our_hand=public[:2],
         )
         return turn_ehs_distribution
 
     def process_flop_potential_aware_distributions(
-        self,
-        public: List[int],
+        self, public: List[int],
     ) -> np.ndarray:
         """
         Get the potential aware flop distribution for a particular card combo.
@@ -327,13 +309,9 @@ class CardInfoLutBuilder(CardCombos):
             board = public[2:5]
             the_board = np.append(board, turn_card).tolist()
             # getting available cards
-            available_cards_turn = [
-                x for x in available_cards if x != turn_card[0]
-            ]
+            available_cards_turn = [x for x in available_cards if x != turn_card[0]]
             turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
-                available_cards_turn,
-                the_board=the_board,
-                our_hand=our_hand,
+                available_cards_turn, the_board=the_board, our_hand=our_hand,
             )
             for idx, turn_centroid in enumerate(self.centroids["turn"]):
                 # earth mover distance

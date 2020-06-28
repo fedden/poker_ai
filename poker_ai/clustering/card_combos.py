@@ -3,7 +3,6 @@ from typing import List
 from itertools import combinations
 
 import numpy as np
-from joblib import Memory
 from tqdm import tqdm
 
 from poker_ai.poker.card import Card
@@ -15,18 +14,15 @@ log = logging.getLogger("poker_ai.clustering.runner")
 
 class CardCombos:
     """This class stores combinations of cards (histories) per street."""
+
     def __init__(
-        self,
-        low_card_rank: int,
-        high_card_rank: int,
+        self, low_card_rank: int, high_card_rank: int,
     ):
         super().__init__()
         # Sort for caching.
         suits: List[str] = sorted(list(get_all_suits()))
-        ranks: List[int] = sorted(list(range(low_card_rank, high_card_rank)))
-        self._cards = np.array(
-            [Card(rank, suit) for suit in suits for rank in ranks]
-        )
+        ranks: List[int] = sorted(list(range(low_card_rank, high_card_rank + 1)))
+        self._cards = np.array([Card(rank, suit) for suit in suits for rank in ranks])
         self.starting_hands = self.get_card_combos(2)
         self.flop = self.create_info_combos(
             self.starting_hands, self.get_card_combos(3)
@@ -90,7 +86,15 @@ class CardCombos:
             dynamic_ncols=True,
             desc=f"Creating {betting_stage} info combos",
         ):
+            # Descending sort combos.
+            sorted_combos: np.ndarray = np.sort(combos)[::-1]
             for public_combo in publics:
+                # Descending sort public_combo.
+                sorted_public_combo: np.ndarray = np.sort(public_combo)[::-1]
                 if not np.any(np.isin(combos, public_combo)):
-                    our_cards.append(np.concatenate((combos, public_combo)))
+                    # Combine hand and public cards.
+                    hand: np.ndarray = np.concatenate(
+                        [sorted_combos, sorted_public_combo], axis=0
+                    )
+                    our_cards.append(hand)
         return np.array(our_cards)
