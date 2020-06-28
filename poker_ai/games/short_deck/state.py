@@ -245,6 +245,7 @@ class ShortDeckPokerState:
             Card information cluster lookup table.
         """
         if pickle_dir:
+            logger.info("Loading card information lut in deprecated way")
             file_names = [
                 "preflop_lossless.pkl",
                 "flop_lossy_2.pkl",
@@ -263,7 +264,8 @@ class ShortDeckPokerState:
                 with open(file_path, "rb") as fp:
                     card_info_lut[betting_stage] = joblib.load(fp)
         elif lut_path:
-            raise NotImplementedError(f"")
+            logger.info(f"Loading card from single file at path: {lut_path}")
+            card_info_lut = joblib.load(lut_path)
         else:
             card_info_lut = {}
         return card_info_lut
