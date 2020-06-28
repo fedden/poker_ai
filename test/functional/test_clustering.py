@@ -14,13 +14,23 @@ def _get_num_combos(n: int, r: int):
         Number to choose from
     r : int
         Number to choose
+
+    Returns
+    -------
+        Number of combinations
     """
     return math.factorial(n) / (math.factorial(n - r) * math.factorial(r))
 
 
 @pytest.mark.parametrize("low_card_rank", [11, 12])
 def test_clustering_1(low_card_rank: int):
-    """Test the number of cards created."""
+    """Test the number of cards created.
+
+    Parameters
+    ----------
+    low_card_rank : int
+        Lowest card rank in the deck 2-14
+    """
     high_card_rank = 14
     card_combos = CardCombos(
         low_card_rank=low_card_rank,
