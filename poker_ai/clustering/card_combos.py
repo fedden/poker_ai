@@ -10,8 +10,6 @@ from poker_ai.poker.card import Card
 from poker_ai.poker.deck import get_all_suits
 
 
-cache_path = "./clustering_cache"
-memory = Memory(cache_path, verbose=0)
 log = logging.getLogger("poker_ai.clustering.runner")
 
 
@@ -21,13 +19,8 @@ class CardCombos:
         self,
         low_card_rank: int,
         high_card_rank: int,
-        disk_cache: bool,
     ):
         super().__init__()
-        # Setup caching.
-        if disk_cache:
-            self.get_card_combos = memory.cache(self.get_card_combos)
-            self.create_info_combos = memory.cache(self.create_info_combos)
         # Sort for caching.
         suits: List[str] = sorted(list(get_all_suits()))
         ranks: List[int] = sorted(list(range(low_card_rank, high_card_rank)))

@@ -28,8 +28,6 @@ Options:
   --n_simulations_flop INTEGER   The number of turn card hand simulations we
                                  would like to run on the flop. We recommend
                                  to start small.
-  --disk_cache TEXT              Whether or not to cache the card
-                                 combinations.
   --save_dir TEXT                Path to directory to save card info lookup
                                  table and betting stage centroids.
   --help                         Show this message and exit.
@@ -105,13 +103,6 @@ from poker_ai.clustering.card_info_lut_builder import CardInfoLutBuilder
     )
 )
 @click.option(
-    "--disk_cache",
-    default=False,
-    help=(
-        "Whether or not to cache the card combinations."
-    )
-)
-@click.option(
     "--save_dir",
     default="",
     help=(
@@ -128,7 +119,6 @@ def cluster(
     n_simulations_river: int,
     n_simulations_turn: int,
     n_simulations_flop: int,
-    disk_cache: bool,
     save_dir: str,
 ):
     """Run clustering."""
@@ -138,7 +128,6 @@ def cluster(
         n_simulations_flop,
         low_card_rank,
         high_card_rank,
-        disk_cache,
         save_dir
     )
     builder.compute(

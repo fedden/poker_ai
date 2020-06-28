@@ -35,7 +35,6 @@ class CardInfoLutBuilder(CardCombos):
             n_simulations_flop: int,
             low_card_rank: int,
             high_card_rank: int,
-            disk_cache: bool,
             save_dir: str
     ):
         self.n_simulations_river = n_simulations_river
@@ -44,7 +43,6 @@ class CardInfoLutBuilder(CardCombos):
         super().__init__(
             low_card_rank,
             high_card_rank,
-            disk_cache
         )
         self.card_info_lut_path: Path = Path(save_dir) / "card_info_lut.joblib"
         self.centroid_path: Path = Path(save_dir) / "centroids.joblib"
