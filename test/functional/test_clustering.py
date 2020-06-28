@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from poker_ai.clustering.card_combos import CardCombos
+from poker_ai.clustering import CardCombos
 
 
 def _get_num_combos(n: int, r: int):
@@ -35,7 +35,6 @@ def test_clustering_1(low_card_rank: int):
     card_combos = CardCombos(
         low_card_rank=low_card_rank,
         high_card_rank=high_card_rank,
-        disk_cache=False
     )
     n_cards = len(card_combos._cards)
     n_hole_cards = _get_num_combos(n_cards, 2)
