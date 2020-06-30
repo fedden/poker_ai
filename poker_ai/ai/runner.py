@@ -204,9 +204,19 @@ def resume(server_config_path: str):
     ),
 )
 @click.option(
+    "--lut_path",
+    default="./card_info_lut.joblib",
+    help=(
+        "The path to the files for clustering the infosets."
+    ),
+)
+@click.option(
     "--pickle_dir",
-    default="../blueprint_algo",
-    help="The path to the pickles for clustering the infosets.",
+    default=False,
+    help=(
+        "Whether or not the lut files are pickle files. This lookup "
+        "method is deprecated."
+    ),
 )
 @click.option(
     "--single_process/--multi_process",
@@ -242,7 +252,8 @@ def start(
     n_players: int,
     dump_iteration: int,
     update_threshold: int,
-    pickle_dir: str,
+    lut_path: str,
+    pickle_dir: bool,
     single_process: bool,
     sync_update_strategy: bool,
     sync_cfr: bool,
@@ -291,6 +302,7 @@ def start(
             dump_iteration=dump_iteration,
             update_threshold=update_threshold,
             save_path=save_path,
+            lut_path=lut_path,
             pickle_dir=pickle_dir,
             sync_update_strategy=sync_update_strategy,
             sync_cfr=sync_cfr,

@@ -31,7 +31,8 @@ class Server:
         dump_iteration: int,
         update_threshold: int,
         save_path: Union[str, Path],
-        pickle_dir: Union[str, Path] = ".",
+        lut_path: Union[str, Path] = ".",
+        pickle_dir: bool = False,
         agent_path: Optional[Union[str, Path]] = None,
         sync_update_strategy: bool = False,
         sync_cfr: bool = False,
@@ -51,6 +52,7 @@ class Server:
         self._dump_iteration = dump_iteration
         self._update_threshold = update_threshold
         self._save_path = save_path
+        self._lut_path = lut_path
         self._pickle_dir = pickle_dir
         self._agent_path = agent_path
         self._sync_update_strategy = sync_update_strategy
@@ -59,7 +61,7 @@ class Server:
         self._sync_serialise = sync_serialise
         self._start_timestep = start_timestep
         self._info_set_lut: state.InfoSetLookupTable = utils.io.load_info_set_lut(
-            pickle_dir,
+            lut_path, pickle_dir
         )
         log.info("Loaded lookup table.")
         self._job_queue: mp.JoinableQueue = mp.JoinableQueue(maxsize=n_processes)
@@ -144,6 +146,7 @@ class Server:
             dump_iteration=self._dump_iteration,
             update_threshold=self._update_threshold,
             save_path=self._save_path,
+            lut_path=self._lut_path,
             pickle_dir=self._pickle_dir,
             agent_path=self._agent_path,
             sync_update_strategy=self._sync_update_strategy,

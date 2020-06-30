@@ -68,7 +68,8 @@ class ShortDeckPokerState:
         players: List[ShortDeckPokerPlayer],
         small_blind: int = 50,
         big_blind: int = 100,
-        pickle_dir: str = ".",
+        lut_path: str = ".",
+        pickle_dir: bool = False,
         load_card_lut: bool = True,
     ):
         """Initialise state."""
@@ -79,7 +80,7 @@ class ShortDeckPokerState:
                 f"were provided."
             )
         if load_card_lut:
-            self.card_info_lut = self.load_card_lut(pickle_dir)
+            self.card_info_lut = self.load_card_lut(lut_path, pickle_dir)
         else:
             self.card_info_lut = {}
         # Get a reference of the pot from the first player.
@@ -226,7 +227,7 @@ class ShortDeckPokerState:
         return new_state
 
     @staticmethod
-    def load_card_lut(pickle_dir: str = "", lut_path: str = "") -> Dict[str, Dict[Tuple[int, ...], str]]:
+    def load_card_lut(lut_path: str = ".", pickle_dir: bool = False) -> Dict[str, Dict[Tuple[int, ...], str]]:
         """
         Load card information lookup table.
 
@@ -234,10 +235,11 @@ class ShortDeckPokerState:
 
         Parameters
         ----------
-        pickle_dir : str
-            Directory of the pickle files for card information clustering.
         lut_path : str
             Path to lookupkup table.
+        pickle_dir : bool
+            Whether the lut_path is a path to pickle files or not. Pickle files
+            are deprecated for the lut.
 
         Returns
         -------
@@ -255,10 +257,10 @@ class ShortDeckPokerState:
             betting_stages = ["pre_flop", "flop", "turn", "river"]
             card_info_lut: Dict[str, Dict[Tuple[int, ...], str]] = {}
             for file_name, betting_stage in zip(file_names, betting_stages):
-                file_path = os.path.join(pickle_dir, file_name)
+                file_path = os.path.join(lut_path, file_name)
                 if not os.path.isfile(file_path):
                     raise ValueError(
-                        f"File path not found {file_path}. Ensure pickle_dir is "
+                        f"File path not found {file_path}. Ensure lut_path is "
                         f"set to directory containing pickle files"
                     )
                 with open(file_path, "rb") as fp:
