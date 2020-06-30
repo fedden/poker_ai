@@ -39,6 +39,8 @@ def print_strategy(strategy: Dict[str, Dict[str, int]]):
 def simple_search(
     config: Dict[str, int],
     save_path: Path,
+    lut_path: Union[str, Path],
+    pickle_dir: bool,
     strategy_interval: int,
     n_iterations: int,
     lcfr_threshold: int,
@@ -81,14 +83,19 @@ def simple_search(
     """
     utils.random.seed(42)
     agent = Agent(use_manager=False)
-    info_set_lut = {}
+    card_info_lut = {}
     for t in trange(1, n_iterations + 1, desc="train iter"):
         if t == 2:
             logging.disable(logging.DEBUG)
         for i in range(n_players):  # fixed position i
             # Create a new state.
-            state: ShortDeckPokerState = new_game(n_players, info_set_lut)
-            info_set_lut = state.info_set_lut
+            state: ShortDeckPokerState = new_game(
+                n_players,
+                card_info_lut,
+                lut_path=lut_path,
+                pickle_dir=pickle_dir
+            )
+            card_info_lut = state.card_info_lut
             if t > update_threshold and t % strategy_interval == 0:
                 ai.update_strategy(agent=agent, state=state, i=i, t=t)
             if t > prune_threshold:

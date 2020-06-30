@@ -48,11 +48,18 @@ def new_game(
     ]
     if card_info_lut:
         # Don't reload massive files, it takes ages.
-        state = ShortDeckPokerState(players=players, load_card_lut=False, **kwargs)
+        state = ShortDeckPokerState(
+            players=players,
+            load_card_lut=False,
+            **kwargs
+        )
         state.card_info_lut = card_info_lut
     else:
         # Load massive files.
-        state = ShortDeckPokerState(players=players, **kwargs)
+        state = ShortDeckPokerState(
+            players=players,
+            **kwargs
+        )
     return state
 
 
@@ -79,8 +86,9 @@ class ShortDeckPokerState:
                 f"At least 2 players must be provided but only {n_players} "
                 f"were provided."
             )
+        self._pickle_dir = pickle_dir
         if load_card_lut:
-            self.card_info_lut = self.load_card_lut(lut_path, pickle_dir)
+            self.card_info_lut = self.load_card_lut(lut_path, self._pickle_dir)
         else:
             self.card_info_lut = {}
         # Get a reference of the pot from the first player.
@@ -227,7 +235,10 @@ class ShortDeckPokerState:
         return new_state
 
     @staticmethod
-    def load_card_lut(lut_path: str = ".", pickle_dir: bool = False) -> Dict[str, Dict[Tuple[int, ...], str]]:
+    def load_card_lut(
+        lut_path: str = ".",
+        pickle_dir: bool = False
+    ) -> Dict[str, Dict[Tuple[int, ...], str]]:
         """
         Load card information lookup table.
 
@@ -267,7 +278,7 @@ class ShortDeckPokerState:
                     card_info_lut[betting_stage] = joblib.load(fp)
         elif lut_path:
             logger.info(f"Loading card from single file at path: {lut_path}")
-            card_info_lut = joblib.load(lut_path)
+            card_info_lut = joblib.load(lut_path + '/card_info_lut.joblib')
         else:
             card_info_lut = {}
         return card_info_lut
@@ -373,20 +384,29 @@ class ShortDeckPokerState:
     @property
     def info_set(self) -> str:
         """Get the information set for the current player."""
+        if self._pickle_dir:
+            key = operator.attrgetter("eval_card")
+        else:
+            key = None
         cards = sorted(
             self.current_player.cards,
-            key=operator.attrgetter("eval_card"),
+            key=key,
             reverse=True,
         )
         cards += sorted(
             self._table.community_cards,
-            key=operator.attrgetter("eval_card"),
+            key=key,
             reverse=True,
         )
-        eval_cards = tuple([card.eval_card for card in cards])
+        if self._pickle_dir:
+            lookup_cards = tuple([card.eval_card for card in cards])
+        else:
+            lookup_cards = tuple(cards)
         try:
-            cards_cluster = self.card_info_lut[self._betting_stage][eval_cards]
+            cards_cluster = self.card_info_lut[self._betting_stage][lookup_cards]
         except KeyError:
+            import ipdb;
+            ipdb.set_trace()
             return "default info set, please ensure you load it correctly"
         # Convert history from a dict of lists to a list of dicts as I'm
         # paranoid about JSON's lack of care with insertion order.

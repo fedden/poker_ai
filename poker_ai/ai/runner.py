@@ -205,7 +205,7 @@ def resume(server_config_path: str):
 )
 @click.option(
     "--lut_path",
-    default="./card_info_lut.joblib",
+    default=".",
     help=(
         "The path to the files for clustering the infosets."
     ),
@@ -275,6 +275,8 @@ def start(
         simple_search(
             config=config,
             save_path=save_path,
+            lut_path=lut_path,
+            pickle_dir=pickle_dir,
             strategy_interval=strategy_interval,
             n_iterations=n_iterations,
             lcfr_threshold=lcfr_threshold,

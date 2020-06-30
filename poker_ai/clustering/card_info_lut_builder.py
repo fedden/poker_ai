@@ -64,8 +64,8 @@ class CardInfoLutBuilder(CardCombos):
         """
         log.info("Starting computation of clusters.")
         start = time.time()
-        if "preflop" not in self.card_info_lut:
-            self.card_info_lut["preflop"] = compute_preflop_lossless_abstraction(
+        if "pre_flop" not in self.card_info_lut:
+            self.card_info_lut["pre_flop"] = compute_preflop_lossless_abstraction(
                 builder=self
             )
             joblib.dump(self.card_info_lut, self.card_info_lut_path)
