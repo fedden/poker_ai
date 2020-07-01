@@ -384,18 +384,14 @@ class ShortDeckPokerState:
     @property
     def info_set(self) -> str:
         """Get the information set for the current player."""
-        if self._pickle_dir:
-            key = operator.attrgetter("eval_card")
-        else:
-            key = None
         cards = sorted(
             self.current_player.cards,
-            key=key,
+            key=operator.attrgetter("eval_card"),
             reverse=True,
         )
         cards += sorted(
             self._table.community_cards,
-            key=key,
+            key=operator.attrgetter("eval_card"),
             reverse=True,
         )
         if self._pickle_dir:
@@ -405,8 +401,6 @@ class ShortDeckPokerState:
         try:
             cards_cluster = self.card_info_lut[self._betting_stage][lookup_cards]
         except KeyError:
-            import ipdb;
-            ipdb.set_trace()
             return "default info set, please ensure you load it correctly"
         # Convert history from a dict of lists to a list of dicts as I'm
         # paranoid about JSON's lack of care with insertion order.
