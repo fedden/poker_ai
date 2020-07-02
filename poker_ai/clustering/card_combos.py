@@ -1,6 +1,7 @@
 import logging
 from typing import List
 from itertools import combinations
+import operator
 
 import numpy as np
 from tqdm import tqdm
@@ -22,7 +23,7 @@ class CardCombos:
         # Sort for caching.
         suits: List[str] = sorted(list(get_all_suits()))
         ranks: List[int] = sorted(list(range(low_card_rank, high_card_rank + 1)))
-        self._cards = np.array([Card(rank, suit) for suit in suits for rank in ranks])
+        self._cards = [Card(rank, suit) for suit in suits for rank in ranks]
         self.starting_hands = self.get_card_combos(2)
         self.flop = self.create_info_combos(
             self.starting_hands, self.get_card_combos(3)
@@ -50,10 +51,10 @@ class CardCombos:
         -------
             Combos of cards (Card) -> np.array
         """
-        return np.array([c for c in combinations(self._cards, num_cards)])
+        return list(combinations(self._cards, num_cards))
 
     def create_info_combos(
-        self, start_combos: np.array, publics: np.array
+        self, start_combos: List[Card], publics: List[Card]
     ) -> np.ndarray:
         """Combinations of private info(hole cards) and public info (board).
 
@@ -72,11 +73,11 @@ class CardCombos:
             Combinations of private information (hole cards) and public
             information (board)
         """
-        if publics.shape[1] == 3:
+        if len(publics[0]) == 3:
             betting_stage = "flop"
-        elif publics.shape[1] == 4:
+        elif len(publics[0]) == 4:
             betting_stage = "turn"
-        elif publics.shape[1] == 5:
+        elif len(publics[0]) == 5:
             betting_stage = "river"
         else:
             betting_stage = "unknown"
@@ -87,14 +88,22 @@ class CardCombos:
             desc=f"Creating {betting_stage} info combos",
         ):
             # Descending sort combos.
-            sorted_combos: np.ndarray = np.sort(combos)[::-1]
+            sorted_combos: List[Card] = sorted(
+                combos,
+                key=operator.attrgetter("eval_card"),
+                reverse=True,
+            )
             for public_combo in publics:
                 # Descending sort public_combo.
-                sorted_public_combo: np.ndarray = np.sort(public_combo)[::-1]
-                if not np.any(np.isin(combos, public_combo)):
+                sorted_public_combo: List[Card] = sorted(
+                    public_combo,
+                    key=operator.attrgetter("eval_card"),
+                    reverse=True,
+                )
+                if not np.any(np.isin(sorted_combos, sorted_public_combo)):
                     # Combine hand and public cards.
-                    hand: np.ndarray = np.concatenate(
-                        [sorted_combos, sorted_public_combo], axis=0
+                    hand: np.array = np.array(
+                        sorted_combos + sorted_public_combo
                     )
                     our_cards.append(hand)
         return np.array(our_cards)

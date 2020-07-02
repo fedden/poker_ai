@@ -401,6 +401,8 @@ class ShortDeckPokerState:
         try:
             cards_cluster = self.card_info_lut[self._betting_stage][lookup_cards]
         except KeyError:
+            if self.betting_stage not in {"terminal", "show_down"}:
+                raise ValueError("You should have these cards in your lut.")
             return "default info set, please ensure you load it correctly"
         # Convert history from a dict of lists to a list of dicts as I'm
         # paranoid about JSON's lack of care with insertion order.
