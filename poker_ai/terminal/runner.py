@@ -17,12 +17,14 @@ from poker_ai.utils.algos import rotate_list
 
 
 @click.command()
-@click.option('--pickle_dir', required=True, type=str)
+@click.option('--lut_path', required=True, type=str)
+@click.option('--pickle_dir', required=False, default=False, type=bool)
 @click.option('--agent', required=False, default="offline", type=str)
 @click.option('--strategy_path', required=False, default="", type=str)
 @click.option('--debug_quick_start/--no_debug_quick_start', default=False)
 def run_terminal_app(
-    pickle_dir: str,
+    lut_path: str,
+    pickle_dir: bool,
     agent: str = "offline",
     strategy_path: str = "",
     debug_quick_start: bool = False
@@ -37,9 +39,10 @@ def run_terminal_app(
 
     ```bash
     python -m poker_ai.terminal.runner                                       \
+        --lut_path ./research/blueprint_algo                               \
         --agent offline                                                      \
         --pickle_dir ./research/blueprint_algo                               \
-        --strategy_path ./research/blueprint_algo/offline_strategy_285800.gz \
+        --strategy_path ./agent.joblib                                       \
         --no_debug_quick_start
     ```
     """
@@ -49,13 +52,22 @@ def run_terminal_app(
     if debug_quick_start:
         state: ShortDeckPokerState = new_game(n_players, {}, load_card_lut=False)
     else:
-        state: ShortDeckPokerState = new_game(n_players, pickle_dir=pickle_dir)
+        state: ShortDeckPokerState = new_game(
+            n_players,
+            lut_path=lut_path,
+            pickle_dir=pickle_dir
+        )
     n_table_rotations: int = 0
     selected_action_i: int = 0
     positions = ["left", "middle", "right"]
     names = {"left": "BOT 1", "middle": "BOT 2", "right": "HUMAN"}
     if not debug_quick_start and agent in {"offline", "online"}:
-        offline_strategy = joblib.load(strategy_path)
+        offline_strategy_dict = joblib.load(strategy_path)
+        offline_strategy = offline_strategy_dict['strategy']
+        # Using the more fine grained preflop strategy would be a good idea
+        # for a future improvement
+        del offline_strategy_dict["pre_flop_strategy"]
+        del offline_strategy_dict["regret"]
     else:
         offline_strategy = {}
     user_results: UserResults = UserResults()
@@ -137,11 +149,11 @@ def run_terminal_app(
                         log.info(term.green("new game"))
                         if debug_quick_start:
                             state: ShortDeckPokerState = new_game(
-                                n_players, state.info_set_lut, load_card_lut=False,
+                                n_players, state.card_info_lut, load_card_lut=False,
                             )
                         else:
                             state: ShortDeckPokerState = new_game(
-                                n_players, state.info_set_lut,
+                                n_players, state.card_info_lut,
                             )
                         n_table_rotations -= 1
                         if n_table_rotations < 0:
@@ -161,6 +173,11 @@ def run_terminal_app(
                     this_state_strategy = offline_strategy.get(
                         state.info_set, default_strategy
                     )
+                    # Normalizing strategy.
+                    total = sum(this_state_strategy.values())
+                    this_state_strategy = {
+                        k: v / total for k, v in this_state_strategy.items()
+                    }
                     actions = list(this_state_strategy.keys())
                     probabilties = list(this_state_strategy.values())
                     action = np.random.choice(actions, p=probabilties)

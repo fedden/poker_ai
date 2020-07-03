@@ -93,7 +93,7 @@ def agent_test(
     # probability of reach is identical across strategies. Use the average
     # strategy.
 
-    info_set_lut = {}
+    card_info_lut = {}
     EVs = np.array([])
     for _ in trange(1, n_outer_iters):
         EV = np.array([])  # Expected value for player 0 (hero)
@@ -106,9 +106,9 @@ def agent_test(
                 else:
                     state: ShortDeckPokerState = new_game(
                         n_players,
-                        info_set_lut
+                        card_info_lut
                     )
-                    info_set_lut = state.info_set_lut
+                    card_info_lut = state.card_info_lut
                 while True:
                     player_not_in_hand = not state.players[p_i].is_active
                     if state.is_terminal or player_not_in_hand:
@@ -148,8 +148,8 @@ def agent_test(
 
 if __name__ == "__main__":
     agent_test(
-        hero_strategy_path="./_2020_06_17_22_04_53_863221/agent.joblib",
-        opponent_strategy_path="./random_strategy/random_strategy.gz",
+        hero_strategy_path="random_strategy/random_strategy.gz",
+        opponent_strategy_path="./_2020_07_02_20_38_58_085649/agent.joblib",
         real_time_est=False,
         public_cards=[],
         action_sequence=None,
