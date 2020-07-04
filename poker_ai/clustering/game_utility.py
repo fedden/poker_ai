@@ -17,13 +17,13 @@ class GameUtility:
         self.our_hand = our_hand
         self.board = board
 
-    def evaluate_hand(self, hand: np.array) -> int:
+    def evaluate_hand(self, hand: np.ndarray) -> int:
         """
         Evaluate a hand.
 
         Parameters
         ----------
-        hand : np.array
+        hand : np.ndarray
             Hand to evaluate.
 
         Returns

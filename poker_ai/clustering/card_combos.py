@@ -23,7 +23,9 @@ class CardCombos:
         # Sort for caching.
         suits: List[str] = sorted(list(get_all_suits()))
         ranks: List[int] = sorted(list(range(low_card_rank, high_card_rank + 1)))
-        self._cards = [Card(rank, suit) for suit in suits for rank in ranks]
+        self._cards = np.array(
+            [Card(rank, suit) for suit in suits for rank in ranks]
+        )
         self.starting_hands = self.get_card_combos(2)
         self.flop = self.create_info_combos(
             self.starting_hands, self.get_card_combos(3)
@@ -49,12 +51,12 @@ class CardCombos:
 
         Returns
         -------
-            Combos of cards (Card) -> np.array
+            Combos of cards (Card) -> np.ndarray
         """
-        return list(combinations(self._cards, num_cards))
+        return np.array([c for c in combinations(self._cards, num_cards)])
 
     def create_info_combos(
-        self, start_combos: List[Card], publics: List[Card]
+        self, start_combos: np.ndarray, publics: np.ndarray
     ) -> np.ndarray:
         """Combinations of private info(hole cards) and public info (board).
 
@@ -64,20 +66,20 @@ class CardCombos:
 
         Parameters
         ----------
-        start_combos : np.array
+        start_combos : np.ndarray
             Starting combination of cards (beginning with hole cards)
-        publics : np.array
+        publics : np.ndarray
             Public cards being added
         Returns
         -------
             Combinations of private information (hole cards) and public
             information (board)
         """
-        if len(publics[0]) == 3:
+        if publics.shape[1] == 3:
             betting_stage = "flop"
-        elif len(publics[0]) == 4:
+        elif publics.shape[1] == 4:
             betting_stage = "turn"
-        elif len(publics[0]) == 5:
+        elif publics.shape[1] == 5:
             betting_stage = "river"
         else:
             betting_stage = "unknown"
@@ -89,14 +91,14 @@ class CardCombos:
         ):
             # Descending sort combos.
             sorted_combos: List[Card] = sorted(
-                combos,
+                list(combos),
                 key=operator.attrgetter("eval_card"),
                 reverse=True,
             )
             for public_combo in publics:
                 # Descending sort public_combo.
                 sorted_public_combo: List[Card] = sorted(
-                    public_combo,
+                    list(public_combo),
                     key=operator.attrgetter("eval_card"),
                     reverse=True,
                 )

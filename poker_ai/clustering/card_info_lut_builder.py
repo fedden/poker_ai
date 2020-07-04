@@ -13,7 +13,6 @@ from tqdm import tqdm
 from poker_ai.clustering.card_combos import CardCombos
 from poker_ai.clustering.game_utility import GameUtility
 from poker_ai.clustering.preflop import compute_preflop_lossless_abstraction
-from poker_ai.poker.card import Card
 
 log = logging.getLogger("poker_ai.clustering.runner")
 
@@ -155,7 +154,7 @@ class CardInfoLutBuilder(CardCombos):
         log.info(f"Finished computation of flop clusters - took {end - start} seconds.")
         return self.create_card_lookup(self._flop_clusters, self.flop)
 
-    def simulate_get_ehs(self, game: GameUtility,) -> np.array:
+    def simulate_get_ehs(self, game: GameUtility,) -> np.ndarray:
         """
         Get expected hand strength object.
 
@@ -166,7 +165,7 @@ class CardInfoLutBuilder(CardCombos):
 
         Returns
         -------
-        ehs : np.array
+        ehs : np.ndarray
             [win_rate, loss_rate, tie_rate]
         """
         ehs: np.ndarray = np.zeros(3)
@@ -177,24 +176,27 @@ class CardInfoLutBuilder(CardCombos):
         return ehs
 
     def simulate_get_turn_ehs_distributions(
-        self, available_cards: np.array, the_board: np.array, our_hand: np.array,
-    ) -> np.array:
+        self,
+        available_cards: np.ndarray,
+        the_board: np.ndarray,
+        our_hand: np.ndarray,
+    ) -> np.ndarray:
         """
         Get histogram of frequencies that a given turn situation resulted in a
         certain cluster id after a river simulation.
 
         Parameters
         ----------
-        available_cards : np.array
+        available_cards : np.ndarray
             Array of available cards on the turn
-        the_board : np.array
+        the_board : np.nearray
             The board as of the turn
-        our_hand : np.array
+        our_hand : np.ndarray
             Cards our hand (Card)
 
         Returns
         -------
-        turn_ehs_distribution : np.array
+        turn_ehs_distribution : np.ndarray
             Array of counts for each cluster the turn fell into by the river
             after simulations
         """
@@ -220,35 +222,35 @@ class CardInfoLutBuilder(CardCombos):
             turn_ehs_distribution[min_idx] += 1 / self.n_simulations_turn
         return turn_ehs_distribution
 
-    def process_river_ehs(self, public: List[Card]) -> List[float]:
+    def process_river_ehs(self, public: np.ndarray) -> np.ndarray:
         """
         Get the expected hand strength for a particular card combo.
 
         Parameters
         ----------
-        public : List[Card]
+        public : np.ndarray
             Cards to process
 
         Returns
         -------
             Expected hand strength
         """
-        import ipdb;
-        ipdb.set_trace()
         our_hand = public[:2]
         board = public[2:7]
-        # get expected hand strength
+        # Get expected hand strength
         game = GameUtility(our_hand=our_hand, board=board, cards=self._cards)
         return self.simulate_get_ehs(game)
 
     @staticmethod
-    def get_available_cards(cards: np.array, unavailable_cards: np.array) -> np.array:
+    def get_available_cards(
+        cards: np.ndarray, unavailable_cards: np.ndarray
+    ) -> np.ndarray:
         """
         Get all cards that are available.
 
         Parameters
         ----------
-        cards : np.array
+        cards : np.ndarray
         unavailable_cards : np.array
             Cards that are not available.
 
@@ -260,13 +262,13 @@ class CardInfoLutBuilder(CardCombos):
         unavailable_cards = set(unavailable_cards.tolist())
         return np.array([c for c in cards if c not in unavailable_cards])
 
-    def process_turn_ehs_distributions(self, public: List[Card],) -> List[float]:
+    def process_turn_ehs_distributions(self, public: np.ndarray) -> np.ndarray:
         """
         Get the potential aware turn distribution for a particular card combo.
 
         Parameters
         ----------
-        public : List[Card]
+        public : np.ndarray
             Cards to process
 
         Returns
@@ -283,14 +285,14 @@ class CardInfoLutBuilder(CardCombos):
         return turn_ehs_distribution
 
     def process_flop_potential_aware_distributions(
-        self, public: List[int],
+        self, public: np.ndarray,
     ) -> np.ndarray:
         """
         Get the potential aware flop distribution for a particular card combo.
 
         Parameters
         ----------
-        public : List[float]
+        public : np.ndarray
             Cards to process
 
         Returns
@@ -300,7 +302,7 @@ class CardInfoLutBuilder(CardCombos):
         available_cards: np.ndarray = self.get_available_cards(
             cards=self._cards, unavailable_cards=public
         )
-        potential_aware_distribution_flop = [0] * len(self.centroids["turn"])
+        potential_aware_distribution_flop = np.zeros(len(self.centroids["turn"]))
         for j in range(self.n_simulations_flop):
             # randomly generating turn
             turn_card = np.random.choice(available_cards, 1, replace=False)
@@ -308,7 +310,9 @@ class CardInfoLutBuilder(CardCombos):
             board = public[2:5]
             the_board = np.append(board, turn_card).tolist()
             # getting available cards
-            available_cards_turn = [x for x in available_cards if x != turn_card[0]]
+            available_cards_turn = np.array(
+                [x for x in available_cards if x != turn_card[0]]
+            )
             turn_ehs_distribution = self.simulate_get_turn_ehs_distributions(
                 available_cards_turn, the_board=the_board, our_hand=our_hand,
             )
@@ -327,7 +331,7 @@ class CardInfoLutBuilder(CardCombos):
         return potential_aware_distribution_flop
 
     @staticmethod
-    def cluster(num_clusters: int, X: np.array):
+    def cluster(num_clusters: int, X: np.ndarray):
         km = KMeans(
             n_clusters=num_clusters,
             init="random",
@@ -342,15 +346,15 @@ class CardInfoLutBuilder(CardCombos):
         return centroids, y_km
 
     @staticmethod
-    def create_card_lookup(clusters: np.array, card_combos: np.array) -> Dict:
+    def create_card_lookup(clusters: np.ndarray, card_combos: np.ndarray) -> Dict:
         """
         Create lookup table.
 
         Parameters
         ----------
-        clusters : np.array
+        clusters : np.ndarray
             Array of cluster ids.
-        card_combos : np.array
+        card_combos : np.ndarray
             The card combos to which the cluster ids belong.
 
         Returns
