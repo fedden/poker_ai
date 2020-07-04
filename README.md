@@ -100,7 +100,7 @@ poker_ai play
 
 You'll create a results.yaml file in ~/.poker/. So be sure to see how you stack up against your bot.
  
-##Running tests
+## Running tests
 
 We are working hard on testing our components, but contributions here are always welcome. You can run the tests by cloning the code, changing directory to this repositories root directory (i.e `poker_ai/`) and call the python test library `pytest`:
 ```bash
