@@ -68,7 +68,39 @@ Once you have an agent, and want to play against it, you can do the following:
 poker_ai play --help
 ```
 
-## Running tests
+## Build a Bot
+
+### Cluster Hero Information
+
+In poker, the number of card combinations for one player on the river can exceed 56 billion combinations. In order to make this information tractable, we must group together strategically similar situations. We do this with two types of compression: lossy and lossless compression. Currently we only support a 20 card deck without modification.
+
+```bash
+poker_ai cluster
+```
+
+You'll save the combinations of public information in a file called card_info_lut.joblib located in your project directory.
+
+### Train your bot
+
+We use MCCFR to learn strategies. The MCCFR algorithm uses iterative self-play to adjust strategy based on regret. 
+
+```bash
+poker_ai train start
+```
+
+You'll create a folder in your project directory with the learned strategy and configuration files, in case you need to resume later.
+
+### Play your bot
+
+Finally, you can play your bot with the following command:
+
+```bash
+poker_ai play
+```
+
+You'll create a results.yaml file in ~/.poker/. So be sure to see how you stack up against your bot.
+ 
+##Running tests
 
 We are working hard on testing our components, but contributions here are always welcome. You can run the tests by cloning the code, changing directory to this repositories root directory (i.e `poker_ai/`) and call the python test library `pytest`:
 ```bash
