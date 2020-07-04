@@ -13,6 +13,7 @@ from tqdm import tqdm
 from poker_ai.clustering.card_combos import CardCombos
 from poker_ai.clustering.game_utility import GameUtility
 from poker_ai.clustering.preflop import compute_preflop_lossless_abstraction
+from poker_ai.poker.card import Card
 
 log = logging.getLogger("poker_ai.clustering.runner")
 
@@ -162,8 +163,6 @@ class CardInfoLutBuilder(CardCombos):
         ----------
         game : GameUtility
             GameState for help with determining winner and sampling opponent hand
-        num_simulations : nt
-            How many simulations you want to do
 
         Returns
         -------
@@ -192,8 +191,6 @@ class CardInfoLutBuilder(CardCombos):
             The board as of the turn
         our_hand : np.array
             Cards our hand (Card)
-        num_simulations: int
-            Number of simulations
 
         Returns
         -------
@@ -223,19 +220,21 @@ class CardInfoLutBuilder(CardCombos):
             turn_ehs_distribution[min_idx] += 1 / self.n_simulations_turn
         return turn_ehs_distribution
 
-    def process_river_ehs(self, public: List[int],) -> List[float]:
+    def process_river_ehs(self, public: List[Card]) -> List[float]:
         """
         Get the expected hand strength for a particular card combo.
 
         Parameters
         ----------
-        public : List[float]
+        public : List[Card]
             Cards to process
 
         Returns
         -------
             Expected hand strength
         """
+        import ipdb;
+        ipdb.set_trace()
         our_hand = public[:2]
         board = public[2:7]
         # get expected hand strength
@@ -261,13 +260,13 @@ class CardInfoLutBuilder(CardCombos):
         unavailable_cards = set(unavailable_cards.tolist())
         return np.array([c for c in cards if c not in unavailable_cards])
 
-    def process_turn_ehs_distributions(self, public: List[int],) -> List[float]:
+    def process_turn_ehs_distributions(self, public: List[Card],) -> List[float]:
         """
         Get the potential aware turn distribution for a particular card combo.
 
         Parameters
         ----------
-        public : List[float]
+        public : List[Card]
             Cards to process
 
         Returns

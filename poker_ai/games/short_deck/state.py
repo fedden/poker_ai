@@ -33,7 +33,7 @@ def new_game(
     ----------
     n_players : int
         Number of players.
-    info_set_lut : InfoSetLookupTable
+    card_info_lut : InfoSetLookupTable
         Card information cluster lookup table.
 
     Returns

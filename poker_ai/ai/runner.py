@@ -6,74 +6,49 @@ CLI Use
 Below you can run `python runner.py --help` to get the following description of
 the two commands available in the CLI, `resume` and `search`:
 ```
-Usage: runner.py [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  resume  Continue training agent from config loaded from file.
-  start   Train agent from scratch.
-```
-
-More information on the `start` command can be obtained by running the command
-`python runner.py start --help`. This will then return the following args that
-can be set to guide the agent:
-```
-Usage: runner.py start [OPTIONS]
+Usage: poker_ai train start [OPTIONS]
 
   Train agent from scratch.
 
 Options:
   --strategy_interval INTEGER     Update the current strategy whenever the
                                   iteration % strategy_interval == 0.
-
   --n_iterations INTEGER          The total number of iterations we should
                                   train the model for.
-
   --lcfr_threshold INTEGER        A threshold for linear CFR which means don't
                                   apply discounting before this iteration.
-
   --discount_interval INTEGER     Discount the current regret and strategy
                                   whenever iteration % discount_interval == 0.
-
   --prune_threshold INTEGER       When a uniform random number is less than
                                   95%, and the iteration > prune_threshold,
                                   use CFR with pruning.
-
   --c INTEGER                     Pruning threshold for regret, which means
                                   when we are using CFR with pruning and have
                                   a state with a regret of less than `c`, then
                                   we'll elect to not recusrively visit it and
                                   it's child nodes.
-
   --n_players INTEGER             The number of players in the game.
-
   --dump_iteration INTEGER        When the iteration % dump_iteration == 0, we
                                   will compute a new strategy and write that
                                   to the accumlated strategy, which gets
                                   normalised at a later time.
-
   --update_threshold INTEGER      When the iteration is greater than
                                   update_threshold we can start updating the
                                   strategy.
-
-  --pickle_dir TEXT               The path to the pickles for clustering the
+  --lut_path TEXT                 The path to the files for clustering the
                                   infosets.
-
-  --sync_update_strategy / async_update_strategy
+  --pickle_dir TEXT               Whether or not the lut files are pickle
+                                  files. This lookup method is deprecated.
+  --single_process / --multi_process
+                                  Either use or don't use multiple processes.
+  --sync_update_strategy / --async_update_strategy
                                   Do or don't synchronise update_strategy.
-
-  --sync_cfr / async_cfr          Do or don't synchronuse CFR.
-
-  --sync_discount / async_discount
+  --sync_cfr / --async_cfr        Do or don't synchronuse CFR.
+  --sync_discount / --async_discount
                                   Do or don't synchronise the discounting.
-
-  --sync_serialise / async_serialise
+  --sync_serialise / --async_serialise
                                   Do or don't synchronise the serialisation.
-
   --nickname TEXT                 The nickname of the study.
-
   --help                          Show this message and exit.
 ```
 """
