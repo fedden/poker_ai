@@ -27,7 +27,9 @@ class ActionSequences:
 
 
 def generate_preflop_action_sequences(
-    state: ShortDeckPokerState, action_sequences: Dict, n_players: int
+    state: ShortDeckPokerState,
+    action_sequences: ActionSequences,
+    n_players: int
 ):
     """
     DFS to return action combos

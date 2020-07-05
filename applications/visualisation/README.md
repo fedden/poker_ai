@@ -4,7 +4,7 @@ This code is to visualise a given instance of the `ShortDeckPokerState`. [The fr
 
 It looks like this:
 <p align="center">
-  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
+  <img src="https://github.com/fedden/poker_ai-poker-AI/blob/develop/assets/visualisation.png">
 </p>
 
 ### How to run
@@ -18,9 +18,9 @@ npm run build
 Next run the plot in some script, i.e:
 ```python
 from plot import PokerPlot
-from pluribus.games.short_deck.player import ShortDeckPokerPlayer
-from pluribus.games.short_deck.state import ShortDeckPokerState
-from pluribus.poker.pot import Pot
+from poker_ai.games.short_deck.player import ShortDeckPokerPlayer
+from poker_ai.games.short_deck.state import ShortDeckPokerState
+from poker_ai.poker.pot import Pot
 
 
 def get_state() -> ShortDeckPokerState:

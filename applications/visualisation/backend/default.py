@@ -1,6 +1,6 @@
-from pluribus.games.short_deck.player import ShortDeckPokerPlayer
-from pluribus.games.short_deck.state import ShortDeckPokerState
-from pluribus.poker.pot import Pot
+from poker_ai.games.short_deck.player import ShortDeckPokerPlayer
+from poker_ai.games.short_deck.state import ShortDeckPokerState
+from poker_ai.poker.pot import Pot
 
 
 def default_state_to_visualise() -> ShortDeckPokerState:

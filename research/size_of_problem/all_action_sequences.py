@@ -1,5 +1,6 @@
 """
-Similar file to action_sequences.py, except I'm removing the round threshold to generate all action sequences.
+Similar file to action_sequences.py, except I'm removing the round threshold to
+generate all action sequences.
 """
 from typing import Tuple, Dict
 import sys
@@ -18,7 +19,9 @@ class ActionSequences:
 
 
 def generate_all_action_sequences(
-    state: ShortDeckPokerState, action_sequences: Dict, n_players: int
+    state: ShortDeckPokerState,
+    action_sequences: ActionSequences,
+    n_players: int
 ):
     """
     DFS to return action combos
