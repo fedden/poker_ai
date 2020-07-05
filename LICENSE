@@ -618,6 +618,22 @@ an absolute waiver of all civil liability in connection with the
 Program, unless a warranty or assumption of liability accompanies a
 copy of the Program in return for a fee.
 
+
+
+               EXCEPTIONS AND ADDITIONAL PERMISSIONS
+
+  Indemnification
+
+  You hereby indemnify the licensors and authors from all liability and 
+claims arising from your use of the licensed technology.  The copyright 
+holder, or any other party who modifies and/or conveys the Program as 
+permitted above, will be responsible for and will indemnify and keep 
+indemnified the authors of the Program in respect of any liability, loss, 
+damage, cost, expense, deduction, contribution, assessment, penalty, fine, 
+or interest arising from or made in connection with any claim arising out 
+of the use, provision, or conveyance of the Program.
+
+
                      END OF TERMS AND CONDITIONS
 
             How to Apply These Terms to Your New Programs
@@ -672,3 +688,4 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+
