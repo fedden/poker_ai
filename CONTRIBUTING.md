@@ -6,12 +6,12 @@ If you want to work on the codebase, then although you don't have to, it is reco
 
 With ssh (recommended):
 ```bash
-git clone git@github.com:fedden/pluribus-poker-AI.git
+git clone git@github.com:fedden/poker_ai.git
 ```
 
 With https:
 ```bash
-git clone https://github.com/fedden/pluribus-poker-AI.git
+git clone https://github.com/fedden/poker_ai.git
 ```
 
 ### 2. Initialise the repo with git flow
@@ -27,7 +27,7 @@ sudo apt install git-flow
 
 If you are using Mac OS X, please checkout the [install instructions](https://github.com/nvie/gitflow/wiki/Mac-OS-X).
 
-Now `cd` to the root of the pluribus repo.
+Now `cd` to the root of the poker_ai repo.
 
 Run:
 ```bash

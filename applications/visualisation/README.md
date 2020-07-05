@@ -4,27 +4,46 @@ This code is to visualise a given instance of the `ShortDeckPokerState`. [The fr
 
 It looks like this:
 <p align="center">
-  <img src="https://github.com/fedden/pluribus-poker-AI/blob/develop/assets/visualisation.png">
+  <img src="https://github.com/fedden/poker_ai-poker-AI/blob/develop/assets/visualisation.png">
 </p>
 
 ### How to run
 
-First build the frontend, this will be served a static files by the `run.py` script.
+First build the frontend, this will be served a static files by the `PokerPlot` class.
 ```bash
 cd frontend
 npm run build
 ```
 
-Next run the backend.
-```bash
-cd .. 
-FLASK_APP=run.py python -m flask run 
+Next run the plot in some script, i.e:
+```python
+from plot import PokerPlot
+from poker_ai.games.short_deck.player import ShortDeckPokerPlayer
+from poker_ai.games.short_deck.state import ShortDeckPokerState
+from poker_ai.poker.pot import Pot
+
+
+def get_state() -> ShortDeckPokerState:
+    """Gets a state to visualise"""
+    n_players = 6
+    pot = Pot()
+    players = [
+        ShortDeckPokerPlayer(player_i=player_i, initial_chips=10000, pot=pot)
+        for player_i in range(n_players)
+    ]
+    return ShortDeckPokerState(
+        players=players, 
+        pickle_dir="../../research/blueprint_algo/"
+    )
+
+
+pp: PokerPlot = PokerPlot()
+# If you visit http://localhost:5000/ now you will see an empty table.
+
+# ... later on in the code, as proxy for some code that obtains a new state ...
+# Obtain a new state.
+state: ShortDeckPokerState = get_state()
+# Update the state to be plotted, this is sent via websockets to the frontend.
+pp.update_state(state)
+# If you visit http://localhost:5000/ now you will see table with 6 players.
 ```
-
-### More to do
-
-TODO:
-* Fix the community cards (not showing).
-* Improve the "..." icon that hovers above the currently playing player.
-* Generalise the code so we can hook up this library to an python API and visualise any state instance, like TensorBoard does.
-* Dockerise this for ease of use.
