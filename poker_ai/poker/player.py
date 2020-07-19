@@ -48,7 +48,7 @@ class Player:
                 self.name,
                 self.n_chips,
                 self.n_bet_chips,
-                int(not self.is_active))
+                int(not self._is_active))
 
     def add_chips(self, chips: int):
         """Add chips."""
