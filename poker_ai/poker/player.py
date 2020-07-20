@@ -56,7 +56,7 @@ class Player:
 
     def fold(self):
         """Deactivate player for this hand by folding cards."""
-        self.is_active = False
+        self._is_active = False
         return Fold()
 
     def call(self, players: List[Player]):
