@@ -6,38 +6,39 @@ Usage: poker_ai cluster [OPTIONS]
 Options:
   --low_card_rank INTEGER        The starting hand rank from 2 through 14 for
                                  the deck we want to cluster. We recommend
-                                 starting small.
+                                 starting small.  [default: 10]
   --high_card_rank INTEGER       The starting hand rank from 2 through 14 for
                                  the deck we want to cluster. We recommend
-                                 starting small.
+                                 starting small.  [default: 14]
   --n_river_clusters INTEGER     The number of card information buckets we
                                  would like to create for the river. We
-                                 recommend to start small.
+                                 recommend to start small.  [default: 50]
   --n_turn_clusters INTEGER      The number of card information buckets we
                                  would like to create for the turn. We
-                                 recommend to start small.
+                                 recommend to start small.  [default: 50]
   --n_flop_clusters INTEGER      The number of card information buckets we
                                  would like to create for the flop. We
-                                 recommend to start small.
+                                 recommend to start small.  [default: 50]
   --n_simulations_river INTEGER  The number of opponent hand simulations we
                                  would like to run on the river. We recommend
-                                 to start small.
+                                 to start small.  [default: 6]
   --n_simulations_turn INTEGER   The number of river card hand simulations we
                                  would like to run on the turn. We recommend
-                                 to start small.
+                                 to start small.  [default: 6]
   --n_simulations_flop INTEGER   The number of turn card hand simulations we
                                  would like to run on the flop. We recommend
-                                 to start small.
+                                 to start small.  [default: 6]
   --save_dir TEXT                Path to directory to save card info lookup
-                                 table and betting stage centroids.
-  --help                         Show this message and exit.
+                                 table and betting stage centroids.  [default:
+                                 ]
+  --help                         Show this message and exit.  [default: False]
 """
 import click
 
 from poker_ai.clustering.card_info_lut_builder import CardInfoLutBuilder
 
 
-@click.command()
+@click.command(context_settings=dict(show_default=True))
 @click.option(
     "--low_card_rank",
     default=10,
