@@ -13,43 +13,54 @@ Usage: poker_ai train start [OPTIONS]
 Options:
   --strategy_interval INTEGER     Update the current strategy whenever the
                                   iteration % strategy_interval == 0.
+                                  [default: 20]
   --n_iterations INTEGER          The total number of iterations we should
-                                  train the model for.
+                                  train the model for.  [default: 1500]
   --lcfr_threshold INTEGER        A threshold for linear CFR which means don't
                                   apply discounting before this iteration.
+                                  [default: 400]
   --discount_interval INTEGER     Discount the current regret and strategy
                                   whenever iteration % discount_interval == 0.
+                                  [default: 400]
   --prune_threshold INTEGER       When a uniform random number is less than
                                   95%, and the iteration > prune_threshold,
-                                  use CFR with pruning.
+                                  use CFR with pruning.  [default: 400]
   --c INTEGER                     Pruning threshold for regret, which means
                                   when we are using CFR with pruning and have
                                   a state with a regret of less than `c`, then
-                                  we'll elect to not recusrively visit it and
-                                  it's child nodes.
+                                  we'll elect to not recursively visit it and
+                                  it's child nodes.  [default: -20000]
   --n_players INTEGER             The number of players in the game.
+                                  [default: 3]
   --dump_iteration INTEGER        When the iteration % dump_iteration == 0, we
                                   will compute a new strategy and write that
-                                  to the accumlated strategy, which gets
-                                  normalised at a later time.
+                                  to the accumulated strategy, which gets
+                                  normalised at a later time.  [default: 20]
   --update_threshold INTEGER      When the iteration is greater than
                                   update_threshold we can start updating the
-                                  strategy.
+                                  strategy.  [default: 400]
   --lut_path TEXT                 The path to the files for clustering the
-                                  infosets.
+                                  infosets.  [default: .]
   --pickle_dir TEXT               Whether or not the lut files are pickle
                                   files. This lookup method is deprecated.
+                                  [default: False]
   --single_process / --multi_process
                                   Either use or don't use multiple processes.
+                                  [default: False]
   --sync_update_strategy / --async_update_strategy
                                   Do or don't synchronise update_strategy.
-  --sync_cfr / --async_cfr        Do or don't synchronuse CFR.
+                                  [default: False]
+  --sync_cfr / --async_cfr        Do or don't synchronuse CFR.  [default:
+                                  False]
   --sync_discount / --async_discount
                                   Do or don't synchronise the discounting.
+                                  [default: False]
   --sync_serialise / --async_serialise
                                   Do or don't synchronise the serialisation.
-  --nickname TEXT                 The nickname of the study.
-  --help                          Show this message and exit.
+                                  [default: False]
+  --nickname TEXT                 The nickname of the study.  [default: ]
+  --help                          Show this message and exit.  [default:
+                                  False]
 ```
 """
 import logging
@@ -116,7 +127,7 @@ def resume(server_config_path: str):
     _safe_search(server)
 
 
-@train.command()
+@train.command(context_settings=dict(show_default=True))
 @click.option(
     "--strategy_interval",
     default=20,
@@ -157,7 +168,7 @@ def resume(server_config_path: str):
     help=(
         "Pruning threshold for regret, which means when we are using CFR with "
         "pruning and have a state with a regret of less than `c`, then we'll "
-        "elect to not recusrively visit it and it's child nodes."
+        "elect to not recursively visit it and it's child nodes."
     ),
 )
 @click.option("--n_players", default=3, help="The number of players in the game.")
@@ -166,7 +177,7 @@ def resume(server_config_path: str):
     default=20,
     help=(
         "When the iteration % dump_iteration == 0, we will compute a new strategy "
-        "and write that to the accumlated strategy, which gets normalised at a "
+        "and write that to the accumulated strategy, which gets normalised at a "
         "later time."
     ),
 )
