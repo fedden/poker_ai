@@ -238,3 +238,23 @@ def test_evaluate_with_five_cards_returns_correct_rank_for_highest_card(hand):
     evaluator = Evaluator()
 
     assert evaluator.evaluate(cards[:2], cards[2:]) == hand['expectedRank']
+
+
+@pytest.mark.parametrize("parameters", [
+    {"handCards": "A3", "handSuits": "dc", "communityCards": "A2K3", "communitySuits": "dhss", "expectedRank": 2578},
+    {"handCards": "K3", "handSuits": "dc", "communityCards": "2456", "communitySuits": "chss", "expectedRank": 1608},
+    {"handCards": "25", "handSuits": "dc", "communityCards": "3632", "communitySuits": "chss", "expectedRank": 3323},
+    {"handCards": "78", "handSuits": "dc", "communityCards": "5426", "communitySuits": "chss", "expectedRank": 1606},
+    {"handCards": "JT", "handSuits": "dc", "communityCards": "AA4T", "communitySuits": "chss", "expectedRank": 2503}])
+def test_evaluate_with_six_cards_returns_lowest_rank(parameters):
+    cards = [
+        EvaluationCard.new(f"{parameters['handCards'][0]}{parameters['handSuits'][0]}"),
+        EvaluationCard.new(f"{parameters['handCards'][1]}{parameters['handSuits'][1]}"),
+        EvaluationCard.new(f"{parameters['communityCards'][0]}{parameters['communitySuits'][0]}"),
+        EvaluationCard.new(f"{parameters['communityCards'][1]}{parameters['communitySuits'][1]}"),
+        EvaluationCard.new(f"{parameters['communityCards'][2]}{parameters['communitySuits'][2]}"),
+        EvaluationCard.new(f"{parameters['communityCards'][3]}{parameters['communitySuits'][3]}"),
+    ]
+    evaluator = Evaluator()
+
+    assert evaluator.evaluate(cards[:2], cards[2:]) == parameters['expectedRank']
