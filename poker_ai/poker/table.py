@@ -7,7 +7,7 @@ from poker_ai.poker.dealer import Dealer
 if TYPE_CHECKING:
     from poker_ai.poker.player import Player
     from poker_ai.poker.pot import Pot
-    from poker_ai.poker.cards import Card
+    from poker_ai.poker.card import Card
 
 
 class PokerTable:
