@@ -14,3 +14,4 @@ scipy==1.4.1
 Sphinx==3.0.4
 sphinx-rtd-theme==0.4.3
 tqdm==4.43.0
+pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
