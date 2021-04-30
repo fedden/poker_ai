@@ -9,7 +9,7 @@ pytest==5.4.3
 PyYAML==5.3.1
 rich==1.0.0
 recommonmark==0.6.0
-scikit-learn==0.22.1
+scikit-learn==0.24.2
 scipy==1.4.1
 Sphinx==3.0.4
 sphinx-rtd-theme==0.4.3
