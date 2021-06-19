@@ -13,8 +13,9 @@ from poker_ai.games.short_deck import state
 from poker_ai.ai.multiprocess.worker import Worker
 
 log = logging.getLogger("sync.server")
-manager = mp.Manager()
 
+if __name__ == '__main__':
+    manager = mp.Manager()
 
 class Server:
     """Server class to manage all workers optimising CFR algorithm."""
