@@ -24,7 +24,7 @@
     const NODE_REL_SIZE = 1;
     const graph = ForceGraph3D()
       .dagMode('td')
-      .dagLevelDistance(200)
+      .dagLevelDistance(20)
       .backgroundColor('#101020')
       .linkColor(() => 'rgba(255,255,255,0.2)')
       .nodeRelSize(NODE_REL_SIZE)
@@ -47,22 +47,23 @@
       .then(d3.csvParse)
       .then(data => {
         const nodes = [], links = [];
-        data.forEach(({ size, path }) => {
+        data.forEach(({ size, path, is_player }) => {
           const levels = path.split('/'),
             level = levels.length - 1,
-            module = level > 0 ? levels[1] : null,
+            module = (is_player !== "not_player" && level > 0) ? levels[1] + is_player : null,
             leaf = levels.pop(),
             parent = levels.join('/');
 
-          if (level < 3) {
-          const node = {
-            path,
-            leaf,
-            module,
-            size: +size || 20,
-            level
+          if (level < 7) {
+            const node = {
+              path,
+              leaf,
+              module,
+              size: +size || 20,
+              level
           };
-          nodes.push(node);
+
+            nodes.push(node);
 
           if (parent) {
             console.log({source: parent, target: path, targetNode: node})
