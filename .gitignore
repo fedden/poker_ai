@@ -1,4 +1,7 @@
 research/
+_2*
+card_info_lut.joblib
+centroids.joblib
 tags
 tags/
 *.pkl
