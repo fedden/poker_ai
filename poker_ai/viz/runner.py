@@ -2,12 +2,21 @@ import os
 from collections import defaultdict
 from typing import List, Dict, Any, TypedDict, Tuple
 import itertools
+import logging
+from pathlib import Path
 
+import click
 import joblib
 import json
 import pandas as pd
 from tqdm import tqdm
+from flask import Flask, render_template
 
+
+log = logging.getLogger(__name__)
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+template_folder = os.path.join(repo_root, "viz")
+app = Flask(__name__, template_folder=template_folder)
 
 # Will be cli args.
 betting_round_viz = "flop_hand_cluster_0_call-call-call"
@@ -130,18 +139,39 @@ def _get_betting_round_action_combos(betting_round_viz, max_generate_level):
     return betting_round_action_combos
 
 
-bot_dag_data = _get_bot_dag_data(strategy_path)
-max_generate_level = bot_dag_data[betting_round_viz].max_level
-betting_round_action_combos = _get_betting_round_action_combos(
-    betting_round_viz, max_generate_level
-)
+@click.command()
+@click.option("--strategy_dir", type=click.Path(exists=True))
+@click.option("--betting_round_viz", type=str)
+@click.option("--max_depth", type=int, default=7)
+@click.option("--host", default="127.0.0.1", help="The interface to bind to.")
+@click.option("--port", default=5000, help="The port to bind to.")
+def create_viz(strategy_dir, betting_round_viz, max_depth, host, port):
+    strategy_dir = Path(strategy_dir)
+    bot_dag_data = _get_bot_dag_data(strategy_dir / "agent.joblib")
+    max_generate_level = bot_dag_data[betting_round_viz].max_level
+    betting_round_action_combos = _get_betting_round_action_combos(
+        betting_round_viz, max_generate_level
+    )
 
-for i, path in enumerate(betting_round_action_combos["path"]):
-    if path in bot_dag_data[betting_round_viz].size:
-        betting_round_action_combos["size"][i] = bot_dag_data[betting_round_viz].size[
-            path
-        ]
-        betting_round_action_combos["is_player"][i] = "player"
+    for i, path in enumerate(betting_round_action_combos["path"]):
+        if path in bot_dag_data[betting_round_viz].size:
+            betting_round_action_combos["size"][i] = bot_dag_data[
+                betting_round_viz
+            ].size[path]
+            betting_round_action_combos["is_player"][i] = "player"
 
-strategy_viz_df = pd.DataFrame(data=betting_round_action_combos)
-strategy_viz_df.to_csv("strategy_viz_dataset.csv", index=False)
+    strategy_viz_df = pd.DataFrame(data=betting_round_action_combos)
+    strategy_viz_df.to_csv(strategy_dir / "strategy_viz_dataset.csv", index=False)
+
+    @app.route("/")
+    def index():
+        strategy_viz_path = strategy_dir / "strategy_viz_dataset.csv"
+        return render_template(
+            "index.html", strategy_viz_path=strategy_viz_path, max_depth=max_depth
+        )
+
+    app.run(host=host, port=port)
+
+
+if __name__ == "__main__":
+    create_viz()
