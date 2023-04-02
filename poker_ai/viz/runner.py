@@ -160,15 +160,15 @@ def create_viz(strategy_dir, betting_round_viz, max_depth, host, port):
             ].size[path]
             betting_round_action_combos["is_player"][i] = "player"
 
+    strategy_viz_dataset_path = (
+        Path(template_folder) / "static/strategy_viz_dataset.csv"
+    )
     strategy_viz_df = pd.DataFrame(data=betting_round_action_combos)
-    strategy_viz_df.to_csv(strategy_dir / "strategy_viz_dataset.csv", index=False)
+    strategy_viz_df.to_csv(strategy_viz_dataset_path, index=False)
 
     @app.route("/")
     def index():
-        strategy_viz_path = strategy_dir / "strategy_viz_dataset.csv"
-        return render_template(
-            "index.html", strategy_viz_path=strategy_viz_path, max_depth=max_depth
-        )
+        return render_template("index.html", max_depth=max_depth)
 
     app.run(host=host, port=port)
 
