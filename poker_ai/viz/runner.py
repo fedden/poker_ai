@@ -206,6 +206,8 @@ def _get_betting_round_action_combos(betting_round_state_viz, max_generate_level
     "--strategy_dir",
     type=click.Path(exists=True),
     help="Path to the strategy directory.",
+    required=False,
+    default=None,
 )
 @click.option(
     "--info_set_str",
@@ -244,31 +246,89 @@ def _get_betting_round_action_combos(betting_round_state_viz, max_generate_level
 @click.option("--host", default="127.0.0.1", help="The interface to bind to.")
 @click.option("--port", default=8888, help="The port to bind to.")
 def create_viz(strategy_dir, info_set_str, max_depth, host, port):
-    strategy_dir = Path(strategy_dir)
+    """
+    Create a vizualization of a bot's strategy in your browser.
+
+    Prerequisites
+    -------------
+    - You must have a strategy trained via the `poker_ai cluster` and `poker_ai
+    train` commands in addition to the repo's installation instructions.
+    Though, there is test data included for the `poker_ai viz` command when the
+    `strategy_dir` is None.
+    - You'll need to get an infoset to vizualize, you can copy one from the
+    output of the strategy.
+
+    >>> strategy = joblib.load('path/to/strategy_dir/agent.joblib')
+    >>> strategy['strategy'].keys()
+    Make sure to user '' around the infoset so it can be parsed by your
+    shell.
+
+    Eg;
+    ```
+    '{
+        "cards_cluster":9,
+        "betting_stage":"turn",
+        "history":[
+            {"pre_flop":["raise","raise","raise","call","call"]},
+            {"flop":["raise","raise","fold","call"]},
+            {"turn":["raise","raise"]}
+        ]
+    }'
+
+    Run `poker_ai viz --help` for more information about the accepted
+    arguments.
+    ```
+    TODO update the one used for the test data also in the dataset and argument
+    default.
+    """
     betting_round_state_viz, _ = to_start_of_betting_round_str(info_set_str)
-    bot_dag_data: Dict[str, StrategySizeLevelDict] = _get_bot_dag_data(
-        strategy_dir / "agent.joblib"
-    )
-    max_generate_level = bot_dag_data[betting_round_state_viz].max_level
-    betting_round_action_combos = _get_betting_round_action_combos(
-        betting_round_state_viz, max_generate_level
-    )
 
-    # Update the size of the nodes based on the bot's strategy.
-    for i, path in enumerate(betting_round_action_combos["path"]):
-        if path in bot_dag_data[betting_round_state_viz].size:
-            betting_round_action_combos["size"][i] = bot_dag_data[
-                betting_round_state_viz
-            ].size[path]
-            # Used for coloring the vizualization to see the states the bot has
-            # a strategy for.
-            betting_round_action_combos["is_player"][i] = "player"
+    # Use the strategy provided by the user, otherwise, we'll serve the
+    # templated one.
+    if strategy_dir is not None:
+        strategy_dir = Path(strategy_dir)
+        log.info(f"Checking for cached strategy data in {strategy_dir}.")
+        # Let's check the cache first. No need to reparse the same strategy a
+        # bunch.
+        bot_dag_cache_path: Path = strategy_dir / "bot_dag_cache.joblib"
+        if bot_dag_cache_path.exists():
+            log.info("Cache found, loading from cache.")
+            bot_dag_data: Dict[str, StrategySizeLevelDict] = joblib.load(
+                bot_dag_cache_path
+            )
+        else:
+            log.info("Cache not found, parsing strategy.")
+            bot_dag_data: Dict[str, StrategySizeLevelDict] = _get_bot_dag_data(
+                strategy_dir / "agent.joblib"
+            )
+            log.info("Caching strategy data.")
+            joblib.dump(bot_dag_data, bot_dag_cache_path)
+        log.info(
+            "Done parsing strategy. Generating missing states the bot did not traverse."
+        )
+        max_generate_level = bot_dag_data[betting_round_state_viz].max_level
+        betting_round_action_combos = _get_betting_round_action_combos(
+            betting_round_state_viz, max_generate_level
+        )
 
-    strategy_viz_dataset_path = (
-        Path(template_folder) / "static/strategy_viz_dataset.csv"
-    )
-    strategy_viz_df = pd.DataFrame(data=betting_round_action_combos)
-    strategy_viz_df.to_csv(strategy_viz_dataset_path, index=False)
+        # Update the size of the nodes based on the bot's strategy.
+        for i, path in enumerate(betting_round_action_combos["path"]):
+            if path in bot_dag_data[betting_round_state_viz].size:
+                betting_round_action_combos["size"][i] = bot_dag_data[
+                    betting_round_state_viz
+                ].size[path]
+                # Used for coloring the vizualization to see the states the bot has
+                # a strategy for.
+                betting_round_action_combos["is_player"][i] = "player"
+
+        strategy_viz_dataset_path = (
+            Path(template_folder) / "static/strategy_viz_dataset.csv"
+        )
+        strategy_viz_df = pd.DataFrame(data=betting_round_action_combos)
+        strategy_viz_df.to_csv(strategy_viz_dataset_path, index=False)
+    else:
+        log.info("Using test data from the repo.")
+        pass
 
     @app.route("/")
     def index():
