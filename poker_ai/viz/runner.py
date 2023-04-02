@@ -230,15 +230,12 @@ def _generate_action_combos(base_path, level):
     """
     actions = ["fold", "raise", "call"]
     combinations = itertools.product(actions, repeat=level)
-    paths = [f"{base_path}/{'/'.join(p)}" for p in combinations]
-    # This will produce few nonsense action paths. For example, not all
-    # raises are a valid move in a given state. This is fine for now.
-    # The nodes will be uncolored, but in order to remove the invalid game
-    # states, we'll need to have additional logic to check if the betting round
-    # changes based on the action sequence. Only 3 raises are permitted per
-    # round. Could also save the invalid paths in the `bot_dag_data` creation,
-    # but that is not helpful if the bot hasn't seen much of the game tree.
-    # TODO.
+    # The combinations only refer to one betting stage, so we can remove
+    # invalid action sequences wrt "raise" by ensuring that there are no more
+    # than three presented here.
+    paths = [
+        f"{base_path}/{'/'.join(p)}" for p in combinations if p.count("raise") <= 3
+    ]
     valid_paths = [
         path
         for path in paths
