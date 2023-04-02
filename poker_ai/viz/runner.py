@@ -1,3 +1,62 @@
+"""
+  Create a vizualization of a bot's strategy in your browser. You can get
+  started with the provided test data without any flags.
+
+  >>> poker_ai viz
+
+  Prerequisites
+
+  -------------
+
+  - You must have a strategy trained via the `poker_ai cluster` and `poker_ai
+  train` commands in addition to the repo's installation instructions. Though,
+  there is test data included for the `poker_ai viz` command when the
+  `strategy_dir` is None.
+
+  - You'll need to get an infoset to vizualize, you can copy one from the
+  output of the strategy.
+
+  >>> strategy = joblib.load('path/to/strategy_dir/agent.joblib')
+
+  >>> strategy['strategy'].keys()
+
+  Make sure to user '' around the infoset so it can be parsed by your shell.
+
+  Example.
+
+  ```
+
+  '{"cards_cluster":9,"betting_stage":"turn","history":[{"pre_flop":["raise",
+  "raise","raise","call","call"]},{"flop":["raise","raise","fold","call"]},{
+  "turn":["raise","raise"]}]}'
+
+  ```
+
+  For details on the accepted arguments and defaults.
+
+  >>> poker_ai viz --help
+
+Options:
+  --strategy_dir PATH  Path to the strategy directory.
+  --info_set_str TEXT  Infoset to vizualize, you can copy one from the output
+                       of the strategy.
+
+                       >>> strategy =
+                       joblib.load('path/to/strategy_dir/agent.joblib')
+
+                       >>> strategy['strategy'].keys()
+
+                       Make sure to user '' around the infoset so it can be
+                       parsed by your shell.
+
+                       Eg; '{"cards_cluster":1,"betting_stage":"flop","history
+                       ":[{"pre_flop":["call", "call","call"]}]}'
+  --max_depth INTEGER  Max depth of the viz.  Recommend 7 or less, as the tree
+                       grows exponentially (~^3)
+  --host TEXT          The interface to bind to.
+  --port INTEGER       The port to bind to.
+  --help               Show this message and exit.
+"""
 import os
 from collections import defaultdict
 from typing import List, Dict, Any, TypedDict, Tuple
@@ -226,18 +285,15 @@ def _get_betting_round_action_combos(betting_round_state_viz, max_generate_level
         strategy.
 
         >>> strategy = joblib.load('path/to/strategy_dir/agent.joblib')
+
         >>> strategy['strategy'].keys()
+
         Make sure to user '' around the infoset so it can be parsed by your
         shell.
 
         Eg;
-        ```
-        '{
-            "cards_cluster":1,
-            "betting_stage":"flop",
-            "history":[{"pre_flop":["call","call","call"]}]
-        }'
-        ```
+        '{"cards_cluster":1,"betting_stage":"flop","history":[{"pre_flop":["call",
+        "call","call"]}]}'
         """
     ),
 )
@@ -251,39 +307,43 @@ def _get_betting_round_action_combos(betting_round_state_viz, max_generate_level
 @click.option("--port", default=8888, help="The port to bind to.")
 def create_viz(strategy_dir, info_set_str, max_depth, host, port):
     """
-    Create a vizualization of a bot's strategy in your browser.
+    Create a vizualization of a bot's strategy in your browser. You can get
+    started with the provided test data without any flags.
+
+    >>> poker_ai viz
 
     Prerequisites
+
     -------------
+
     - You must have a strategy trained via the `poker_ai cluster` and `poker_ai
     train` commands in addition to the repo's installation instructions.
     Though, there is test data included for the `poker_ai viz` command when the
     `strategy_dir` is None.
+
     - You'll need to get an infoset to vizualize, you can copy one from the
     output of the strategy.
 
     >>> strategy = joblib.load('path/to/strategy_dir/agent.joblib')
+
     >>> strategy['strategy'].keys()
+
     Make sure to user '' around the infoset so it can be parsed by your
     shell.
 
-    Eg;
-    ```
-    '{
-        "cards_cluster":9,
-        "betting_stage":"turn",
-        "history":[
-            {"pre_flop":["raise","raise","raise","call","call"]},
-            {"flop":["raise","raise","fold","call"]},
-            {"turn":["raise","raise"]}
-        ]
-    }'
+    Example.
 
-    Run `poker_ai viz --help` for more information about the accepted
-    arguments.
     ```
-    TODO update the one used for the test data also in the dataset and argument
-    default.
+
+    '{"cards_cluster":9,"betting_stage":"turn","history":[{"pre_flop":["raise",
+    "raise","raise","call","call"]},{"flop":["raise","raise","fold","call"]},{
+    "turn":["raise","raise"]}]}'
+
+    ```
+
+    For details on the accepted arguments and defaults.
+
+    >>> poker_ai viz --help
     """
     betting_round_state_viz, _ = to_start_of_betting_round_str(info_set_str)
 
