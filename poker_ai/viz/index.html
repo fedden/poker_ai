@@ -41,14 +41,6 @@
 
     // Decrease repel intensity
     graph.d3Force('charge').strength(-15);
-    
-    /*
-    fetch('/viz_args')
-      .then(response => response.json())
-      .then(data => {
-        const max_depth = data['max_depth'];
-      });
-      */
 
     fetch("{{ url_for('static', filename='strategy_viz_dataset.csv') }}")
       .then(r => r.text())
@@ -62,7 +54,7 @@
             leaf = levels.pop(),
             parent = levels.join('/');
 
-            if (level < {{ max_depth }}) {
+          if (level < {{ max_depth }}) {
             const node = {
               path,
               leaf,
@@ -73,10 +65,10 @@
 
             nodes.push(node);
 
-          if (parent) {
-            console.log({source: parent, target: path, targetNode: node})
-            links.push({source: parent, target: path, targetNode: node});
-          }
+            if (parent) {
+              console.log({source: parent, target: path, targetNode: node})
+              links.push({source: parent, target: path, targetNode: node});
+            }
           }
         });
 
