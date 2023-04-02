@@ -52,15 +52,11 @@ def to_start_of_betting_round_str(info_set_str: str) -> Tuple[str, List[str]]:
     Make sure to user '' around the infoset so it can be parsed by your
     shell.
 
-    Eg;
+    Eg; will work with the test data in the `poker_ai` repo for dag viz.
     >>> info_set_str = '{
-    >>>    "cards_cluster":9,
-    >>>    "betting_stage":"turn",
-    >>>    "history":[
-    >>>        {"pre_flop":["raise","raise","raise","call","call"]},
-    >>>        {"flop":["raise","raise","fold","call"]},
-    >>>        {"turn":["raise","raise"]}
-    >>>    ]
+    >>>     "cards_cluster":1,
+    >>>     "betting_stage":"flop",
+    >>>     "history":[{"pre_flop":["call","call","call"]}]
     >>> }'
     >>> to_start_of_betting_round_str(info_set_str)
 
@@ -99,6 +95,9 @@ def to_start_of_betting_round_str(info_set_str: str) -> Tuple[str, List[str]]:
             action_history += "_" + "-".join(list(past_betting_stage_dict.values())[0])
         else:
             for actions in past_betting_stage_dict.values():
+                # I believe without skip is the same unique action sequence.
+                # I tested empirically on 1.5 million paths.
+                actions = [action for action in actions if action != "skip"]
                 history.extend(actions)
     top_of_betting_round = f"{betting_stage}_hand_cluster_{cluster}{action_history}"
 
@@ -122,6 +121,9 @@ def _get_bot_dag_data(strategy_path: Path) -> Dict[str, StrategySizeLevelDict]:
         norm = sum(list(action_to_probabilities.values()))
 
         for next_action in ["call", "fold", "raise"]:
+            # This will produce few nonsense action paths. For example, not all
+            # raises are a valid move in a given state. This is fine for now.
+            # TODO.
             probability = action_to_probabilities.get(next_action, 0)
 
             start_of_betting_round, history = to_start_of_betting_round_str(
@@ -165,6 +167,9 @@ def _generate_action_combos(base_path, level):
     actions = ["fold", "raise", "call"]
     combinations = itertools.product(actions, repeat=level)
     paths = [f"{base_path}/{'/'.join(p)}" for p in combinations]
+    # This will produce few nonsense action paths. For example, not all
+    # raises are a valid move in a given state. This is fine for now.
+    # TODO.
     valid_paths = [
         path
         for path in paths
@@ -212,6 +217,9 @@ def _get_betting_round_action_combos(betting_round_state_viz, max_generate_level
 @click.option(
     "--info_set_str",
     type=str,
+    default="""
+    {"cards_cluster":1,"betting_stage":"flop","history":[{"pre_flop":["call","call","call"]}]}
+        """,
     help=(
         """
         Infoset to vizualize, you can copy one from the output of the
@@ -225,13 +233,9 @@ def _get_betting_round_action_combos(betting_round_state_viz, max_generate_level
         Eg;
         ```
         '{
-            "cards_cluster":9,
-            "betting_stage":"turn",
-            "history":[
-                {"pre_flop":["raise","raise","raise","call","call"]},
-                {"flop":["raise","raise","fold","call"]},
-                {"turn":["raise","raise"]}
-            ]
+            "cards_cluster":1,
+            "betting_stage":"flop",
+            "history":[{"pre_flop":["call","call","call"]}]
         }'
         ```
         """
@@ -306,6 +310,7 @@ def create_viz(strategy_dir, info_set_str, max_depth, host, port):
         log.info(
             "Done parsing strategy. Generating missing states the bot did not traverse."
         )
+
         max_generate_level = bot_dag_data[betting_round_state_viz].max_level
         betting_round_action_combos = _get_betting_round_action_combos(
             betting_round_state_viz, max_generate_level
