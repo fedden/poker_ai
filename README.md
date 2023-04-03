@@ -19,7 +19,8 @@ This repository will contain a best effort open source implementation of a poker
 _Made with love from the developers [Leon](https://www.leonfedden.co.uk) and [Colin](http://www.colinmanko.com/)._
 
 
-https://user-images.githubusercontent.com/50527015/229384172-70ce0489-36a3-4bce-a8f0-9819e98e5a4d.mov
+https://user-images.githubusercontent.com/50527015/229401582-10cbcd81-8e0b-4ef1-ad04-c90c04af8ee2.mov
+
 
 _A special thank you to [worldveil](https://github.com/worldveil) for originally writing [this awesome hand evaluator python2 module](https://github.com/worldveil/deuces), which was ported to python3 and [maintained here](https://github.com/fedden/poker_ai/tree/master/poker_ai/poker/evaluation)._
 
