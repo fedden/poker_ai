@@ -90,12 +90,10 @@ def update_strategy(
         # calculate regret
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
         sigma = calculate_strategy(this_info_sets_regret)
-        log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
         # choose an action based of sigma
         available_actions: List[str] = list(sigma.keys())
         action_probabilities: np.ndarray = np.array(list(sigma.values()))
         action: str = np.random.choice(available_actions, p=action_probabilities)
-        log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         # Increment the action counter.
         if locks:
             locks["strategy"].acquire()
@@ -112,7 +110,6 @@ def update_strategy(
     else:
         # Traverse each action.
         for action in state.legal_actions:
-            log.debug(f"Going to Traverse {action} for opponent")
             new_state: ShortDeckPokerState = state.apply_action(action)
             update_strategy(agent, new_state, i, t, locks)
 
@@ -142,22 +139,6 @@ def cfr(
     locks : Dict[str, mp.synchronize.Lock]
         The locks for multiprocessing
     """
-    log.debug("CFR")
-    log.debug("########")
-    log.debug(f"Iteration: {t}")
-    log.debug(f"Player Set to Update Regret: {i}")
-    log.debug(f"P(h): {state.player_i}")
-    log.debug(f"P(h) Updating Regret? {state.player_i == i}")
-    log.debug(f"Betting Round {state._betting_stage}")
-    log.debug(f"Community Cards {state._table.community_cards}")
-    for i, player in enumerate(state.players):
-        log.debug(f"Player {i} hole cards: {player.cards}")
-    try:
-        log.debug(f"I(h): {state.info_set}")
-    except KeyError:
-        pass
-    log.debug(f"Betting Action Correct?: {state.players}")
-
     ph = state.player_i
 
     player_not_in_hand = not state.players[i].is_active
@@ -183,23 +164,13 @@ def cfr(
         # calculate strategy
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
         sigma = calculate_strategy(this_info_sets_regret)
-        log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
 
         vo = 0.0
         voa: Dict[str, float] = {}
         for action in state.legal_actions:
-            log.debug(
-                f"ACTION TRAVERSED FOR REGRET: ph {state.player_i} ACTION: {action}"
-            )
             new_state: ShortDeckPokerState = state.apply_action(action)
             voa[action] = cfr(agent, new_state, i, t, locks)
-            log.debug(f"Got EV for {action}: {voa[action]}")
             vo += sigma[action] * voa[action]
-            log.debug(
-                f"Added to Node EV for ACTION: {action} INFOSET: {state.info_set}\n"
-                f"STRATEGY: {sigma[action]}: {sigma[action] * voa[action]}"
-            )
-        log.debug(f"Updated EV at {state.info_set}: {vo}")
         if locks:
             locks["regret"].acquire()
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
@@ -213,11 +184,9 @@ def cfr(
     else:
         this_info_sets_regret = agent.regret.get(state.info_set, state.initial_regret)
         sigma = calculate_strategy(this_info_sets_regret)
-        log.debug(f"Calculated Strategy for {state.info_set}: {sigma}")
         available_actions: List[str] = list(sigma.keys())
         action_probabilities: List[float] = list(sigma.values())
         action: str = np.random.choice(available_actions, p=action_probabilities)
-        log.debug(f"ACTION SAMPLED: ph {state.player_i} ACTION: {action}")
         new_state: ShortDeckPokerState = state.apply_action(action)
         return cfr(agent, new_state, i, t, locks)
 

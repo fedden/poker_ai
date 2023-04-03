@@ -18,10 +18,11 @@ This repository will contain a best effort open source implementation of a poker
 
 _Made with love from the developers [Leon](https://www.leonfedden.co.uk) and [Colin](http://www.colinmanko.com/)._
 
-_A special thank you to [worldveil](https://github.com/worldveil) for originally writing [this awesome hand evaluator python2 module](https://github.com/worldveil/deuces), which was ported to python3 and [maintained here](https://github.com/fedden/poker_ai/tree/master/poker_ai/poker/evaluation)._
 
-## Join the Community
-[https://thepoker.ai](https://thepoker.ai)
+https://user-images.githubusercontent.com/50527015/229401582-10cbcd81-8e0b-4ef1-ad04-c90c04af8ee2.mov
+
+
+_A special thank you to [worldveil](https://github.com/worldveil) for originally writing [this awesome hand evaluator python2 module](https://github.com/worldveil/deuces), which was ported to python3 and [maintained here](https://github.com/fedden/poker_ai/tree/master/poker_ai/poker/evaluation)._
 
 ## Prerequisites
 
@@ -49,6 +50,12 @@ How to get a list of commands that can be run:
 ```bash
 poker_ai --help
 ``` 
+
+If you want to do something cool quickly, run the following command to see
+a vizualization of a bot strategy on a flop.
+```bash
+poker_ai viz
+```
 
 You will need to produce some lookup tables that cluster the various information sets. Here is more information on that:
 ```bash
@@ -101,6 +108,18 @@ poker_ai play
 ```
 
 You'll create a results.yaml file in ~/.poker/. So be sure to see how you stack up against your bot.
+
+### Vizualize your bot's strategy.
+
+You can vizualize your bot's strategy with the following command:
+
+```bash
+poker_ai viz --help
+```
+
+To get full use out of the feature, you'll want to provide a strategy directory,
+and an infoset provided by your strategy. Running the above command will give you 
+examples of how to do this after you train your bot.
  
 ## Running tests
 

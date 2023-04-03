@@ -48,18 +48,11 @@ def new_game(
     ]
     if card_info_lut:
         # Don't reload massive files, it takes ages.
-        state = ShortDeckPokerState(
-            players=players,
-            load_card_lut=False,
-            **kwargs
-        )
+        state = ShortDeckPokerState(players=players, load_card_lut=False, **kwargs)
         state.card_info_lut = card_info_lut
     else:
         # Load massive files.
-        state = ShortDeckPokerState(
-            players=players,
-            **kwargs
-        )
+        state = ShortDeckPokerState(players=players, **kwargs)
     return state
 
 
@@ -236,8 +229,7 @@ class ShortDeckPokerState:
 
     @staticmethod
     def load_card_lut(
-        lut_path: str = ".",
-        pickle_dir: bool = False
+        lut_path: str = ".", pickle_dir: bool = False
     ) -> Dict[str, Dict[Tuple[int, ...], str]]:
         """
         Load card information lookup table.
@@ -278,7 +270,7 @@ class ShortDeckPokerState:
                     card_info_lut[betting_stage] = joblib.load(fp)
         elif lut_path:
             logger.info(f"Loading card from single file at path: {lut_path}")
-            card_info_lut = joblib.load(lut_path + '/card_info_lut.joblib')
+            card_info_lut = joblib.load(lut_path + "/card_info_lut.joblib")
         else:
             card_info_lut = {}
         return card_info_lut
@@ -408,6 +400,7 @@ class ShortDeckPokerState:
         # paranoid about JSON's lack of care with insertion order.
         info_set_dict = {
             "cards_cluster": cards_cluster,
+            "betting_stage": self._betting_stage,
             "history": [
                 {betting_stage: [str(action) for action in actions]}
                 for betting_stage, actions in self._history.items()
