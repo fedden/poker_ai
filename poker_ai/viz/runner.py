@@ -232,7 +232,8 @@ def _generate_action_combos(base_path, level):
     combinations = itertools.product(actions, repeat=level)
     # The combinations only refer to one betting stage, so we can remove
     # invalid action sequences wrt "raise" by ensuring that there are no more
-    # than three presented here.
+    # than three presented here. I did a decent spot check to ensure that paths
+    # in the bot's strategy were all located in the combos. Looks good.
     paths = [
         f"{base_path}/{'/'.join(p)}" for p in combinations if p.count("raise") <= 3
     ]
