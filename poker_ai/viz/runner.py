@@ -106,12 +106,16 @@ def to_start_of_betting_round_str(info_set_str: str) -> Tuple[str, List[str]]:
     the current betting stage.
 
     Example Useage.
+
     >>> strategy = joblib.load('path/to/strategy_dir/agent.joblib')
+
     >>> strategy['strategy'].keys()
+
     Make sure to user '' around the infoset so it can be parsed by your
     shell.
 
     Eg; will work with the test data in the `poker_ai` repo for dag viz.
+
     >>> info_set_str = '{
     >>>     "cards_cluster":1,
     >>>     "betting_stage":"flop",
@@ -180,10 +184,11 @@ def _get_bot_dag_data(strategy_path: Path) -> Dict[str, StrategySizeLevelDict]:
         norm = sum(list(action_to_probabilities.values()))
 
         for next_action in ["call", "fold", "raise"]:
-            # This will produce few nonsense action paths. For example, not all
-            # raises are a valid move in a given state. This is fine for now.
-            # TODO.
-            probability = action_to_probabilities.get(next_action, 0)
+
+            # Avoid raise actions when they are not valid.
+            if next_action not in action_to_probabilities:
+                continue
+            probability = action_to_probabilities.get(next_action)
 
             start_of_betting_round, history = to_start_of_betting_round_str(
                 info_set_str
@@ -228,6 +233,11 @@ def _generate_action_combos(base_path, level):
     paths = [f"{base_path}/{'/'.join(p)}" for p in combinations]
     # This will produce few nonsense action paths. For example, not all
     # raises are a valid move in a given state. This is fine for now.
+    # The nodes will be uncolored, but in order to remove the invalid game
+    # states, we'll need to have additional logic to check if the betting round
+    # changes based on the action sequence. Only 3 raises are permitted per
+    # round. Could also save the invalid paths in the `bot_dag_data` creation,
+    # but that is not helpful if the bot hasn't seen much of the game tree.
     # TODO.
     valid_paths = [
         path
